@@ -25,6 +25,11 @@ export async function addManyToInventory(cards: Card[]): Promise<void> {
 	await tx.done;
 }
 
+export async function removeFromInventory(cardId: string): Promise<void> {
+	const db = await getDb();
+	await db.delete('cardInventory', cardId);
+}
+
 // ---- Deck ativo ----
 export async function getActiveDeck(): Promise<Card[]> {
 	const db = await getDb();

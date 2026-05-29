@@ -1,5 +1,5 @@
 import { getPlayer, savePlayer } from '$lib/db/player';
-import { getAllPokemon } from '$lib/db/pokemon';
+import { addPokemon, getAllPokemon } from '$lib/db/pokemon';
 import { clamp } from '$lib/utils/math';
 import type { CapturedPokemon, Element, Player, Theme } from './types';
 
@@ -104,8 +104,28 @@ export function recordDefeat(regionId: string, total: number): void {
 	schedulePersist();
 }
 
+export function normalizedPokemonHp(pokemon: CapturedPokemon): number {
+	return clamp(pokemon.currentHp ?? pokemon.maxHp, 0, pokemon.maxHp);
+}
+
+export async function setPokemonCurrentHp(pokemonId: string, hp: number): Promise<void> {
+	const pokemon = game.roster.find((p) => p.id === pokemonId);
+	if (!pokemon) return;
+	const next = clamp(hp, 0, pokemon.maxHp);
+	if (Math.abs((pokemon.currentHp ?? pokemon.maxHp) - next) < 0.0001) return;
+	pokemon.currentHp = next;
+	await addPokemon($state.snapshot(pokemon));
+}
+
+export async function persistPokemonById(pokemonId: string): Promise<void> {
+	const pokemon = game.roster.find((p) => p.id === pokemonId);
+	if (!pokemon) return;
+	await addPokemon($state.snapshot(pokemon));
+}
+
 // ---- Roster ----
 export function addToRoster(pokemon: CapturedPokemon): void {
+	pokemon.currentHp = clamp(pokemon.currentHp ?? pokemon.maxHp, 0, pokemon.maxHp);
 	game.roster.push(pokemon);
 }
 
@@ -142,6 +162,18 @@ async function doInit(): Promise<InitResult> {
 
 	game.player = player;
 	game.roster = await getAllPokemon();
+
+	let rosterNeedsFix = false;
+	for (const p of game.roster) {
+		const fixedHp = clamp(p.currentHp ?? p.maxHp, 0, p.maxHp);
+		if (p.currentHp !== fixedHp) {
+			p.currentHp = fixedHp;
+			rosterNeedsFix = true;
+		}
+	}
+	if (rosterNeedsFix) {
+		await Promise.all(game.roster.map((p) => addPokemon($state.snapshot(p))));
+	}
 	applyThemeToDom(player.theme);
 
 	// Progresso offline é calculado no módulo de jobs (carregado dinamicamente

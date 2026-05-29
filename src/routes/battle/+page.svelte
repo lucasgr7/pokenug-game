@@ -12,6 +12,7 @@
 		enterBattle,
 		hasSavedBattle,
 		playCard,
+		type PlayCardResult,
 		endTurn,
 		finalizeBattle,
 		endBattleCleanup
@@ -22,6 +23,15 @@
 
 	let loading = $state(true);
 	let error = $state<string | null>(null);
+
+	interface PlayedFx {
+		id: string;
+		templateId: string;
+		exhausted: boolean;
+		kind: PlayCardResult['kind'];
+	}
+
+	let playedFx = $state<PlayedFx | null>(null);
 
 	onMount(async () => {
 		const regionId = page.url.searchParams.get('region');
@@ -72,6 +82,17 @@
 		return effectivenessLabel(effectiveness(s.player.pokemon.element, s.enemy.pokemon.element));
 	}
 
+	function onPlay(cardId: string, templateId: string) {
+		const res = playCard(cardId);
+		if (!res.played) return;
+
+		const fxId = crypto.randomUUID();
+		playedFx = { id: fxId, templateId, exhausted: res.exhausted, kind: res.kind };
+		setTimeout(() => {
+			if (playedFx?.id === fxId) playedFx = null;
+		}, 620);
+	}
+
 	async function leave() {
 		await endBattleCleanup();
 		await goto('/');
@@ -97,6 +118,24 @@
 			style="background:
 				radial-gradient(120% 70% at 80% 0%, color-mix(in srgb, {`var(--accent)`} 20%, var(--bg)), var(--bg) 70%);"
 		>
+			{#if playedFx}
+				<div class="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+					<div class="played-card-fx" class:vaporize={playedFx.exhausted}>
+						<Card
+							templateId={playedFx.templateId}
+							playable={false}
+							shiny={playedFx.kind === 'defense'}
+						/>
+					</div>
+					{#if playedFx.kind === 'attack'}
+						<div class="hit-spark">✦</div>
+					{/if}
+					{#if playedFx.exhausted}
+						<div class="vapor-label">EXAUSTA</div>
+					{/if}
+				</div>
+			{/if}
+
 			<!-- turno -->
 			<div
 				class="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded-full bg-black/40 px-3 py-1 text-[11px] font-bold text-white backdrop-blur"
@@ -176,7 +215,7 @@
 						templateId={card.templateId}
 						flip
 						playable={canPlay(card.templateId)}
-						onclick={() => playCard(card.id)}
+						onclick={() => onPlay(card.id, card.templateId)}
 					/>
 				{/each}
 			</div>
@@ -242,6 +281,37 @@
 	.hit-host :global(img) {
 		filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.35));
 	}
+	.played-card-fx {
+		width: 120px;
+		animation: play-to-center 520ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+	}
+	.played-card-fx.vaporize {
+		animation:
+			play-to-center 520ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards,
+			vaporize 620ms ease-in forwards;
+	}
+	.hit-spark {
+		position: absolute;
+		left: calc(50% + 56px);
+		top: 50%;
+		transform: translate(-50%, -50%);
+		font-size: 22px;
+		color: #facc15;
+		text-shadow: 0 0 14px rgba(250, 204, 21, 0.8);
+		animation: hit-spark 280ms ease-out forwards;
+	}
+	.vapor-label {
+		position: absolute;
+		left: 50%;
+		top: calc(50% + 66px);
+		transform: translateX(-50%);
+		font-size: 11px;
+		font-weight: 900;
+		letter-spacing: 0.08em;
+		color: #fca5a5;
+		text-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+		animation: vapor-label 620ms ease-out forwards;
+	}
 	@keyframes shake {
 		0%,
 		100% {
@@ -258,6 +328,56 @@
 		}
 		80% {
 			transform: translateX(5px);
+		}
+	}
+	@keyframes play-to-center {
+		0% {
+			transform: translate(-8px, 120px) scale(0.72) rotate(-5deg);
+			opacity: 0.2;
+		}
+		72% {
+			transform: translate(10px, 0) scale(1.02) rotate(1deg);
+			opacity: 1;
+		}
+		100% {
+			transform: translate(24px, 0) scale(1) rotate(0deg);
+			opacity: 1;
+		}
+	}
+	@keyframes hit-spark {
+		from {
+			opacity: 0;
+			transform: translate(-60%, -50%) scale(0.5);
+		}
+		to {
+			opacity: 0;
+			transform: translate(-30%, -50%) scale(1.4);
+		}
+	}
+	@keyframes vaporize {
+		0% {
+			filter: saturate(1);
+		}
+		60% {
+			filter: saturate(0.2) blur(0.8px);
+			opacity: 0.7;
+		}
+		100% {
+			filter: saturate(0) blur(2.5px);
+			opacity: 0;
+			transform: translate(36px, -14px) scale(0.7);
+		}
+	}
+	@keyframes vapor-label {
+		0% {
+			opacity: 0;
+		}
+		20% {
+			opacity: 1;
+		}
+		100% {
+			opacity: 0;
+			transform: translateX(-50%) translateY(-10px);
 		}
 	}
 </style>

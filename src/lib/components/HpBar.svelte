@@ -7,12 +7,14 @@
 		block = 0
 	}: { hp: number; maxHp: number; block?: number } = $props();
 
-	let pct = $derived(maxHp > 0 ? clamp((hp / maxHp) * 100, 0, 100) : 0);
+	let total = $derived(maxHp + Math.max(0, block));
+	let hpPct = $derived(total > 0 ? clamp((hp / total) * 100, 0, 100) : 0);
+	let blockPct = $derived(total > 0 ? clamp((Math.max(0, block) / total) * 100, 0, 100) : 0);
 	let low = $derived(maxHp > 0 && hp / maxHp < 0.25);
 	let fill = $derived(
 		low
 			? 'linear-gradient(180deg,#f87171,#dc2626)'
-			: pct < 55
+			: hp / Math.max(1, maxHp) < 0.55
 				? 'linear-gradient(180deg,#fbbf24,#f59e0b)'
 				: 'linear-gradient(180deg,#4ade80,#16a34a)'
 	);
@@ -23,8 +25,14 @@
 		<div
 			class="h-full rounded-full transition-[width] duration-300 ease-out"
 			class:hp-pulse={low}
-			style="width: {pct}%; background: {fill};"
+			style="width: {hpPct}%; background: {fill};"
 		></div>
+		{#if block > 0}
+			<div
+				class="absolute top-0 h-full transition-[width,left] duration-300 ease-out"
+				style="left: {hpPct}%; width: {blockPct}%; background: linear-gradient(180deg,#60a5fa,#2563eb);"
+			></div>
+		{/if}
 		<!-- brilho superior -->
 		<div class="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-full bg-white/15"></div>
 		<!-- rótulo sobreposto -->

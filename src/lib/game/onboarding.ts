@@ -36,6 +36,7 @@ export async function createPlayer(name: string, starter: StarterDef): Promise<v
 		name: starter.name,
 		element: starter.element,
 		maxHp,
+		currentHp: maxHp,
 		capturedAt: now()
 	};
 	await addPokemon(pokemon);

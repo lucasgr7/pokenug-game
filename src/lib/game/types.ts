@@ -57,6 +57,7 @@ export interface CapturedPokemon {
 	name: string;
 	element: Element; // tipo primário (gen 1)
 	maxHp: number; // base stat da PokeAPI
+	currentHp: number; // HP persistente fora de batalha
 	capturedAt: number;
 }
 

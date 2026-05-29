@@ -1,10 +1,18 @@
 import { getAllJobs, removeJob, setJob, saveJobs } from '$lib/db/jobs';
+import { getSavedBattle } from '$lib/db/battle';
 import { now } from '$lib/utils/time';
-import { game, persistNow, type OfflineSummary } from './state.svelte';
+import {
+	game,
+	normalizedPokemonHp,
+	persistNow,
+	persistPokemonById,
+	type OfflineSummary
+} from './state.svelte';
 import type { ActiveJob, Element, JobType } from './types';
 
 const SECONDS_PER_POINT = 3;
 const PERSIST_EVERY_TICKS = 5;
+const IDLE_HP_RESTORE_PER_MINUTE = 0.05;
 
 // Estado runed dos jobs ativos.
 export const jobsState = $state<{ list: ActiveJob[] }>({ list: [] });
@@ -77,6 +85,7 @@ function creditPlayer(type: JobType, amount: number): void {
 // ---- Tick em tempo real ----
 let interval: ReturnType<typeof setInterval> | null = null;
 let tickCount = 0;
+const dirtyPokemon = new Set<string>();
 
 export function startTicker(): void {
 	if (interval) return;
@@ -93,12 +102,18 @@ export function stopTicker(): void {
 }
 
 async function tick(): Promise<void> {
-	if (!game.player || jobsState.list.length === 0) return;
+	if (!game.player) return;
+
 	const t = now();
-	for (const type of activeJobTypes()) {
-		creditPlayer(type, ratePerSecond(type)); // 1 segundo
+
+	if (jobsState.list.length > 0) {
+		for (const type of activeJobTypes()) {
+			creditPlayer(type, ratePerSecond(type)); // 1 segundo
+		}
+		for (const job of jobsState.list) job.lastTickAt = t;
 	}
-	for (const job of jobsState.list) job.lastTickAt = t;
+
+	await restoreIdleHpOutOfBattle();
 
 	tickCount++;
 	if (tickCount >= PERSIST_EVERY_TICKS) {
@@ -109,7 +124,28 @@ async function tick(): Promise<void> {
 
 async function flush(): Promise<void> {
 	if (jobsState.list.length > 0) await saveJobs($state.snapshot(jobsState.list) as ActiveJob[]);
+	if (dirtyPokemon.size > 0) {
+		const ids = [...dirtyPokemon];
+		dirtyPokemon.clear();
+		await Promise.all(ids.map((id) => persistPokemonById(id)));
+	}
 	await persistNow();
+}
+
+async function restoreIdleHpOutOfBattle(): Promise<void> {
+	if (game.roster.length === 0) return;
+	const saved = await getSavedBattle();
+	if (saved?.state.status === 'active') return;
+
+	const healRatioPerSecond = IDLE_HP_RESTORE_PER_MINUTE / 60;
+	for (const p of game.roster) {
+		if (jobForPokemon(p.id)) continue;
+		const hp = normalizedPokemonHp(p);
+		if (hp >= p.maxHp) continue;
+		const heal = p.maxHp * healRatioPerSecond;
+		p.currentHp = Math.min(p.maxHp, hp + heal);
+		dirtyPokemon.add(p.id);
+	}
 }
 
 // ---- Progresso offline ----
@@ -119,7 +155,7 @@ async function flush(): Promise<void> {
  */
 export async function applyOfflineProgress(): Promise<OfflineSummary | null> {
 	await loadJobs();
-	if (!game.player || jobsState.list.length === 0) return null;
+	if (!game.player) return null;
 
 	const t = now();
 	const summary: OfflineSummary = { money: 0, elementPoints: {}, elapsedMs: 0 };

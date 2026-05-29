@@ -12,6 +12,7 @@
 		flip = false,
 		count = 0,
 		badge = '',
+		shiny = false,
 		onclick
 	}: {
 		templateId: string;
@@ -21,6 +22,7 @@
 		flip?: boolean;
 		count?: number;
 		badge?: string;
+		shiny?: boolean;
 		onclick?: () => void;
 	} = $props();
 
@@ -72,6 +74,10 @@
 			<CardKindIcon kind={tpl.kind} color={theme} size={42} />
 		</div>
 
+		{#if shiny}
+			<span class="shield-shine" aria-hidden="true"></span>
+		{/if}
+
 		<!-- rodapé -->
 		<div class="px-1.5 pb-1.5 pt-1">
 			<div class="truncate text-[11px] font-bold leading-tight">{tpl.name}</div>
@@ -106,6 +112,16 @@
 	.card-root.flip {
 		animation: card-flip 300ms ease-out backwards;
 	}
+	.shield-shine {
+		position: absolute;
+		inset: -30% auto -30% -35%;
+		width: 60%;
+		background: linear-gradient(90deg, transparent, rgba(191, 219, 254, 0.82), transparent);
+		transform: rotate(20deg);
+		animation: shield-shine 1.6s ease-in-out infinite;
+		mix-blend-mode: screen;
+		pointer-events: none;
+	}
 	@keyframes card-flip {
 		from {
 			transform: perspective(600px) rotateY(80deg);
@@ -114,6 +130,23 @@
 		to {
 			transform: perspective(600px) rotateY(0);
 			opacity: 1;
+		}
+	}
+	@keyframes shield-shine {
+		0% {
+			left: -40%;
+			opacity: 0;
+		}
+		20% {
+			opacity: 0.9;
+		}
+		45% {
+			left: 85%;
+			opacity: 0;
+		}
+		100% {
+			left: 85%;
+			opacity: 0;
 		}
 	}
 </style>

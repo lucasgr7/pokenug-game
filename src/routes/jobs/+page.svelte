@@ -3,7 +3,7 @@
 	import Sprite from '$lib/components/Sprite.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import Modal from '$lib/components/Modal.svelte';
-	import { game, setActivePokemon } from '$lib/game/state.svelte';
+	import { game, normalizedPokemonHp, setActivePokemon } from '$lib/game/state.svelte';
 	import {
 		assignJob,
 		stopJob,
@@ -70,6 +70,14 @@
 		selected = null;
 	}
 
+	function hpPercent(pokemon: CapturedPokemon): number {
+		return pokemon.maxHp > 0 ? (normalizedPokemonHp(pokemon) / pokemon.maxHp) * 100 : 0;
+	}
+
+	function healsPassively(pokemon: CapturedPokemon): boolean {
+		return !jobForPokemon(pokemon.id) && normalizedPokemonHp(pokemon) < pokemon.maxHp;
+	}
+
 	let activeTypes = $derived(activeJobTypes());
 </script>
 
@@ -94,6 +102,20 @@
 				>
 					<Sprite speciesId={p.speciesId} size={64} alt={p.name} />
 					<span class="mt-0.5 truncate text-xs font-bold">{p.name}</span>
+					<div class="mt-1 w-full">
+						<div class="h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
+							<div
+								class="h-full rounded-full transition-[width] duration-500"
+								class:hp-heal-glow={healsPassively(p)}
+								style="width: {hpPercent(p)}%; background: {healsPassively(p)
+									? 'linear-gradient(90deg, #22c55e, #4ade80)'
+									: 'linear-gradient(90deg, #f59e0b, #22c55e)'};"
+							></div>
+						</div>
+						<div class="mt-0.5 text-center text-[10px] text-[var(--text-muted)]">
+							{Math.ceil(normalizedPokemonHp(p))}/{p.maxHp} HP
+						</div>
+					</div>
 					{#if isMain}
 						<span class="mt-0.5 rounded-full bg-[var(--accent)]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[var(--accent)]">
 							⭐ principal
@@ -179,3 +201,20 @@
 		</div>
 	{/if}
 </Modal>
+
+<style>
+	button :global(.hp-heal-glow) {
+		box-shadow: 0 0 10px rgba(74, 222, 128, 0.75);
+		animation: hp-heal-glow 1.1s ease-in-out infinite;
+	}
+
+	@keyframes hp-heal-glow {
+		0%,
+		100% {
+			box-shadow: 0 0 6px rgba(74, 222, 128, 0.45);
+		}
+		50% {
+			box-shadow: 0 0 14px rgba(74, 222, 128, 0.95);
+		}
+	}
+</style>

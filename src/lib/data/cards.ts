@@ -68,10 +68,10 @@ function buildCatalog(): CardTemplate[] {
 
 	// Ataques com elemento: dano x elemento.
 	const atkTiers: Array<{ damage: number; cost: number; rarity: CardTemplate['rarity']; money: number; elemAmount: number }> = [
-		{ damage: 8, cost: 1, rarity: 'common', money: 40, elemAmount: 0 },
-		{ damage: 12, cost: 1, rarity: 'common', money: 60, elemAmount: 0 },
-		{ damage: 18, cost: 2, rarity: 'rare', money: 100, elemAmount: 10 },
-		{ damage: 25, cost: 3, rarity: 'epic', money: 170, elemAmount: 25 }
+		{ damage: 8, cost: 1, rarity: 'common', money: 440, elemAmount: 0 },
+		{ damage: 12, cost: 1, rarity: 'common', money: 860, elemAmount: 0 },
+		{ damage: 18, cost: 2, rarity: 'rare', money: 1200, elemAmount: 10 },
+		{ damage: 25, cost: 3, rarity: 'epic', money: 1700, elemAmount: 25 }
 	];
 	for (const el of MAIN_ELEMENTS) {
 		for (const t of atkTiers) {
@@ -118,9 +118,9 @@ function buildCatalog(): CardTemplate[] {
 
 	// Defesas.
 	const defTiers: Array<{ block: number; cost: number; rarity: CardTemplate['rarity']; money: number }> = [
-		{ block: 5, cost: 1, rarity: 'common', money: 35 },
-		{ block: 8, cost: 1, rarity: 'common', money: 55 },
-		{ block: 12, cost: 2, rarity: 'rare', money: 95 }
+		{ block: 5, cost: 1, rarity: 'common', money: 350 },
+		{ block: 8, cost: 1, rarity: 'common', money: 550 },
+		{ block: 12, cost: 2, rarity: 'rare', money: 950 }
 	];
 	for (const t of defTiers) {
 		out.push({
@@ -138,9 +138,9 @@ function buildCatalog(): CardTemplate[] {
 
 	// Cura.
 	const healTiers: Array<{ heal: number; cost: number; rarity: CardTemplate['rarity']; money: number }> = [
-		{ heal: 8, cost: 1, rarity: 'common', money: 45 },
-		{ heal: 15, cost: 2, rarity: 'rare', money: 95 },
-		{ heal: 25, cost: 3, rarity: 'epic', money: 165 }
+		{ heal: 8, cost: 1, rarity: 'common', money: 450 },
+		{ heal: 15, cost: 2, rarity: 'rare', money: 950 },
+		{ heal: 25, cost: 3, rarity: 'epic', money: 1650 }
 	];
 	for (const t of healTiers) {
 		out.push({

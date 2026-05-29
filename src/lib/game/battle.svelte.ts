@@ -1,4 +1,4 @@
-import { getActiveDeck } from '$lib/db/cards';
+import { getActiveDeck, removeFromDeck, removeFromInventory } from '$lib/db/cards';
 import { resetDeckToStarters } from '$lib/db/cards';
 import { addPokemon } from '$lib/db/pokemon';
 import { incrementDefeat } from '$lib/db/regions';
@@ -15,12 +15,15 @@ import {
 	addMoney,
 	addToRoster,
 	game,
+	normalizedPokemonHp,
 	recordDefeat,
+	setPokemonCurrentHp,
 	unlockRegion
 } from './state.svelte';
 import type {
 	BattleReward,
 	BattleState,
+	CardKind,
 	Card,
 	CapturedPokemon,
 	EnemyIntent,
@@ -46,6 +49,12 @@ export const battle = $state<BattleStore>({
 
 const HAND_SIZE = 5;
 const START_MANA = 3;
+
+export interface PlayCardResult {
+	played: boolean;
+	exhausted: boolean;
+	kind: CardKind;
+}
 
 // ---- Intents do inimigo ----
 function rollIntent(enemyHp: number, enemyMaxHp: number, turnNumber: number): EnemyIntent {
@@ -82,6 +91,7 @@ export async function startBattle(regionId: string): Promise<void> {
 		name: enemyData.name,
 		element: enemyData.element,
 		maxHp: enemyData.maxHp,
+		currentHp: enemyData.maxHp,
 		capturedAt: now()
 	};
 
@@ -91,7 +101,7 @@ export async function startBattle(regionId: string): Promise<void> {
 		regionId,
 		player: {
 			pokemon: { ...mine },
-			hp: mine.maxHp, // HP não persiste entre batalhas
+			hp: normalizedPokemonHp(mine),
 			block: 0,
 			mana: START_MANA,
 			maxMana: 3,
@@ -121,6 +131,12 @@ export async function startBattle(regionId: string): Promise<void> {
 
 	drawCards(HAND_SIZE);
 	void persistBattle();
+}
+
+function persistPlayerHp(): void {
+	const s = battle.state;
+	if (!s || s.status !== 'active') return;
+	void setPokemonCurrentHp(s.player.pokemon.id, s.player.hp);
 }
 
 /**
@@ -198,32 +214,56 @@ function dealToPlayer(amount: number): void {
 	if (afterBlock > 0) {
 		p.hp = Math.max(0, p.hp - afterBlock);
 		battle.playerHurt++;
+		persistPlayerHp();
 	}
 }
 
 // ---- Exaustão ----
-function discardOrExhaust(card: Card): void {
+function shouldPermanentlyExhaust(card: Card): boolean {
 	const s = battle.state!;
 	const tpl = getTemplate(card.templateId);
-	const playerElement = s.player.pokemon.element;
-	const recyclable =
-		!tpl ||
-		tpl.rarity === 'starter' ||
-		tpl.element === null ||
-		tpl.element === playerElement;
-	if (recyclable) s.discard.push(card);
-	else s.exhausted.push(card);
+	if (!tpl) return false;
+
+	// Cura sempre consome a carta (uso único).
+	if (tpl.kind === 'heal') return true;
+
+	// Pokébolas não-iniciais também são uso único.
+	if (tpl.kind === 'capture' && tpl.rarity !== 'starter') return true;
+
+	// Cartas elementais fora do tipo do pokémon ativo são exauridas.
+	if (tpl.element !== null && tpl.element !== s.player.pokemon.element) return true;
+
+	return false;
+}
+
+function discardOrExhaust(card: Card): boolean {
+	const s = battle.state!;
+	const exhausted = shouldPermanentlyExhaust(card);
+	if (exhausted) {
+		s.exhausted.push(card);
+		void removeFromDeck(card.id);
+		void removeFromInventory(card.id);
+		return true;
+	}
+	s.discard.push(card);
+	return false;
 }
 
 // ---- Jogar carta ----
-export function playCard(cardId: string): void {
+export function playCard(cardId: string): PlayCardResult {
 	const s = battle.state;
-	if (!s || s.status !== 'active' || s.turn !== 'player') return;
+	if (!s || s.status !== 'active' || s.turn !== 'player') {
+		return { played: false, exhausted: false, kind: 'attack' };
+	}
 	const idx = s.hand.findIndex((c) => c.id === cardId);
-	if (idx < 0) return;
+	if (idx < 0) return { played: false, exhausted: false, kind: 'attack' };
 	const card = s.hand[idx];
 	const tpl = getTemplate(card.templateId);
-	if (!tpl || s.player.mana < tpl.cost) return;
+	if (!tpl || s.player.mana < tpl.cost) {
+		return { played: false, exhausted: false, kind: 'attack' };
+	}
+
+	const kind = tpl.kind;
 
 	s.player.mana -= tpl.cost;
 
@@ -242,6 +282,7 @@ export function playCard(cardId: string): void {
 			break;
 		case 'heal':
 			s.player.hp = Math.min(s.player.pokemon.maxHp, s.player.hp + (tpl.healHp ?? 0));
+			persistPlayerHp();
 			break;
 		case 'buff':
 			s.player.nextDamageBonus += tpl.buffAmount ?? 0;
@@ -258,16 +299,17 @@ export function playCard(cardId: string): void {
 
 	// Remove a carta da mão e a recicla/exaure.
 	s.hand.splice(idx, 1);
-	discardOrExhaust(card);
+	const exhausted = discardOrExhaust(card);
 
 	if (s.status === 'captured') {
 		void persistBattle();
-		return;
+		return { played: true, exhausted, kind };
 	}
 	if (s.enemy.hp <= 0) {
 		s.status = 'victory';
 	}
 	void persistBattle();
+	return { played: true, exhausted, kind };
 }
 
 // ---- Fim de turno do jogador / turno do inimigo ----
@@ -291,6 +333,7 @@ export function endTurn(): void {
 
 	if (s.player.hp <= 0) {
 		s.status = 'defeat';
+		void setPokemonCurrentHp(s.player.pokemon.id, 0);
 		void persistBattle();
 		return;
 	}
@@ -317,9 +360,12 @@ export async function finalizeBattle(): Promise<void> {
 	await clearSavedBattle();
 
 	if (s.status === 'defeat') {
+		await setPokemonCurrentHp(s.player.pokemon.id, 0);
 		await resetDeckToStarters();
 		return;
 	}
+
+	await setPokemonCurrentHp(s.player.pokemon.id, s.player.hp);
 
 	// Vitória ou captura.
 	const money = Math.floor(s.enemy.pokemon.maxHp * 0.5 + randomInt(5, 15));
@@ -327,7 +373,12 @@ export async function finalizeBattle(): Promise<void> {
 
 	let captured: CapturedPokemon | null = null;
 	if (s.status === 'captured') {
-		captured = { ...s.enemy.pokemon, id: crypto.randomUUID(), capturedAt: now() };
+		captured = {
+			...s.enemy.pokemon,
+			id: crypto.randomUUID(),
+			capturedAt: now(),
+			currentHp: s.enemy.pokemon.maxHp
+		};
 		await addPokemon(captured);
 		addToRoster(captured);
 	}
