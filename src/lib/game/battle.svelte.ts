@@ -2,6 +2,7 @@ import { getActiveDeck } from '$lib/db/cards';
 import { resetDeckToStarters } from '$lib/db/cards';
 import { addPokemon } from '$lib/db/pokemon';
 import { incrementDefeat } from '$lib/db/regions';
+import { clearSavedBattle, getSavedBattle, saveBattle } from '$lib/db/battle';
 import { getTemplate } from '$lib/data/cards';
 import { getRegion, nextRegion } from '$lib/data/regions';
 import { fetchPokemon } from '$lib/api/pokeapi';
@@ -17,13 +18,14 @@ import {
 	recordDefeat,
 	unlockRegion
 } from './state.svelte';
-import type { BattleState, Card, CapturedPokemon, EnemyIntent } from './types';
-
-export interface BattleReward {
-	money: number;
-	captured: CapturedPokemon | null;
-	unlockedRegionName: string | null;
-}
+import type {
+	BattleReward,
+	BattleState,
+	Card,
+	CapturedPokemon,
+	EnemyIntent,
+	SavedBattle
+} from './types';
 
 interface BattleStore {
 	state: BattleState | null;
@@ -44,11 +46,6 @@ export const battle = $state<BattleStore>({
 
 const HAND_SIZE = 5;
 const START_MANA = 3;
-
-// Exposição para depuração em dev.
-if (typeof window !== 'undefined' && import.meta.env.DEV) {
-	(window as unknown as { __battle: typeof battle }).__battle = battle;
-}
 
 // ---- Intents do inimigo ----
 function rollIntent(enemyHp: number, enemyMaxHp: number, turnNumber: number): EnemyIntent {
@@ -123,12 +120,47 @@ export async function startBattle(regionId: string): Promise<void> {
 	battle.playerHurt = 0;
 
 	drawCards(HAND_SIZE);
+	void persistBattle();
 }
 
-export function endBattleCleanup(): void {
+/**
+ * Ponto de entrada da página: retoma uma batalha ativa salva, ou inicia uma
+ * nova para a região. Assim o jogador pode sair e voltar sem perder o estado.
+ */
+export async function enterBattle(regionId: string): Promise<void> {
+	const saved = await getSavedBattle();
+	if (saved && saved.state.status === 'active') {
+		battle.state = saved.state;
+		battle.reward = saved.reward;
+		battle.settled = saved.settled;
+		battle.enemyHurt = 0;
+		battle.playerHurt = 0;
+		return;
+	}
+	if (saved) await clearSavedBattle();
+	await startBattle(regionId);
+}
+
+export async function hasSavedBattle(): Promise<boolean> {
+	const saved = await getSavedBattle();
+	return !!saved && saved.state.status === 'active';
+}
+
+async function persistBattle(): Promise<void> {
+	if (!battle.state) return;
+	const snapshot = $state.snapshot({
+		state: battle.state,
+		reward: battle.reward,
+		settled: battle.settled
+	}) as SavedBattle;
+	await saveBattle(snapshot);
+}
+
+export async function endBattleCleanup(): Promise<void> {
 	battle.state = null;
 	battle.reward = null;
 	battle.settled = false;
+	await clearSavedBattle();
 }
 
 // ---- Compra de cartas ----
@@ -228,10 +260,14 @@ export function playCard(cardId: string): void {
 	s.hand.splice(idx, 1);
 	discardOrExhaust(card);
 
-	if (s.status === 'captured') return;
+	if (s.status === 'captured') {
+		void persistBattle();
+		return;
+	}
 	if (s.enemy.hp <= 0) {
 		s.status = 'victory';
 	}
+	void persistBattle();
 }
 
 // ---- Fim de turno do jogador / turno do inimigo ----
@@ -255,6 +291,7 @@ export function endTurn(): void {
 
 	if (s.player.hp <= 0) {
 		s.status = 'defeat';
+		void persistBattle();
 		return;
 	}
 
@@ -267,6 +304,7 @@ export function endTurn(): void {
 	s.player.mana = START_MANA;
 	s.turn = 'player';
 	drawCards(HAND_SIZE - s.hand.length);
+	void persistBattle();
 }
 
 // ---- Liquidação de recompensas ----
@@ -275,6 +313,8 @@ export async function finalizeBattle(): Promise<void> {
 	if (!s || battle.settled) return;
 	if (s.status === 'active') return;
 	battle.settled = true;
+	// A batalha foi decidida; remove o estado salvo para não retomar uma luta encerrada.
+	await clearSavedBattle();
 
 	if (s.status === 'defeat') {
 		await resetDeckToStarters();

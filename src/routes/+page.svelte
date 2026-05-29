@@ -1,14 +1,21 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import Hud from '$lib/components/Hud.svelte';
 	import Sprite from '$lib/components/Sprite.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import { REGIONS } from '$lib/data/regions';
 	import { game } from '$lib/game/state.svelte';
+	import { hasSavedBattle } from '$lib/game/battle.svelte';
 	import { getActiveDeck } from '$lib/db/cards';
 	import { pushToast } from '$lib/stores/toast.svelte';
 
 	const MIN_DECK = 8;
+
+	let battleInProgress = $state(false);
+	onMount(async () => {
+		battleInProgress = await hasSavedBattle();
+	});
 
 	function isUnlocked(id: string): boolean {
 		return game.player?.unlockedRegions.includes(id) ?? false;
@@ -33,6 +40,16 @@
 <Hud />
 
 <main class="px-4 py-4">
+	{#if battleInProgress}
+		<button
+			class="mb-3 flex w-full items-center justify-between rounded-2xl border border-[var(--accent)] bg-[var(--accent)]/10 px-4 py-3 text-left"
+			onclick={() => goto('/battle')}
+		>
+			<span class="font-bold">⚔️ Batalha em andamento</span>
+			<span class="text-sm font-semibold text-[var(--accent)]">Continuar →</span>
+		</button>
+	{/if}
+
 	<h1 class="mb-3 text-xl font-bold">Regiões</h1>
 	<div class="grid grid-cols-1 gap-3">
 		{#each REGIONS as region (region.id)}

@@ -34,9 +34,7 @@
 		else if (game.player && path === '/onboarding') goto('/');
 	});
 
-	let showNav = $derived(
-		!!game.player && !['/onboarding', '/battle'].includes(page.url.pathname)
-	);
+	let showNav = $derived(!!game.player && page.url.pathname !== '/onboarding');
 
 	let offlineEntries = $derived(
 		offline
@@ -52,10 +50,10 @@
 
 <Toast />
 
-<div id="app-shell" class="flex flex-col">
-	<div class="flex-1">
+<div id="app-shell" class="flex min-h-[100dvh] flex-col">
+	<div class="flex min-h-0 flex-1 flex-col">
 		{#if !initialized}
-			<div class="flex min-h-[100dvh] items-center justify-center">
+			<div class="flex flex-1 items-center justify-center">
 				<div class="animate-pulse text-[var(--text-muted)]">Carregando…</div>
 			</div>
 		{:else}

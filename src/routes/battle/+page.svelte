@@ -9,7 +9,8 @@
 	import Modal from '$lib/components/Modal.svelte';
 	import {
 		battle,
-		startBattle,
+		enterBattle,
+		hasSavedBattle,
 		playCard,
 		endTurn,
 		finalizeBattle,
@@ -24,12 +25,16 @@
 
 	onMount(async () => {
 		const regionId = page.url.searchParams.get('region');
-		if (!regionId) {
-			await goto('/');
-			return;
-		}
 		try {
-			await startBattle(regionId);
+			if (regionId) {
+				await enterBattle(regionId);
+			} else if (await hasSavedBattle()) {
+				// Sem região na URL, mas há uma batalha em andamento: retoma.
+				await enterBattle('');
+			} else {
+				await goto('/');
+				return;
+			}
 		} catch (e) {
 			console.error(e);
 			error = 'Não foi possível iniciar a batalha.';
@@ -68,7 +73,7 @@
 	}
 
 	async function leave() {
-		endBattleCleanup();
+		await endBattleCleanup();
 		await goto('/');
 	}
 </script>
@@ -85,7 +90,7 @@
 		</button>
 	</div>
 {:else if s}
-	<div class="flex h-dvh flex-col overflow-hidden">
+	<div class="flex min-h-0 flex-1 flex-col overflow-hidden">
 		<!-- ARENA -->
 		<section
 			class="relative flex-1 overflow-hidden"

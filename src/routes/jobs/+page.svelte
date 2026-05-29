@@ -3,7 +3,7 @@
 	import Sprite from '$lib/components/Sprite.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import Modal from '$lib/components/Modal.svelte';
-	import { game } from '$lib/game/state.svelte';
+	import { game, setActivePokemon } from '$lib/game/state.svelte';
 	import {
 		assignJob,
 		stopJob,
@@ -16,8 +16,30 @@
 	import { formatNumber } from '$lib/utils/math';
 	import type { CapturedPokemon, Element, JobType } from '$lib/game/types';
 	import { pushToast } from '$lib/stores/toast.svelte';
+	import { onMount } from 'svelte';
 
 	let selected = $state<CapturedPokemon | null>(null);
+
+	// Progresso visual fluido: avança continuamente via requestAnimationFrame,
+	// no ritmo real de produção, em vez de pular a cada segundo.
+	let smooth = $state<Record<string, number>>({});
+	onMount(() => {
+		let raf = 0;
+		let last = performance.now();
+		const loop = (t: number) => {
+			const dt = Math.min(0.1, (t - last) / 1000);
+			last = t;
+			const next = { ...smooth };
+			for (const type of activeJobTypes()) {
+				const key = String(type);
+				next[key] = ((next[key] ?? 0) + ratePerSecond(type) * dt) % 1;
+			}
+			smooth = next;
+			raf = requestAnimationFrame(loop);
+		};
+		raf = requestAnimationFrame(loop);
+		return () => cancelAnimationFrame(raf);
+	});
 
 	function jobLabel(type: JobType): string {
 		return type === 'money' ? '💰 Dinheiro' : `${ELEMENT_EMOJI[type as Element]} ${ELEMENT_LABEL[type as Element]}`;
@@ -25,16 +47,6 @@
 
 	function jobColor(type: JobType): string {
 		return type === 'money' ? '#eab308' : ELEMENT_COLOR[type as Element];
-	}
-
-	// Progresso até o próximo ponto: parte fracionária do total acumulado.
-	function fractionToNext(type: JobType): number {
-		if (type === 'money') {
-			const v = game.player?.money ?? 0;
-			return v - Math.floor(v);
-		}
-		const v = game.player?.elementPoints[type as Element] ?? 0;
-		return v - Math.floor(v);
 	}
 
 	async function choose(type: JobType) {
@@ -48,6 +60,13 @@
 		if (!selected) return;
 		await stopJob(selected.id);
 		pushToast(`${selected.name} parou de trabalhar.`);
+		selected = null;
+	}
+
+	function chooseAsMain() {
+		if (!selected) return;
+		setActivePokemon(selected.id);
+		pushToast(`${selected.name} agora e o pokemon principal.`, 'success');
 		selected = null;
 	}
 
@@ -65,12 +84,21 @@
 		<div class="grid grid-cols-3 gap-2">
 			{#each game.roster as p (p.id)}
 				{@const job = jobForPokemon(p.id)}
+				{@const isMain = game.player?.activePokemonId === p.id}
 				<button
 					class="flex flex-col items-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2 active:scale-[0.98]"
+					class:border-[var(--accent)]={isMain}
+					class:ring-2={isMain}
+					style={isMain ? 'box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);' : ''}
 					onclick={() => (selected = p)}
 				>
 					<Sprite speciesId={p.speciesId} size={64} alt={p.name} />
 					<span class="mt-0.5 truncate text-xs font-bold">{p.name}</span>
+					{#if isMain}
+						<span class="mt-0.5 rounded-full bg-[var(--accent)]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[var(--accent)]">
+							⭐ principal
+						</span>
+					{/if}
 					{#if job}
 						<span
 							class="mt-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
@@ -102,7 +130,13 @@
 							{workersInJob(type)} 👷 · {ratePerSecond(type).toFixed(2)}/s
 						</span>
 					</div>
-					<ProgressBar value={fractionToNext(type)} max={1} color={jobColor(type)} height={6} />
+					<ProgressBar
+						value={smooth[String(type)] ?? 0}
+						max={1}
+						color={jobColor(type)}
+						height={6}
+						animate={false}
+					/>
 				</div>
 			{/each}
 		</div>
@@ -113,7 +147,15 @@
 <Modal open={!!selected} title={selected?.name ?? ''} onclose={() => (selected = null)}>
 	{#if selected}
 		{@const current = jobForPokemon(selected.id)}
+		{@const isMain = game.player?.activePokemonId === selected.id}
 		<div class="space-y-2">
+			<button
+				class="w-full rounded-xl border border-[var(--accent)] bg-[var(--accent)]/10 px-4 py-3 text-left font-semibold text-[var(--accent)] disabled:opacity-50"
+				disabled={isMain}
+				onclick={chooseAsMain}
+			>
+				⭐ {isMain ? 'Pokemon principal atual' : 'Definir como principal de batalha'}
+			</button>
 			<button
 				class="w-full rounded-xl border border-[var(--border)] px-4 py-3 text-left font-semibold hover:bg-[var(--surface-2)]"
 				onclick={() => choose('money')}
