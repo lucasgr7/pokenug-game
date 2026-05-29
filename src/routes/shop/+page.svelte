@@ -54,10 +54,10 @@
 	{#if !shop.loaded}
 		<p class="text-sm text-[var(--text-muted)]">Carregando…</p>
 	{:else}
-		<div class="grid grid-cols-2 gap-3">
+		<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 			{#each shop.slots as slot, i (i)}
-				<div class="flex flex-col gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2">
-					<Card templateId={slot.id} playable={false} dimmed={slot.sold} />
+				<div class="flex flex-col gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3">
+					<Card templateId={slot.id} playable={false} dimmed={slot.sold} showcase />
 					{#if slot.sold}
 						<div class="rounded-lg bg-[var(--surface-2)] py-1.5 text-center text-xs font-bold text-[var(--text-muted)]">
 							Comprado

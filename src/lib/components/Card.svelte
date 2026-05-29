@@ -13,6 +13,7 @@
 		count = 0,
 		badge = '',
 		shiny = false,
+		showcase = false,
 		onclick
 	}: {
 		templateId: string;
@@ -23,6 +24,7 @@
 		count?: number;
 		badge?: string;
 		shiny?: boolean;
+		showcase?: boolean;
 		onclick?: () => void;
 	} = $props();
 
@@ -41,6 +43,7 @@
 	let typeLabel = $derived(
 		tpl?.element ? ELEMENT_LABEL[tpl.element as Element] : (tpl?.rarity ?? '')
 	);
+	let iconSize = $derived(showcase ? 86 : 65);
 </script>
 
 {#if tpl}
@@ -48,7 +51,8 @@
 		type="button"
 		{onclick}
 		disabled={!playable}
-		class="card-root relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-lg border-2 bg-[var(--surface)] text-left transition-transform duration-150"
+		class="card-root relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-xl border-2 text-left transition-transform duration-150"
+		class:showcase
 		class:opacity-40={dimmed}
 		class:cursor-default={!playable}
 		class:-translate-y-1.5={selected}
@@ -70,8 +74,10 @@
 		</div>
 
 		<!-- arte central plana -->
-		<div class="flex flex-1 items-center justify-center" style="background: {theme}14;">
-			<CardKindIcon kind={tpl.kind} color={theme} size={42} />
+		<div class="card-art flex flex-1 items-center justify-center">
+			<div class="icon-wrap">
+				<CardKindIcon kind={tpl.kind} color={theme} size={iconSize} />
+			</div>
 		</div>
 
 		{#if shiny}
@@ -80,7 +86,7 @@
 
 		<!-- rodapé -->
 		<div class="px-1.5 pb-1.5 pt-1">
-			<div class="truncate text-[11px] font-bold leading-tight">{tpl.name}</div>
+			<div class="truncate text-[11px] font-extrabold leading-tight">{tpl.name}</div>
 			<div class="mt-0.5 flex flex-wrap gap-1 text-[9px] font-bold leading-none">
 				{#if tpl.damage}<span class="rounded px-1 py-0.5 text-white" style="background:#ef4444">⚔ {tpl.damage}</span>{/if}
 				{#if tpl.block}<span class="rounded px-1 py-0.5 text-white" style="background:#3b82f6">🛡 {tpl.block}</span>{/if}
@@ -106,8 +112,31 @@
 {/if}
 
 <style>
+	.card-root {
+		background: var(--surface);
+		box-shadow:
+			0 6px 14px rgba(0, 0, 0, 0.22),
+			inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+	}
+	.card-root.showcase {
+		box-shadow:
+			0 8px 18px rgba(0, 0, 0, 0.28),
+			inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+	}
 	.card-root:not(:disabled):active {
 		transform: scale(0.97);
+	}
+	.card-art {
+		background: color-mix(in srgb, var(--surface) 80%, white);
+	}
+	.icon-wrap {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 8px;
+	}
+	.card-root.showcase .icon-wrap {
+		transform: scale(1.07);
 	}
 	.card-root.flip {
 		animation: card-flip 300ms ease-out backwards;

@@ -68,10 +68,10 @@ function buildCatalog(): CardTemplate[] {
 
 	// Ataques com elemento: dano x elemento.
 	const atkTiers: Array<{ damage: number; cost: number; rarity: CardTemplate['rarity']; money: number; elemAmount: number }> = [
-		{ damage: 8, cost: 1, rarity: 'common', money: 440, elemAmount: 0 },
-		{ damage: 12, cost: 1, rarity: 'common', money: 860, elemAmount: 0 },
-		{ damage: 18, cost: 2, rarity: 'rare', money: 1200, elemAmount: 10 },
-		{ damage: 25, cost: 3, rarity: 'epic', money: 1700, elemAmount: 25 }
+		{ damage: 8, cost: 1, rarity: 'common', money: 440, elemAmount: 100 },
+		{ damage: 12, cost: 1, rarity: 'common', money: 860, elemAmount: 300 },
+		{ damage: 18, cost: 2, rarity: 'rare', money: 1200, elemAmount: 900 },
+		{ damage: 25, cost: 3, rarity: 'epic', money: 1700, elemAmount: 2500 }
 	];
 	for (const el of MAIN_ELEMENTS) {
 		for (const t of atkTiers) {
@@ -158,9 +158,9 @@ function buildCatalog(): CardTemplate[] {
 
 	// Pokébolas aprimoradas.
 	const ballTiers: Array<{ id: string; bonus: number; rarity: CardTemplate['rarity']; money: number }> = [
-		{ id: 'pokeball_great', bonus: 0.15, rarity: 'common', money: 60 },
-		{ id: 'pokeball_ultra', bonus: 0.3, rarity: 'rare', money: 120 },
-		{ id: 'pokeball_master', bonus: 0.5, rarity: 'epic', money: 200 }
+		{ id: 'pokeball_great', bonus: 0.15, rarity: 'common', money: 600 },
+		{ id: 'pokeball_ultra', bonus: 0.3, rarity: 'rare', money: 1200 },
+		{ id: 'pokeball_master', bonus: 0.5, rarity: 'epic', money: 2000 }
 	];
 	for (const t of ballTiers) {
 		out.push({

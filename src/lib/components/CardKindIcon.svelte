@@ -17,20 +17,19 @@
 	aria-hidden="true"
 >
 	{#if kind === 'attack'}
-		<!-- espada diagonal -->
-		<path
-			d="M36 8l4 4-16 16-4-4L36 8z"
-			fill={color}
-		/>
-		<path d="M40 12l-2.5-2.5" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.5" />
-		<path
-			d="M20 24l-8 8m0 0l-3 1 1-3m2 2l-4 4 3-1 1-3"
-			stroke={color}
-			stroke-width="3"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-		/>
-		<path d="M12 32l4 4" stroke={color} stroke-width="3" stroke-linecap="round" />
+		<!-- espada baseada no asset público, colorida pelo tema da carta -->
+		<g transform="translate(5 5) scale(2)">
+			<path
+				d="M9.646 14.096a1 1 0 1 1-1.414 1.414l-1.414-1.414-2.828 2.829a1 1 0 0 1-1.415 1.414l-1.414-1.414a1 1 0 0 1 1.414-1.415l2.829-2.828-1.414-1.414a1 1 0 0 1 1.414-1.414l4.242 4.242zm.708-.707L6.11 9.146 14.596.661l3.536.707.707 3.536-8.485 8.485z"
+				fill={color}
+			/>
+			<path
+				d="M10.354 13.389L6.11 9.146 14.596.661"
+				stroke="white"
+				stroke-width="0.65"
+				opacity="0.55"
+			/>
+		</g>
 	{:else if kind === 'defense'}
 		<!-- escudo -->
 		<path
