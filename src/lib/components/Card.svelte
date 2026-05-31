@@ -75,7 +75,7 @@
 		<!-- arte central -->
 		<div class="card-art flex flex-1 items-center justify-center body-texture">
 			<div class="icon-wrap">
-				<CardKindIcon kind={tpl.kind} color="var(--theme-color)" size={iconSize} />
+				<CardKindIcon id={tpl.id} kind={tpl.kind} color="var(--theme-color)" size={iconSize} />
 			</div>
 		</div>
 
@@ -115,6 +115,9 @@
 				{/if}
 				{#if tpl.attackRepeat}
 					<span class="flex items-center gap-0.5 text-orange-400"><span class="text-sm">⚔</span> ×{tpl.attackRepeat + 1}</span>
+				{/if}
+				{#if tpl.debuffAmount}
+					<span class="flex items-center gap-0.5 text-red-400"><span class="text-sm">👤</span> -{Math.round(tpl.debuffAmount * 100)}% {tpl.debuffDuration}t</span>
 				{/if}
 			</div>
 		</div>

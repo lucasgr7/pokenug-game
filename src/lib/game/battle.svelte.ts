@@ -124,8 +124,8 @@ function shouldExhaust(card: Card): boolean {
 	const tpl = getTemplate(card.templateId);
 	if (!tpl) return false;
 	if (tpl.kind === 'heal') return true;
-	// Power and relic cards are never exhausted via the normal play path.
-	if (tpl.kind === 'power' || tpl.kind === 'relic') return false;
+	// Power, relic, and debuff cards are never exhausted via the normal play path.
+	if (tpl.kind === 'power' || tpl.kind === 'relic' || tpl.kind === 'debuff') return false;
 	// Non-starter Pokéballs are single-use.
 	if (tpl.kind === 'capture' && tpl.rarity !== 'starter') return true;
 	// Off-element cards burn out — no affinity, no staying power.
@@ -160,7 +160,9 @@ function applyCardEffect(s: BattleState, tpl: CardTemplate): void {
 		case 'attack': {
 			const base = (tpl.damage ?? 0) + s.player.nextDamageBonus + playerAttackBonus();
 			s.player.nextDamageBonus = 0;
-			const mult = tpl.element ? effectiveness(tpl.element, s.enemy.pokemon.element) : 1;
+			let atkElement = tpl.element;
+			if (s.player.dragonize && (!atkElement || atkElement === 'normal')) atkElement = 'dragon';
+			const mult = atkElement ? effectiveness(atkElement, s.enemy.pokemon.element) : 1;
 			const berserkMult = s.player.berserk ? 2 : 1;
 			const hits = 1 + s.player.attackRepeat;
 			s.player.attackRepeat = 0;
@@ -185,7 +187,8 @@ function applyCardEffect(s: BattleState, tpl: CardTemplate): void {
 			break;
 		}
 		case 'power':
-			s.player.berserk = true;
+			if (tpl.id === 'power_berserk') s.player.berserk = true;
+			if (tpl.id === 'power_dragonize') s.player.dragonize = true;
 			break;
 		case 'relic':
 			s.player.ghostForm = true;
@@ -195,6 +198,10 @@ function applyCardEffect(s: BattleState, tpl: CardTemplate): void {
 			break;
 		case 'combo':
 			s.player.attackRepeat = tpl.attackRepeat ?? 1;
+			break;
+		case 'debuff':
+			s.enemy.intimidateTurnsLeft = tpl.debuffDuration ?? 2;
+			s.enemy.intimidateDamageReduction = tpl.debuffAmount ?? 0.5;
 			break;
 	}
 }
@@ -254,6 +261,7 @@ export async function startBattle(regionId: string): Promise<void> {
 			nextDamageBonus: 0,
 			poisonCounter: 0,
 			berserk: false,
+			dragonize: false,
 			ghostForm: false,
 			attackRepeat: 0
 		},
@@ -263,7 +271,9 @@ export async function startBattle(regionId: string): Promise<void> {
 			block: 0,
 			intent: rollIntent(enemy.maxHp, enemy.maxHp, 1, scaling),
 			nextDamageBonus: 0,
-			poisonCounter: 0
+			poisonCounter: 0,
+			intimidateTurnsLeft: 0,
+			intimidateDamageReduction: 0
 		},
 		deck: shuffle(await getActiveDeck()),
 		hand: [],
@@ -366,7 +376,12 @@ export function endTurn(): void {
 
 	const intent = s.enemy.intent;
 	if (intent.kind === 'attack') {
-		const dmg = intent.damage + s.enemy.nextDamageBonus;
+		let dmg = intent.damage + s.enemy.nextDamageBonus;
+		// Apply intimidate reduction if active
+		if (s.enemy.intimidateTurnsLeft > 0) {
+			dmg = Math.round(dmg * (1 - s.enemy.intimidateDamageReduction));
+			s.enemy.intimidateTurnsLeft--;
+		}
 		s.enemy.nextDamageBonus = 0;
 		dealToPlayer(dmg);
 	} else if (intent.kind === 'defend') {

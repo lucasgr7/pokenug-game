@@ -194,8 +194,11 @@
 					<HpBar hp={s.enemy.hp} maxHp={s.enemy.pokemon.maxHp} block={s.enemy.block} />
 					<div class="mt-1 flex items-center gap-1 text-[11px] font-bold text-[var(--danger)]">
 						<span class="rounded bg-[var(--danger)]/15 px-1.5 py-0.5">Intenção {intentText()}</span>
+					</div>				{#if s.enemy.intimidateTurnsLeft > 0}
+					<div class="mt-1 flex items-center gap-1 text-[11px] font-bold text-red-400">
+						<span class="rounded bg-red-400/15 px-1.5 py-0.5">👤 Intimidado {s.enemy.intimidateTurnsLeft}t</span>
 					</div>
-				</div>
+				{/if}				</div>
 			</div>
 
 			<!-- SPRITE INIMIGO (canto superior direito) -->

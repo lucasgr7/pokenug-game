@@ -34,7 +34,10 @@
 		defense: 'Defesa',
 		heal: 'Cura',
 		capture: 'Captura',
-		buff: 'Buff'
+		buff: 'Buff',
+		relic: 'Relíquia',
+		energy: 'Energia',
+		combo: 'Combo'
 	};
 
 	onMount(async () => {

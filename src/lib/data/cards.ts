@@ -256,6 +256,32 @@ function buildCatalog(): CardTemplate[] {
 		price: { money: 1500 }
 	});
 
+	// Carta de poder: Dragonize
+	out.push({
+		id: 'power_dragonize',
+		name: 'Dragonize',
+		description: 'Seus ataques comuns passam a ser do elemento dragão por toda a batalha.',
+		cost: 3,
+		kind: 'power',
+		element: 'dragon',
+		rarity: 'rare',
+		price: { money: 1000 }
+	});
+
+	// Carta de debuff: Intimidate
+	out.push({
+		id: 'debuff_intimidate',
+		name: 'Intimidate',
+		description: 'Reduz o dano do inimigo em 50% pelos próximos 2 turnos.',
+		cost: 2,
+		kind: 'debuff',
+		element: null,
+		rarity: 'common',
+		debuffAmount: 0.5,
+		debuffDuration: 2,
+		price: { money: 300 }
+	});
+
 	return out;
 }
 

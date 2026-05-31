@@ -18,7 +18,9 @@
 		heal: 'Cura',
 		capture: 'Captura',
 		buff: 'Buff',
-		relic: 'Relíquia'
+		relic: 'Relíquia',
+		energy: 'Energia',
+		combo: 'Combo'
 	};
 
 	let inspectingTemplateId = $state<string | null>(null);

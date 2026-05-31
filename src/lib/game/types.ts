@@ -68,7 +68,7 @@ export interface CapturedPokemon {
 }
 
 export type CardRarity = 'starter' | 'common' | 'rare' | 'epic';
-export type CardKind = 'attack' | 'defense' | 'heal' | 'capture' | 'buff' | 'power' | 'relic' | 'energy' | 'combo';
+export type CardKind = 'attack' | 'defense' | 'heal' | 'capture' | 'buff' | 'power' | 'relic' | 'energy' | 'combo' | 'debuff';
 
 export interface CardTemplate {
         id: string; // identificador estável (ex: 'atk_fire_12')
@@ -87,6 +87,8 @@ export interface CardTemplate {
         poisonAmount?: number; // dano de veneno aplicado por turno
         manaGain?: number; // mana restaurado neste turno (cartas de energia)
         attackRepeat?: number; // golpes extras no próximo ataque (1 = dobra, 2 = triplica)
+        debuffAmount?: number; // redução de dano do inimigo (cartas de debuff)
+        debuffDuration?: number; // turnos que o debuff dura
 	price?: { money: number; element?: { type: Element; amount: number } };
 }
 
@@ -142,6 +144,7 @@ export interface BattleState {
 		nextDamageBonus: number;
 		poisonCounter: number;
 		berserk: boolean;
+	dragonize: boolean;
 		ghostForm: boolean;
 		attackRepeat: number;
 	};
@@ -152,6 +155,8 @@ export interface BattleState {
 		intent: EnemyIntent;
 		nextDamageBonus: number;
 		poisonCounter: number;
+		intimidateTurnsLeft: number;
+		intimidateDamageReduction: number;
 	};
 	deck: Card[];
 	hand: Card[];

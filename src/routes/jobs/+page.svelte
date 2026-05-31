@@ -8,20 +8,19 @@
 		assignJob,
 		stopJob,
 		jobForPokemon,
+		jobsState,
 		workersInJob,
 		ratePerSecond,
 		activeJobTypes
 	} from '$lib/game/jobs.svelte';
 	import { ELEMENT_COLOR, ELEMENT_EMOJI, ELEMENT_LABEL } from '$lib/game/elements';
-	import { formatNumber } from '$lib/utils/math';
 	import type { CapturedPokemon, Element, JobType } from '$lib/game/types';
 	import { pushToast } from '$lib/stores/toast.svelte';
 	import { onMount } from 'svelte';
 
 	let selected = $state<CapturedPokemon | null>(null);
 
-	// Progresso visual fluido: avança continuamente via requestAnimationFrame,
-	// no ritmo real de produção, em vez de pular a cada segundo.
+	// Smooth progress animation via requestAnimationFrame
 	let smooth = $state<Record<string, number>>({});
 	onMount(() => {
 		let raf = 0;
@@ -49,6 +48,23 @@
 		return type === 'money' ? '#eab308' : ELEMENT_COLOR[type as Element];
 	}
 
+	/** Pokémon working on a given job type */
+	function pokemonInJob(type: JobType): CapturedPokemon[] {
+		const ids = new Set(jobsState.list.filter((j) => j.jobType === type).map((j) => j.pokemonId));
+		return game.roster.filter((p) => ids.has(p.id));
+	}
+
+	/** Only idle + principal pokémon appear in the main list */
+	let visibleRoster = $derived(
+		game.roster.filter((p) => {
+			const isMain = game.player?.activePokemonId === p.id;
+			const hasJob = !!jobForPokemon(p.id);
+			return isMain || !hasJob;
+		})
+	);
+
+	let activeTypes = $derived(activeJobTypes());
+
 	async function choose(type: JobType) {
 		if (!selected) return;
 		await assignJob(selected.id, type);
@@ -63,6 +79,11 @@
 		selected = null;
 	}
 
+	async function removeFromJob(pokemon: CapturedPokemon) {
+		await stopJob(pokemon.id);
+		pushToast(`${pokemon.name} parou de trabalhar.`);
+	}
+
 	function chooseAsMain() {
 		if (!selected) return;
 		if (normalizedPokemonHp(selected) <= 0) {
@@ -71,7 +92,7 @@
 			return;
 		}
 		setActivePokemon(selected.id);
-		pushToast(`${selected.name} agora e o pokemon principal.`, 'success');
+		pushToast(`${selected.name} agora é o pokémon principal.`, 'success');
 		selected = null;
 	}
 
@@ -82,25 +103,25 @@
 	function healsPassively(pokemon: CapturedPokemon): boolean {
 		return !jobForPokemon(pokemon.id) && normalizedPokemonHp(pokemon) < pokemon.maxHp;
 	}
-
-	let activeTypes = $derived(activeJobTypes());
 </script>
 
 <Hud />
 
 <main class="px-4 py-4">
+	<!-- Idle + principal pokémon -->
 	<h1 class="mb-3 text-xl font-bold">Pokémons</h1>
 
 	{#if game.roster.length === 0}
-		<p class="text-sm text-[var(--text-muted)]">Capture pokémons em batalha para colocá-los para trabalhar.</p>
+		<p class="text-sm text-(--text-muted)">Capture pokémons em batalha para colocá-los para trabalhar.</p>
+	{:else if visibleRoster.length === 0}
+		<p class="text-sm text-(--text-muted)">Todos os pokémons estão trabalhando.</p>
 	{:else}
 		<div class="grid grid-cols-3 gap-2">
-			{#each game.roster as p (p.id)}
-				{@const job = jobForPokemon(p.id)}
+			{#each visibleRoster as p (p.id)}
 				{@const isMain = game.player?.activePokemonId === p.id}
 				<button
-					class="flex flex-col items-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2 active:scale-[0.98]"
-					class:border-[var(--accent)]={isMain}
+					class="flex flex-col items-center rounded-2xl border border-(--border) bg-(--surface) p-2 active:scale-[0.98]"
+					class:border-(--accent)={isMain}
 					class:ring-2={isMain}
 					style={isMain ? 'box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);' : ''}
 					onclick={() => (selected = p)}
@@ -108,7 +129,7 @@
 					<Sprite speciesId={p.speciesId} size={64} alt={p.name} />
 					<span class="mt-0.5 truncate text-xs font-bold">{p.name}</span>
 					<div class="mt-1 w-full">
-						<div class="h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
+						<div class="h-1.5 w-full overflow-hidden rounded-full bg-(--surface-2)">
 							<div
 								class="h-full rounded-full transition-[width] duration-500"
 								class:hp-heal-glow={healsPassively(p)}
@@ -117,24 +138,16 @@
 									: 'linear-gradient(90deg, #f59e0b, #22c55e)'};"
 							></div>
 						</div>
-						<div class="mt-0.5 text-center text-[10px] text-[var(--text-muted)]">
+						<div class="mt-0.5 text-center text-[10px] text-(--text-muted)">
 							{Math.ceil(normalizedPokemonHp(p))}/{p.maxHp} HP
 						</div>
 					</div>
 					{#if isMain}
-						<span class="mt-0.5 rounded-full bg-[var(--accent)]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[var(--accent)]">
+						<span class="mt-0.5 rounded-full bg-(--accent)/15 px-1.5 py-0.5 text-[10px] font-semibold text-(--accent)">
 							⭐ principal
 						</span>
-					{/if}
-					{#if job}
-						<span
-							class="mt-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
-							style="background: {jobColor(job.jobType)};"
-						>
-							{jobLabel(job.jobType)}
-						</span>
 					{:else}
-						<span class="mt-0.5 rounded-full bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">
+						<span class="mt-0.5 rounded-full bg-(--surface-2) px-1.5 py-0.5 text-[10px] text-(--text-muted)">
 							ocioso
 						</span>
 					{/if}
@@ -143,17 +156,18 @@
 		</div>
 	{/if}
 
-	<!-- Jobs ativos -->
+	<!-- Active jobs -->
 	<h2 class="mb-2 mt-6 text-lg font-bold">Produção</h2>
 	{#if activeTypes.length === 0}
-		<p class="text-sm text-[var(--text-muted)]">Nenhum job ativo.</p>
+		<p class="text-sm text-(--text-muted)">Nenhum job ativo.</p>
 	{:else}
 		<div class="space-y-3">
 			{#each activeTypes as type (type)}
-				<div class="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3">
+				{@const workers = pokemonInJob(type)}
+				<div class="rounded-2xl border border-(--border) bg-(--surface) p-3">
 					<div class="mb-1 flex items-center justify-between text-sm">
 						<span class="font-bold">{jobLabel(type)}</span>
-						<span class="text-[var(--text-muted)]">
+						<span class="text-(--text-muted)">
 							{workersInJob(type)} 👷 · {ratePerSecond(type).toFixed(2)}/s
 						</span>
 					</div>
@@ -164,51 +178,58 @@
 						height={6}
 						animate={false}
 					/>
+					<!-- Worker tiles — tap to go idle -->
+					{#if workers.length > 0}
+						<div class="mt-2 flex flex-wrap gap-1.5">
+							{#each workers as w (w.id)}
+								<button
+									class="worker-tile flex flex-col items-center rounded-xl border border-(--border) bg-(--surface-2) px-1.5 py-1 active:scale-95"
+									title="Parar {w.name}"
+									onclick={() => removeFromJob(w)}
+								>
+									<Sprite speciesId={w.speciesId} size={36} alt={w.name} />
+									<span class="mt-0.5 max-w-12 truncate text-[9px] text-(--text-muted)">{w.name}</span>
+									<span class="text-[8px] text-(--danger)">✕ parar</span>
+								</button>
+							{/each}
+						</div>
+					{/if}
 				</div>
 			{/each}
 		</div>
 	{/if}
 </main>
 
-<!-- Modal de atribuição -->
+<!-- Assignment modal -->
 <Modal open={!!selected} title={selected?.name ?? ''} onclose={() => (selected = null)}>
 	{#if selected}
-		{@const current = jobForPokemon(selected.id)}
 		{@const isMain = game.player?.activePokemonId === selected.id}
 		<div class="space-y-2">
 			<button
-				class="w-full rounded-xl border border-[var(--accent)] bg-[var(--accent)]/10 px-4 py-3 text-left font-semibold text-[var(--accent)] disabled:opacity-50"
+				class="w-full rounded-xl border border-(--accent) bg-(--accent)/10 px-4 py-3 text-left font-semibold text-(--accent) disabled:opacity-50"
 				disabled={isMain}
 				onclick={chooseAsMain}
 			>
-				⭐ {isMain ? 'Pokemon principal atual' : 'Definir como principal de batalha'}
+				⭐ {isMain ? 'Pokémon principal atual' : 'Definir como principal de batalha'}
 			</button>
 			<button
-				class="w-full rounded-xl border border-[var(--border)] px-4 py-3 text-left font-semibold hover:bg-[var(--surface-2)]"
+				class="w-full rounded-xl border border-(--border) px-4 py-3 text-left font-semibold hover:bg-(--surface-2)"
 				onclick={() => choose('money')}
 			>
 				💰 Trabalhar por dinheiro
 			</button>
 			<button
-				class="w-full rounded-xl border border-[var(--border)] px-4 py-3 text-left font-semibold hover:bg-[var(--surface-2)]"
+				class="w-full rounded-xl border border-(--border) px-4 py-3 text-left font-semibold hover:bg-(--surface-2)"
 				onclick={() => choose(selected!.element)}
 			>
 				{ELEMENT_EMOJI[selected.element]} Trabalhar com {ELEMENT_LABEL[selected.element]}
 			</button>
-			{#if current}
-				<button
-					class="w-full rounded-xl bg-[var(--danger)] px-4 py-3 text-left font-semibold text-white"
-					onclick={stop}
-				>
-					✋ Parar de trabalhar
-				</button>
-			{/if}
 		</div>
 	{/if}
 </Modal>
 
 <style>
-	button :global(.hp-heal-glow) {
+	:global(.hp-heal-glow) {
 		box-shadow: 0 0 10px rgba(74, 222, 128, 0.75);
 		animation: hp-heal-glow 1.1s ease-in-out infinite;
 	}
@@ -221,5 +242,12 @@
 		50% {
 			box-shadow: 0 0 14px rgba(74, 222, 128, 0.95);
 		}
+	}
+
+	.worker-tile {
+		transition: transform 0.1s ease, opacity 0.1s ease;
+	}
+	.worker-tile:active {
+		opacity: 0.7;
 	}
 </style>
