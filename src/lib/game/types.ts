@@ -43,12 +43,16 @@ export interface Player {
 	createdAt: number;
 	money: number;
 	elementPoints: Partial<Record<Element, number>>;
-	activePokemonId: string;
+	activePokemonId: string | null;
 	defeatedByRegion: Record<RegionId, number>;
 	unlockedRegions: RegionId[];
 	theme: Theme;
 	lastShopRefresh: number; // timestamp do último refresh diário
 	paidRefreshCountToday: number; // contador para custo crescente
+	ngu: {
+		moneyMultiplierLevel: number;
+		globalDamageLevel: number;
+	};
 }
 
 export interface CapturedPokemon {
@@ -59,24 +63,30 @@ export interface CapturedPokemon {
 	maxHp: number; // base stat da PokeAPI
 	currentHp: number; // HP persistente fora de batalha
 	capturedAt: number;
+	hpBuffs?: number;
+	damageBuffs?: number;
 }
 
 export type CardRarity = 'starter' | 'common' | 'rare' | 'epic';
-export type CardKind = 'attack' | 'defense' | 'heal' | 'capture' | 'buff';
+export type CardKind = 'attack' | 'defense' | 'heal' | 'capture' | 'buff' | 'power' | 'relic' | 'energy' | 'combo';
 
 export interface CardTemplate {
-	id: string; // identificador estável (ex: 'atk_fire_12')
-	name: string;
-	description: string;
-	cost: number; // mana
-	kind: CardKind;
-	element: Element | null; // null = sem elemento, não exaure por elemento
-	rarity: CardRarity;
-	damage?: number;
-	block?: number;
-	healHp?: number;
-	buffAmount?: number; // bônus somado ao próximo dano (cartas de buff)
-	captureBonus?: number; // soma à chance base (0..1)
+        id: string; // identificador estável (ex: 'atk_fire_12')
+        name: string;
+        description: string;
+        cost: number; // mana
+        kind: CardKind;
+        element: Element | null; // null = sem elemento, não exaure por elemento
+        rarity: CardRarity;
+        tier?: number; // Nível em que a carta aparece na loja
+        damage?: number;
+        block?: number;
+        healHp?: number;
+        buffAmount?: number; // bônus somado ao próximo dano (cartas de buff)
+        captureBonus?: number; // soma à chance base (0..1)
+        poisonAmount?: number; // dano de veneno aplicado por turno
+        manaGain?: number; // mana restaurado neste turno (cartas de energia)
+        attackRepeat?: number; // golpes extras no próximo ataque (1 = dobra, 2 = triplica)
 	price?: { money: number; element?: { type: Element; amount: number } };
 }
 
@@ -110,6 +120,7 @@ export type EnemyIntent =
 
 export interface BattleReward {
 	money: number;
+	elementPoints: { type: Element; amount: number };
 	captured: CapturedPokemon | null;
 	unlockedRegionName: string | null;
 }
@@ -129,6 +140,10 @@ export interface BattleState {
 		mana: number;
 		maxMana: 3;
 		nextDamageBonus: number;
+		poisonCounter: number;
+		berserk: boolean;
+		ghostForm: boolean;
+		attackRepeat: number;
 	};
 	enemy: {
 		pokemon: CapturedPokemon;
@@ -136,11 +151,13 @@ export interface BattleState {
 		block: number;
 		intent: EnemyIntent;
 		nextDamageBonus: number;
+		poisonCounter: number;
 	};
 	deck: Card[];
 	hand: Card[];
 	discard: Card[];
 	exhausted: Card[];
+	relicSlots: Card[];
 	turn: 'player' | 'enemy';
 	turnNumber: number;
 	status: 'active' | 'victory' | 'defeat' | 'captured';

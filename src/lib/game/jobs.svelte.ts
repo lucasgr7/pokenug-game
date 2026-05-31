@@ -42,7 +42,9 @@ export function effectiveWorkers(workers: number): number {
 export function ratePerSecond(type: JobType): number {
 	const workers = workersInJob(type);
 	if (workers === 0) return 0;
-	return effectiveWorkers(workers) / SECONDS_PER_POINT;
+	const baseRate = effectiveWorkers(workers) / SECONDS_PER_POINT;
+	const moneyMultiplier = 1 + ((game.player?.ngu.moneyMultiplierLevel ?? 0) * 0.5);
+	return baseRate * moneyMultiplier;
 }
 
 export function jobForPokemon(pokemonId: string): ActiveJob | undefined {

@@ -5,7 +5,7 @@
 	import Sprite from '$lib/components/Sprite.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import { REGIONS } from '$lib/data/regions';
-	import { game } from '$lib/game/state.svelte';
+	import { game, normalizedPokemonHp } from '$lib/game/state.svelte';
 	import { hasSavedBattle } from '$lib/game/battle.svelte';
 	import { getActiveDeck } from '$lib/db/cards';
 	import { pushToast } from '$lib/stores/toast.svelte';
@@ -27,6 +27,15 @@
 
 	async function enter(regionId: string) {
 		if (!isUnlocked(regionId)) return;
+		if (!game.player?.activePokemonId) {
+			pushToast(`Selecione um Pokémon principal na aba Pokémons primeiro.`, 'error');
+			return;
+		}
+		const activePkm = game.roster.find((p) => p.id === game.player?.activePokemonId);
+		if (activePkm && normalizedPokemonHp(activePkm) <= 0) {
+			pushToast(`Seu Pokémon principal está desmaiado. Selecione outro ou aguarde a recuperação.`, 'error');
+			return;
+		}
 		const deck = await getActiveDeck();
 		if (deck.length < MIN_DECK) {
 			pushToast(`Seu deck precisa de ao menos ${MIN_DECK} cartas.`, 'error');

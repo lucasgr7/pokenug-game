@@ -74,7 +74,7 @@ export function getElementPoints(element: Element): number {
 	return game.player?.elementPoints[element] ?? 0;
 }
 
-export function setActivePokemon(id: string): void {
+export function setActivePokemon(id: string | null): void {
 	requirePlayer().activePokemonId = id;
 	schedulePersist();
 }

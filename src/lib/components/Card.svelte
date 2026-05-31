@@ -3,6 +3,7 @@
 	import { ELEMENT_COLOR, ELEMENT_LABEL } from '$lib/game/elements';
 	import CardKindIcon from './CardKindIcon.svelte';
 	import type { Element } from '$lib/game/types';
+	import { game } from '$lib/game/state.svelte';
 
 	let {
 		templateId,
@@ -30,16 +31,14 @@
 
 	let tpl = $derived(getTemplate(templateId));
 
-	const rarityColor: Record<string, string> = {
-		starter: '#9ca3af',
-		common: '#64748b',
-		rare: '#3b82f6',
-		epic: '#a855f7'
-	};
-	// Cor tema: elemento quando houver, senão cor da raridade.
+	// Cor tema: baseada no elemento (ou um cinza neutro se não tiver elemento)
 	let theme = $derived(
-		tpl?.element ? ELEMENT_COLOR[tpl.element as Element] : rarityColor[tpl?.rarity ?? 'common']
+		tpl?.element ? ELEMENT_COLOR[tpl.element as Element] : '#94a3b8'
 	);
+	
+	// Classe da raridade para efeitos visuais
+	let rarityClass = $derived(`rarity-${tpl?.rarity ?? 'common'}`);
+	
 	let typeLabel = $derived(
 		tpl?.element ? ELEMENT_LABEL[tpl.element as Element] : (tpl?.rarity ?? '')
 	);
@@ -51,32 +50,32 @@
 		type="button"
 		{onclick}
 		disabled={!playable}
-		class="card-root relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-xl border-2 text-left transition-transform duration-150"
+		class="card-root {rarityClass} relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-xl border-[3px] text-left transition-transform duration-150"
 		class:showcase
 		class:opacity-40={dimmed}
 		class:cursor-default={!playable}
-		class:-translate-y-1.5={selected}
+		class:selected
 		class:flip
-		style="border-color: {selected ? 'var(--accent)' : theme};"
+		style="--theme-color: {theme};"
 	>
 		<!-- faixa superior plana -->
 		<div
 			class="flex items-center justify-between px-1.5 py-1 text-white"
-			style="background: {theme};"
+			style="background: var(--theme-color);"
 		>
 			<span
 				class="flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-[12px] font-extrabold"
-				style="color: {theme};">{tpl.cost}</span
+				style="color: var(--theme-color);">{tpl.cost}</span
 			>
-			<span class="truncate pl-1 text-[8px] font-bold uppercase tracking-wide opacity-95"
+			<span class="truncate pl-1 text-[9px] font-bold uppercase tracking-wider opacity-95"
 				>{typeLabel}</span
 			>
 		</div>
 
-		<!-- arte central plana -->
-		<div class="card-art flex flex-1 items-center justify-center">
+		<!-- arte central -->
+		<div class="card-art flex flex-1 items-center justify-center body-texture">
 			<div class="icon-wrap">
-				<CardKindIcon kind={tpl.kind} color={theme} size={iconSize} />
+				<CardKindIcon kind={tpl.kind} color="var(--theme-color)" size={iconSize} />
 			</div>
 		</div>
 
@@ -85,14 +84,38 @@
 		{/if}
 
 		<!-- rodapé -->
-		<div class="px-1.5 pb-1.5 pt-1">
-			<div class="truncate text-[11px] font-extrabold leading-tight">{tpl.name}</div>
-			<div class="mt-0.5 flex flex-wrap gap-1 text-[9px] font-bold leading-none">
-				{#if tpl.damage}<span class="rounded px-1 py-0.5 text-white" style="background:#ef4444">⚔ {tpl.damage}</span>{/if}
-				{#if tpl.block}<span class="rounded px-1 py-0.5 text-white" style="background:#3b82f6">🛡 {tpl.block}</span>{/if}
-				{#if tpl.healHp}<span class="rounded px-1 py-0.5 text-white" style="background:#16a34a">❤ {tpl.healHp}</span>{/if}
-				{#if tpl.buffAmount}<span class="rounded px-1 py-0.5 text-white" style="background:#a855f7">✨ +{tpl.buffAmount}</span>{/if}
-				{#if tpl.captureBonus}<span class="rounded px-1 py-0.5 text-white" style="background:#d97706">● +{Math.round(tpl.captureBonus * 100)}%</span>{/if}
+		<div class="px-2 pb-2 pt-1">
+			<div class="truncate text-xs font-black leading-tight mb-1">{tpl.name}</div>
+			<div class="flex flex-wrap gap-x-2 gap-y-1 text-[11px] font-bold text-[var(--text-muted)]">
+				{#if tpl.damage}
+					{@const displayDmg = tpl.damage + (tpl.kind === 'attack' ? (game.player?.ngu.globalDamageLevel ?? 0) : 0)}
+					<span class="flex items-center gap-0.5 text-red-400"><span class="text-sm">⚔</span> {displayDmg}</span>
+				{/if}
+				{#if tpl.block}
+					<span class="flex items-center gap-0.5 text-blue-400"><span class="text-sm">🛡</span> {tpl.block}</span>
+				{/if}
+				{#if tpl.healHp}
+					<span class="flex items-center gap-0.5 text-green-400"><span class="text-sm">❤</span> {tpl.healHp}</span>
+				{/if}
+				{#if tpl.buffAmount}
+					<span class="flex items-center gap-0.5 text-purple-400"><span class="text-sm">✨</span> +{tpl.buffAmount}</span>
+				{/if}
+				{#if tpl.captureBonus}
+					<span class="flex items-center gap-0.5 text-amber-500"><span class="text-sm">●</span> +{Math.round(tpl.captureBonus * 100)}%</span>
+				{/if}
+				{#if tpl.kind === 'power'}
+					<span class="flex items-center gap-0.5 text-red-500"><span class="text-sm">⚔</span> x2</span>
+					<span class="flex items-center gap-0.5 text-blue-500"><span class="text-sm">🛡</span> ÷2</span>
+				{/if}
+				{#if tpl.kind === 'relic'}
+					<span class="flex items-center gap-0.5 text-purple-600"><span class="text-sm">👻</span> Dano 1</span>
+				{/if}
+				{#if tpl.manaGain}
+					<span class="flex items-center gap-0.5 text-cyan-400"><span class="text-sm">⚡</span> +{tpl.manaGain}</span>
+				{/if}
+				{#if tpl.attackRepeat}
+					<span class="flex items-center gap-0.5 text-orange-400"><span class="text-sm">⚔</span> ×{tpl.attackRepeat + 1}</span>
+				{/if}
 			</div>
 		</div>
 
@@ -115,20 +138,49 @@
 	.card-root {
 		background: var(--surface);
 		box-shadow:
-			0 6px 14px rgba(0, 0, 0, 0.22),
-			inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+			0 8px 20px rgba(0, 0, 0, 0.32),
+			inset 0 0 0 1px rgba(255, 255, 255, 0.09);
 	}
 	.card-root.showcase {
 		box-shadow:
-			0 8px 18px rgba(0, 0, 0, 0.28),
-			inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+			0 14px 32px rgba(0, 0, 0, 0.4),
+			inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+	}
+	.card-root.selected {
+		border-color: var(--accent) !important;
+		transform: translateY(-6px);
 	}
 	.card-root:not(:disabled):active {
 		transform: scale(0.97);
 	}
-	.card-art {
-		background: color-mix(in srgb, var(--surface) 80%, white);
+
+	/* Rarity Colors & Body Decals */
+	.card-root.rarity-starter { border-color: #9ca3af; }
+	.card-root.rarity-starter .body-texture {
+		background: radial-gradient(ellipse at 50% 65%, color-mix(in srgb, var(--theme-color) 12%, var(--surface)), var(--surface) 80%);
 	}
+
+	.card-root.rarity-common { border-color: #64748b; }
+	.card-root.rarity-common .body-texture {
+		background: radial-gradient(ellipse at 50% 65%, color-mix(in srgb, var(--theme-color) 18%, var(--surface)), var(--surface) 80%);
+	}
+
+	.card-root.rarity-rare { border-color: #3b82f6; }
+	.card-root.rarity-rare .body-texture {
+		background: 
+			radial-gradient(ellipse at 50% 65%, color-mix(in srgb, var(--theme-color) 25%, var(--surface)), var(--surface) 80%),
+			repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 2px, transparent 2px, transparent 8px);
+		box-shadow: inset 0 0 12px rgba(59, 130, 246, 0.15);
+	}
+
+	.card-root.rarity-epic { border-color: #a855f7; }
+	.card-root.rarity-epic .body-texture {
+		background: 
+			radial-gradient(ellipse at 50% 65%, color-mix(in srgb, var(--theme-color) 35%, var(--surface)), var(--surface) 75%),
+			repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0px, transparent 4px, rgba(255,255,255,0.02) 8px);
+		box-shadow: inset 0 0 20px rgba(168, 85, 247, 0.3);
+	}
+
 	.icon-wrap {
 		display: flex;
 		align-items: center;

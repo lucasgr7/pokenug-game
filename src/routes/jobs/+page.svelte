@@ -65,6 +65,11 @@
 
 	function chooseAsMain() {
 		if (!selected) return;
+		if (normalizedPokemonHp(selected) <= 0) {
+			pushToast(`${selected.name} está desmaiado e precisa se recuperar antes de lutar.`, 'error');
+			selected = null;
+			return;
+		}
 		setActivePokemon(selected.id);
 		pushToast(`${selected.name} agora e o pokemon principal.`, 'success');
 		selected = null;

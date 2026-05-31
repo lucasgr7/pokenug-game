@@ -119,9 +119,30 @@ if (cmd === 'smoke') {
     console.log('No JS errors.');
   }
 
+} else if (cmd === 'battle') {
+  // Onboard fresh — leaves us on the map via SvelteKit client-side nav.
+  await onboard('Ash', 'Charmander');
+
+  // Click the first region card to enter battle via the natural flow.
+  // This preserves game state (no full page reload → no layout redirect).
+  await page.click('text=Floresta Verdejante');
+  await page.waitForTimeout(3500); // allow PokeAPI fetch + battle init
+  await ss('battle-01-fan');
+
+  const cards = await page.locator('.hand-card').all();
+  console.log(`Hand cards: ${cards.length}`);
+  if (cards.length > 1) {
+    // Click the Card's own button inside the wrapper (the wrapper div is positioning-only).
+    // Playable cards have an enabled <button> that fires onclick → onCardTap.
+    const cardButton = cards[1].locator('button').first();
+    await cardButton.click();
+    await page.waitForTimeout(600);
+    await ss('battle-02-selected-overlay');
+  }
+
 } else {
   console.error(`Unknown command: ${cmd}`);
-  console.error('Commands: smoke | ss <route> | onboard [name] [starter] | console');
+  console.error('Commands: smoke | ss <route> | onboard [name] [starter] | console | battle');
   process.exitCode = 1;
 }
 

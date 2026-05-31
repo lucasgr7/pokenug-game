@@ -12,6 +12,15 @@ type ShopSlot = CardTemplate & { sold?: boolean };
 
 export const shop = $state<{ slots: ShopSlot[]; loaded: boolean }>({ slots: [], loaded: false });
 
+export const NGU_COSTS = {
+	incomeMultiplier: (level: number) => Math.floor(1000 * Math.pow(2.5, level)),
+	globalDamage: (level: number) => ({
+		money: Math.floor(2500 * Math.pow(3, level)),
+		element: Math.floor(1000 * Math.pow(2.5, level)) // Needs an element, handle randomly or statically
+	}),
+	vitamins: (buffs: number) => Math.floor(500 * Math.pow(1.5, buffs))
+};
+
 const byRarity: Record<CardRarity, CardTemplate[]> = {
 	starter: [],
 	common: CATALOG.filter((c) => c.rarity === 'common'),
@@ -19,14 +28,23 @@ const byRarity: Record<CardRarity, CardTemplate[]> = {
 	epic: CATALOG.filter((c) => c.rarity === 'epic')
 };
 
-function rollSlot(): ShopSlot {
-	const rarity = weightedPick(['common', 'rare', 'epic'] as const, [60, 30, 10]);
-	const poolForRarity = byRarity[rarity].length > 0 ? byRarity[rarity] : CATALOG;
-	return { ...pick(poolForRarity), sold: false };
+function rollSpecificSlot(level: number, filter: (c: CardTemplate) => boolean): ShopSlot {
+	let pool = CATALOG.filter((c) => (c.tier ?? 1) <= level && filter(c));
+	if (pool.length === 0) pool = CATALOG.filter(filter); // fallback
+	if (pool.length === 0) pool = CATALOG; // ultimate fallback
+	return { ...pick(pool), sold: false };
 }
 
 function generateSlots(): ShopSlot[] {
-	return Array.from({ length: SLOT_COUNT }, rollSlot);
+	const level = Math.max(1, game.player?.unlockedRegions.length ?? 1);
+	const slots: ShopSlot[] = [];
+	slots.push(rollSpecificSlot(level, c => c.kind === 'power' && c.rarity !== 'starter'));
+	slots.push(rollSpecificSlot(level, c => c.kind === 'defense' && c.rarity !== 'starter'));
+	for (let i = 0; i < 3; i++) {
+		slots.push(rollSpecificSlot(level, c => c.kind === 'attack' && c.element != null && c.rarity !== 'starter'));
+	}
+	slots.push(rollSpecificSlot(level, c => c.rarity === 'rare' || c.rarity === 'epic'));
+	return slots;
 }
 
 async function persistShop(): Promise<void> {
@@ -99,4 +117,51 @@ export async function buySlot(index: number): Promise<boolean> {
 	shop.slots[index] = { ...slot, sold: true };
 	await persistShop();
 	return true;
+}
+
+export async function buyIncomeMultiplier(): Promise<boolean> {
+	if (!game.player) return false;
+	const cost = NGU_COSTS.incomeMultiplier(game.player.ngu.moneyMultiplierLevel);
+	if (!canAffordDirect(cost)) return false;
+
+	if (!spendMoney(cost)) return false;
+	game.player.ngu.moneyMultiplierLevel += 1;
+	schedulePersist();
+	return true;
+}
+
+export async function buyGlobalDamage(): Promise<boolean> {
+	if (!game.player) return false;
+	const cost = NGU_COSTS.globalDamage(game.player.ngu.globalDamageLevel);
+	if (!canAffordDirect(cost.money)) return false;
+	
+	if (!spendMoney(cost.money)) return false;
+	game.player.ngu.globalDamageLevel += 1;
+	schedulePersist();
+	return true;
+}
+
+export async function buyVitamins(): Promise<boolean> {
+	if (!game.player || !game.player.activePokemonId) return false;
+	const active = game.roster.find((p) => p.id === game.player!.activePokemonId);
+	if (!active) return false;
+
+	const cost = NGU_COSTS.vitamins(active.hpBuffs ?? 0);
+	if (!canAffordDirect(cost)) return false;
+
+	if (!spendMoney(cost)) return false;
+	
+	active.hpBuffs = (active.hpBuffs ?? 0) + 1;
+	active.maxHp += 20;
+	active.currentHp += 20;
+	
+	schedulePersist();
+	const { persistPokemonById } = await import('./state.svelte');
+	await persistPokemonById(active.id);
+
+	return true;
+}
+
+function canAffordDirect(money: number): boolean {
+	return (game.player?.money ?? 0) >= money;
 }

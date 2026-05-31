@@ -6,6 +6,7 @@
 		{ href: '/', label: 'Mapa', icon: '🗺️' },
 		{ href: '/jobs', label: 'Jobs', icon: '⛏️' },
 		{ href: '/deck', label: 'Deck', icon: '🃏' },
+		{ href: '/catalog', label: 'Cartas', icon: '📖' },
 		{ href: '/shop', label: 'Loja', icon: '🛒' }
 	];
 
@@ -13,7 +14,7 @@
 </script>
 
 <nav
-	class="sticky bottom-0 z-30 grid grid-cols-4 border-t border-[var(--border)] bg-[var(--surface)]"
+	class="sticky bottom-0 z-30 grid grid-cols-5 border-t border-[var(--border)] bg-[var(--surface)]"
 	style="padding-bottom: env(safe-area-inset-bottom);"
 >
 	{#each items as item (item.href)}

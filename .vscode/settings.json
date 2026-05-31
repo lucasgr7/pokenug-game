@@ -18,5 +18,23 @@
     "titleBar.inactiveBackground": "#17879999",
     "titleBar.inactiveForeground": "#e7e7e799"
   },
-  "peacock.color": "#178799"
+  "peacock.color": "#178799",
+  "chat.tools.terminal.autoApprove": {
+    "/^yarn run svelte-check$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^yarn svelte-check$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^yarn run check$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^cat << 'EOF' > fix_shop\\.patch\n--- src/lib/game/shop\\.svelte\\.ts\n\\+\\+\\+ src/lib/game/shop\\.svelte\\.ts\n@@ -30,14 \\+30,19 @@\n \n-function rollSlot\\(level: number\\): ShopSlot \\{\n-\tconst rarity = weightedPick\\(\\['common', 'rare', 'epic'\\] as const, \\[60, 30, 10\\]\\);\n-\tlet poolForRarity = byRarity\\[rarity\\]\\.filter\\(\\(c\\) => \\(c\\.tier \\?\\? 1\\) <= level\\);\n-\tif \\(poolForRarity\\.length === 0\\) poolForRarity = CATALOG\\.filter\\(\\(c\\) => \\(c\\.tier \\?\\? 1\\) <= level\\);\n-\tif \\(poolForRarity\\.length === 0\\) poolForRarity = CATALOG; // fallback\n-\treturn \\{ \\.\\.\\.pick\\(poolForRarity\\), sold: false \\};\n\\+function rollSpecificSlot\\(level: number, filter: \\(c: CardTemplate\\) => boolean\\): ShopSlot \\{\n\\+\tlet pool = CATALOG\\.filter\\(\\(c\\) => \\(c\\.tier \\?\\? 1\\) <= level && filter\\(c\\)\\);\n\\+\tif \\(pool\\.length === 0\\) pool = CATALOG\\.filter\\(filter\\); // fallback\n\\+\tif \\(pool\\.length === 0\\) pool = CATALOG; // ultimate fallback\n\\+\treturn \\{ \\.\\.\\.pick\\(pool\\), sold: false \\};\n \\}\n \n function generateSlots\\(\\): ShopSlot\\[\\] \\{\n \tconst level = Math\\.max\\(1, game\\.player\\?\\.unlockedRegions\\.length \\?\\? 1\\);\n-\treturn Array\\.from\\(\\{ length: SLOT_COUNT \\}, \\(\\) => rollSlot\\(level\\)\\);\n\\+\tconst slots: ShopSlot\\[\\] = \\[\\];\n\\+\tslots\\.push\\(rollSpecificSlot\\(level, c => c\\.kind === 'power' && c\\.rarity !== 'starter'\\)\\);\n\\+\tslots\\.push\\(rollSpecificSlot\\(level, c => c\\.kind === 'defense' && c\\.rarity !== 'starter'\\)\\);\n\\+\tfor \\(let i = 0; i < 3; i\\+\\+\\) \\{\n\\+\t\tslots\\.push\\(rollSpecificSlot\\(level, c => c\\.kind === 'attack' && c\\.element != null && c\\.rarity !== 'starter'\\)\\);\n\\+\t\\}\n\\+\tslots\\.push\\(rollSpecificSlot\\(level, c => c\\.rarity === 'rare' \\|\\| c\\.rarity === 'epic'\\)\\);\n\\+\treturn slots;\n \\}\nEOF\npatch src/lib/game/shop\\.svelte\\.ts < fix_shop\\.patch$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  }
 }

@@ -12,6 +12,7 @@
 		enterBattle,
 		hasSavedBattle,
 		playCard,
+		playRelicCard,
 		type PlayCardResult,
 		endTurn,
 		finalizeBattle,
@@ -32,6 +33,14 @@
 	}
 
 	let playedFx = $state<PlayedFx | null>(null);
+	let selectedCardId = $state<string | null>(null);
+
+	let battleLogs = $state<{id: string, msg: string}[]>([]);
+	
+	function addLog(msg: string) {
+		battleLogs = [...battleLogs, { id: crypto.randomUUID(), msg }];
+		if (battleLogs.length > 3) battleLogs.shift();
+	}
 
 	onMount(async () => {
 		const regionId = page.url.searchParams.get('region');
@@ -62,6 +71,7 @@
 
 	let s = $derived(battle.state);
 	let ended = $derived(!!s && s.status !== 'active');
+	let selectedCard = $derived(s?.hand.find((c) => c.id === selectedCardId) ?? null);
 
 	function intentText(): string {
 		if (!s) return '';
@@ -82,15 +92,43 @@
 		return effectivenessLabel(effectiveness(s.player.pokemon.element, s.enemy.pokemon.element));
 	}
 
+	function onPlayRelic(cardId: string, templateId: string) {
+		const res = playRelicCard(cardId);
+		if (!res.played) return;
+		const fxId = crypto.randomUUID();
+		playedFx = { id: fxId, templateId, exhausted: true, kind: 'relic' };
+		const tpl = getTemplate(templateId);
+		if (tpl) addLog(`Usou relíquia ${tpl.name}!`);
+		setTimeout(() => { if (playedFx?.id === fxId) playedFx = null; }, 620);
+	}
+
 	function onPlay(cardId: string, templateId: string) {
+		selectedCardId = null;
 		const res = playCard(cardId);
 		if (!res.played) return;
 
 		const fxId = crypto.randomUUID();
+		const tpl = getTemplate(templateId);
+		if (tpl) addLog(`Jogou ${tpl.name}!`);
 		playedFx = { id: fxId, templateId, exhausted: res.exhausted, kind: res.kind };
 		setTimeout(() => {
 			if (playedFx?.id === fxId) playedFx = null;
 		}, 620);
+	}
+
+	function onCardTap(cardId: string, templateId: string) {
+		if (!canPlay(templateId)) return;
+		if (selectedCardId === cardId) {
+			onPlay(cardId, templateId);
+		} else {
+			selectedCardId = cardId;
+		}
+	}
+
+	function handleEndTurn() {
+		selectedCardId = null;
+		addLog(`Fim do turno.`);
+		endTurn();
 	}
 
 	async function leave() {
@@ -100,18 +138,18 @@
 </script>
 
 {#if loading}
-	<div class="flex min-h-dvh items-center justify-center text-[var(--text-muted)]">
+	<div class="flex min-h-dvh items-center justify-center text-(--text-muted)">
 		Preparando batalha…
 	</div>
 {:else if error}
 	<div class="flex min-h-dvh flex-col items-center justify-center gap-3 p-6">
-		<p class="text-[var(--text-muted)]">{error}</p>
+		<p class="text-(--text-muted)">{error}</p>
 		<button class="rounded-xl bg-[var(--accent)] px-4 py-2 font-semibold text-white" onclick={leave}>
 			Voltar
 		</button>
 	</div>
 {:else if s}
-	<div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+	<div class="relative flex min-h-0 flex-1 flex-col overflow-hidden">
 		<!-- ARENA -->
 		<section
 			class="relative flex-1 overflow-hidden"
@@ -149,7 +187,7 @@
 				<div class="rounded-xl border border-[var(--border)] bg-[var(--surface)]/85 p-2 shadow-lg backdrop-blur">
 					<div class="mb-1 flex items-center justify-between gap-1">
 						<span class="truncate text-xs font-bold">{s.enemy.pokemon.name}</span>
-						<span class="shrink-0 text-[10px] text-[var(--text-muted)]"
+						<span class="shrink-0 text-[10px] text-(--text-muted)"
 							>{ELEMENT_EMOJI[s.enemy.pokemon.element]}</span
 						>
 					</div>
@@ -193,33 +231,124 @@
 							✨ Próximo ataque +{s.player.nextDamageBonus}
 						</div>
 					{/if}
+					{#if s.player.berserk}
+						<div class="mt-1 text-[10px] font-bold text-red-400">⚡ Fúria — ATQ×2 DEF÷2</div>
+					{/if}
+					{#if s.player.ghostForm}
+						<div class="mt-1 text-[10px] font-bold text-violet-300">👻 Forma Fantasma — DMG MAX 1</div>
+					{/if}
 				</div>
+			</div>
+
+		</section>
+
+		<!-- LOGS DA BATALHA -->
+		<section class="relative z-20 border-t border-[var(--border)] bg-[var(--surface-overlay)] h-[54px] flex flex-col justify-end overflow-hidden px-4 pb-1.5 shadow-inner">
+			<div class="flex flex-col items-center justify-end w-full" aria-live="polite">
+				{#each battleLogs.slice(-2) as log (log.id)}
+					<div class="text-[11.5px] font-bold text-[var(--text-muted)] animate-fade-in-up text-center truncate w-full h-[18px]">
+						{log.msg}
+					</div>
+				{/each}
+				{#if battleLogs.length === 0}
+					<div class="text-[11.5px] font-bold text-[var(--text-muted)]/50 text-center w-full h-[18px]">
+						Início da batalha...
+					</div>
+				{/if}
 			</div>
 		</section>
 
-		<!-- CONTROLES + MÃO (encostado na arena, sem espaço) -->
-		<section class="border-t border-[var(--border)] bg-[var(--surface)] px-2 pb-3 pt-2">
-			<div class="mb-1.5 flex items-center justify-between px-1 text-[10px] text-[var(--text-muted)]">
-				<span>🂠 {s.deck.length} · ♻ {s.discard.length} · 💤 {s.exhausted.length}</span>
-				<button
-					class="rounded-lg bg-[var(--accent)] px-4 py-1.5 text-xs font-bold text-white disabled:opacity-40"
-					disabled={s.turn !== 'player' || ended}
-					onclick={endTurn}
-				>
-					Fim de turno ↦
-				</button>
+		<!-- CONTROLES + MÃO -->
+		<section class="border-t border-white/10 bg-[var(--surface)] px-2 pb-2 pt-2 flex flex-col justify-between" style="height: 40vh;">
+			<div>
+				<div class="mb-1 flex items-center justify-between px-1 text-[10px] text-(--text-muted) uppercase font-bold tracking-widest">
+					<span>🂠 {s.deck.length} · ♻ {s.discard.length} · 💤 {s.exhausted.length}</span>
+					<button
+						class="rounded-xl bg-[var(--accent)] px-4 py-1.5 text-xs font-black text-white hover:brightness-110 disabled:opacity-40 transition-colors"
+						disabled={s.turn !== 'player' || ended}
+						onclick={handleEndTurn}
+					>
+						Fim de turno ↦
+					</button>
+				</div>
+
+				<!-- relíquias: cartas de uso único fora do deck -->
+				{#if s.relicSlots && s.relicSlots.length > 0}
+					<div class="mb-1.5 flex items-center gap-2 px-1">
+						<span class="shrink-0 text-[10px] font-black uppercase tracking-widest text-purple-400">Relíquias</span>
+						{#each s.relicSlots as relic (relic.id)}
+							<div class="w-14 shrink-0">
+								<Card
+									templateId={relic.templateId}
+									playable={s.turn === 'player' && !ended}
+									onclick={() => onPlayRelic(relic.id, relic.templateId)}
+								/>
+							</div>
+						{/each}
+					</div>
+				{/if}
 			</div>
-			<div class="grid grid-cols-4 gap-1.5 sm:grid-cols-5">
-				{#each s.hand as card (card.id)}
-					<Card
-						templateId={card.templateId}
-						flip
-						playable={canPlay(card.templateId)}
-						onclick={() => onPlay(card.id, card.templateId)}
-					/>
+
+			<!-- fan hand: wrapper div is for positioning only — Card's own button handles clicks -->
+			<div class="hand-fan" role="group" aria-label="Mão de cartas">
+				{#each s.hand as card, i (card.id)}
+					{@const n = s.hand.length || 1}
+					{@const mid = (n - 1) / 2}
+					{@const offset = i - mid}
+					{@const angle = offset * (n > 3 ? 6.5 : 9)}
+					{@const xPos = offset * 90}
+					{@const playable = canPlay(card.templateId)}
+					{@const isSelected = selectedCardId === card.id}
+					<div
+						class="hand-card"
+						class:hand-card--selected={isSelected}
+						class:hand-card--muted={!playable}
+						style="left: calc(50% + {xPos}px - 60px); --angle: {angle}deg; z-index: {isSelected ? 60 : i + 1};"
+					>
+						<Card
+							templateId={card.templateId}
+							flip
+							playable={playable}
+							onclick={() => onCardTap(card.id, card.templateId)}
+						/>
+					</div>
 				{/each}
 			</div>
 		</section>
+
+		<!-- CARTA SELECIONADA — overlay de confirmação.
+		     Sits at the flex-container level (z-[100]) to beat hand card z-indices (max 60). -->
+		{#if selectedCard && !ended}
+			<div
+				class="absolute inset-0 z-100 flex cursor-pointer flex-col items-center justify-center gap-3"
+				style="background: rgba(0,0,0,0.55); backdrop-filter: blur(3px);"
+				onclick={() => (selectedCardId = null)}
+				onkeydown={(e) => { if (e.key === 'Escape') selectedCardId = null; }}
+				role="button"
+				tabindex="0"
+				aria-label="Desselecionar carta"
+			>
+				<div
+					class="card-preview cursor-default"
+					onclick={(e) => e.stopPropagation()}
+					onkeydown={(e) => e.stopPropagation()}
+					role="presentation"
+				>
+					<Card templateId={selectedCard.templateId} playable={false} showcase />
+				</div>
+				<button
+					type="button"
+					class="rounded-xl px-10 py-2.5 text-sm font-black tracking-wide text-white shadow-xl"
+					style="background: var(--accent);"
+					onclick={(e) => {
+						e.stopPropagation();
+						onPlay(selectedCard!.id, selectedCard!.templateId);
+					}}
+				>
+					Jogar ▶
+				</button>
+			</div>
+		{/if}
 	</div>
 
 	<!-- FIM DE BATALHA -->
@@ -229,7 +358,7 @@
 		title={s.status === 'defeat' ? 'Derrota…' : s.status === 'captured' ? 'Capturado!' : 'Vitória!'}
 	>
 		{#if s.status === 'defeat'}
-			<p class="text-sm text-[var(--text-muted)]">
+			<p class="text-sm text-(--text-muted)">
 				Seu pokémon foi derrotado. Seu deck ativo foi redefinido para as cartas iniciais — mas seu
 				inventário e pokémons continuam com você.
 			</p>
@@ -240,13 +369,18 @@
 				{/if}
 				{#if battle.reward}
 					<p>💰 Recompensa: <strong>{battle.reward.money}</strong></p>
+					<p>
+						{ELEMENT_EMOJI[battle.reward.elementPoints.type]}
+						+{battle.reward.elementPoints.amount}
+						{ELEMENT_LABEL[battle.reward.elementPoints.type]}
+					</p>
 					{#if battle.reward.unlockedRegionName}
 						<p class="font-semibold text-[var(--success)]">
 							🗺️ Nova região desbloqueada: {battle.reward.unlockedRegionName}!
 						</p>
 					{/if}
 				{:else}
-					<p class="text-[var(--text-muted)]">Calculando recompensa…</p>
+					<p class="text-(--text-muted)">Calculando recompensa…</p>
 				{/if}
 			</div>
 		{/if}
@@ -260,7 +394,58 @@
 {/if}
 
 <style>
-	/* sombra elíptica de plataforma sob cada pokémon */
+	/* ── Fan hand ──────────────────────────────────────────────────────────── */
+	.hand-fan {
+		position: relative;
+		height: 100%;
+		min-height: 160px;
+		width: 100%;
+		overflow: visible;
+		margin-top: auto;
+	}
+	.hand-card {
+		position: absolute;
+		bottom: 30px;
+		width: 120px;
+		max-width: 25vh;
+		transform-origin: bottom center;
+		transform: rotate(var(--angle));
+		transition:
+			transform 180ms ease-out,
+			filter 180ms ease-out;
+		cursor: pointer;
+		background: none;
+		border: none;
+		padding: 0;
+	}
+	/* desktop hover — lifts and straightens the card */
+	@media (hover: hover) {
+		.hand-card:not(.hand-card--muted):hover {
+			transform: rotate(calc(var(--angle) * 0.3)) translateY(-22px) scale(1.06);
+			z-index: 50 !important;
+		}
+	}
+	.hand-card--selected {
+		transform: rotate(0deg) translateY(-40px) scale(1.08) !important;
+		z-index: 60 !important;
+		filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.75));
+	}
+	.hand-card--muted {
+		opacity: 0.45;
+		cursor: default;
+	}
+	/* ── Card preview overlay ───────────────────────────────────────────────── */
+	.card-preview {
+		width: 250px;
+		max-width: 70vw;
+		filter: drop-shadow(0 16px 40px rgba(0, 0, 0, 0.6));
+		animation: preview-in 180ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+	}
+	@keyframes preview-in {
+		from { transform: scale(0.82) translateY(16px); opacity: 0; }
+		to   { transform: scale(1) translateY(0);       opacity: 1; }
+	}
+	/* ── sombra elíptica de plataforma sob cada pokémon ──────────────────── */
 	.platform {
 		position: absolute;
 		left: 50%;
@@ -379,5 +564,18 @@
 			opacity: 0;
 			transform: translateX(-50%) translateY(-10px);
 		}
+	}
+	@keyframes fade-in-up {
+		from {
+			opacity: 0;
+			transform: translateY(10px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+	.animate-fade-in-up {
+		animation: fade-in-up 250ms ease-out forwards;
 	}
 </style>

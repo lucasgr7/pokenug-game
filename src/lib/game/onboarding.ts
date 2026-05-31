@@ -52,7 +52,11 @@ export async function createPlayer(name: string, starter: StarterDef): Promise<v
 		unlockedRegions: [REGIONS[0].id],
 		theme: 'dark',
 		lastShopRefresh: 0,
-		paidRefreshCountToday: 0
+		paidRefreshCountToday: 0,
+		ngu: {
+			moneyMultiplierLevel: 0,
+			globalDamageLevel: 0
+		}
 	};
 	await savePlayer(player);
 

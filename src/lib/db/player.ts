@@ -5,7 +5,11 @@ const KEY = 'me';
 
 export async function getPlayer(): Promise<Player | undefined> {
 	const db = await getDb();
-	return db.get('player', KEY);
+	const player = await db.get('player', KEY);
+	if (player && !player.ngu) {
+		player.ngu = { moneyMultiplierLevel: 0, globalDamageLevel: 0 };
+	}
+	return player;
 }
 
 export async function savePlayer(player: Player): Promise<void> {

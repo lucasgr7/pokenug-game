@@ -58,3 +58,14 @@ export function getRegion(id: string): Region | undefined {
 export function nextRegion(id: string): Region | undefined {
 	return REGIONS.find((r) => r.unlockAfter === id);
 }
+
+/** 
+ * Returns a Fibonacci scaling multiplier for the given region index.
+ * Region 0: 1x, Region 1: 2x, Region 2: 3x, Region 3: 5x, Region 4: 8x, Region 5: 13x
+ */
+export function getRegionScaling(regionId: string): number {
+	const index = REGIONS.findIndex((r) => r.id === regionId);
+	if (index <= 0) return 1;
+	const fib = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
+	return fib[Math.min(index, fib.length - 1)];
+}
