@@ -6,7 +6,7 @@ import { clearSavedBattle, getSavedBattle, saveBattle } from '$lib/db/battle';
 import { getTemplate } from '$lib/data/cards';
 import { getRegion, nextRegion, getRegionScaling } from '$lib/data/regions';
 import { fetchPokemon } from '$lib/api/pokeapi';
-import { effectiveness } from './type-chart';
+import { getElementInteraction } from './type-chart';
 import { pick, randomInt, shuffle, weightedPick } from '$lib/utils/rng';
 import { clamp } from '$lib/utils/math';
 import { now } from '$lib/utils/time';
@@ -15,7 +15,9 @@ import {
 	addElementPoints,
 	addMoney,
 	addToRoster,
+	applyElementalHpBonusToPokemon,
 	game,
+	getElementalDamageLevel,
 	normalizedPokemonHp,
 	recordDefeat,
 	setPokemonCurrentHp,
@@ -29,6 +31,7 @@ import type {
 	CardKind,
 	CardTemplate,
 	CapturedPokemon,
+	Element,
 	EnemyIntent,
 	SavedBattle
 } from './types';
@@ -62,32 +65,47 @@ export interface PlayCardResult {
 	exhausted: boolean;
 	kind: CardKind;
 	// populated on a successful play:
-	element?: string | null;
+	element?: Element | null;
 	damage?: number;        // net HP damage dealt to enemy
 	effectiveness?: number; // type multiplier (0.5 | 1 | 2 …)
+	damageModifier?: number;
+	damageModifierText?: string;
 	healed?: number;        // HP restored to player
 	blocked?: number;       // block gained by player this play
 	manaGained?: number;    // mana recovered (energy cards)
+	drawCount?: number;     // cards drawn immediately after the card resolves
+	shockDamage?: number;   // bonus static shock damage dealt after the card resolves
 }
 
 export interface EnemyTurnResult {
 	kind: 'attack' | 'defend' | 'buff';
+	element?: Element;
 	damage?: number;     // net HP damage dealt to player (after block)
 	absorbed?: number;   // damage absorbed by player block
+	effectiveness?: number;
+	damageModifier?: number;
+	damageModifierText?: string;
 	enemyBlock?: number; // block the enemy gained
 	buffAmount?: number; // next-damage bonus added
 }
 
+interface TypedDamageSummary {
+	damage: number;
+	effectiveness: number;
+	modifierAmount: number;
+	modifierText: string;
+}
+
 // ── Enemy intent ──────────────────────────────────────────────────────────
 
-function rollIntent(enemyHp: number, enemyMaxHp: number, turnNumber: number, scaling: number): EnemyIntent {
+function rollIntent(enemyHp: number, enemyMaxHp: number, turnNumber: number, scaling: number, enemyElement: Element): EnemyIntent {
 	const ratio = enemyMaxHp > 0 ? enemyHp / enemyMaxHp : 1;
 	// Enemy is more defensive when low on HP.
 	const defendWeight = ratio < 0.35 ? 0.4 : 0.2;
 	const kind = weightedPick(['attack', 'defend', 'buff'] as const, [0.6, defendWeight, 0.15]);
 	if (kind === 'attack') {
 		const baseDmg = randomInt(5, 9) + Math.floor(enemyMaxHp / (20 * scaling)) + Math.floor(turnNumber * 0.5);
-		return { kind: 'attack', damage: Math.ceil(baseDmg * scaling) };
+		return { kind: 'attack', damage: Math.ceil(baseDmg * scaling), element: enemyElement };
 	}
 	if (kind === 'defend') return { kind: 'defend', block: Math.ceil(randomInt(4, 8) * scaling) };
 	return { kind: 'buff', nextDamage: Math.ceil(randomInt(3, 6) * scaling) };
@@ -95,17 +113,86 @@ function rollIntent(enemyHp: number, enemyMaxHp: number, turnNumber: number, sca
 
 // ── Card draw ─────────────────────────────────────────────────────────────
 
+function isPermanentlyConsumed(tpl: CardTemplate | null | undefined): boolean {
+	return !!tpl && (tpl.kind === 'heal' || tpl.kind === 'power' || (tpl.kind === 'capture' && tpl.rarity !== 'starter'));
+}
+
+function dropInvalidCards(cards: Card[]): { validCards: Card[]; removedCount: number } {
+	const validCards: Card[] = [];
+	let removedCount = 0;
+
+	for (const card of cards) {
+		if (getTemplate(card.templateId)) {
+			validCards.push(card);
+			continue;
+		}
+
+		removedCount++;
+		void removeFromDeck(card.id);
+		void removeFromInventory(card.id);
+	}
+
+	return { validCards, removedCount };
+}
+
+function sanitizeBattleStateCards(s: BattleState): { removedFromHand: number; changed: boolean } {
+	let changed = false;
+
+	const hand = dropInvalidCards(s.hand);
+	if (hand.removedCount > 0) {
+		s.hand = hand.validCards;
+		changed = true;
+	}
+
+	for (const pile of ['deck', 'discard', 'exhausted', 'relicSlots'] as const) {
+		const sanitized = dropInvalidCards(s[pile]);
+		if (sanitized.removedCount > 0) {
+			s[pile] = sanitized.validCards;
+			changed = true;
+		}
+	}
+
+	return { removedFromHand: hand.removedCount, changed };
+}
+
+function reshuffleDiscardIntoDeck(s: BattleState): boolean {
+	if (s.discard.length === 0) return false;
+	s.deck = shuffle(s.discard);
+	s.discard = [];
+	return s.deck.length > 0;
+}
+
+function recycleBattleExhaustedIntoDeck(s: BattleState): boolean {
+	const recyclable = s.exhausted.filter((card) => !isPermanentlyConsumed(getTemplate(card.templateId)));
+	if (recyclable.length === 0) return false;
+
+	const recycledIds = new Set(recyclable.map((card) => card.id));
+	s.exhausted = s.exhausted.filter((card) => !recycledIds.has(card.id));
+	s.deck = shuffle(recyclable);
+	return s.deck.length > 0;
+}
+
 function drawCards(count: number): void {
 	const s = battle.state;
 	if (!s) return;
-	for (let i = 0; i < count; i++) {
+
+	const { removedFromHand } = sanitizeBattleStateCards(s);
+	const targetHandSize = Math.min(HAND_SIZE, s.hand.length + Math.max(0, count) + removedFromHand);
+	while (s.hand.length < targetHandSize) {
 		if (s.deck.length === 0) {
-			if (s.discard.length === 0) break;
-			s.deck = shuffle(s.discard);
-			s.discard = [];
+			const recycledDiscard = reshuffleDiscardIntoDeck(s);
+			const recycledExhausted = recycledDiscard ? false : recycleBattleExhaustedIntoDeck(s);
+			if (!recycledDiscard && !recycledExhausted) break;
 		}
+
 		const card = s.deck.pop();
-		if (card) s.hand.push(card);
+		if (!card) break;
+		if (!getTemplate(card.templateId)) {
+			void removeFromDeck(card.id);
+			void removeFromInventory(card.id);
+			continue;
+		}
+		s.hand.push(card);
 	}
 }
 
@@ -157,10 +244,7 @@ function discardOrExhaust(card: Card): boolean {
 		const tpl = getTemplate(card.templateId);
 		// Heals and non-starter pokéballs are consumed permanently.
 		// Off-element cards are exhausted for this battle only — they return next battle.
-		const permanent =
-			tpl?.kind === 'heal' ||
-			tpl?.kind === 'power' ||
-			(tpl?.kind === 'capture' && tpl.rarity !== 'starter');
+		const permanent = isPermanentlyConsumed(tpl);
 		if (permanent) {
 			void removeFromDeck(card.id);
 			void removeFromInventory(card.id);
@@ -171,28 +255,75 @@ function discardOrExhaust(card: Card): boolean {
 	return false;
 }
 
+function discardHand(s: BattleState): void {
+	if (s.hand.length === 0) return;
+	s.discard.push(...s.hand);
+	s.hand = [];
+}
+
 // ── Card effect ───────────────────────────────────────────────────────────
 
 function playerAttackBonus(): number {
 	const s = battle.state!;
 	return (
-		(game.player?.ngu.globalDamageLevel ?? 0) * GLOBAL_DAMAGE_PER_LEVEL +
+		getElementalDamageLevel(s.player.pokemon.element) * GLOBAL_DAMAGE_PER_LEVEL +
 		(s.player.pokemon.damageBuffs ?? 0) * DAMAGE_PER_POKEMON_BUFF
 	);
+}
+
+function resolveTypedDamage(
+	baseDamage: number,
+	attackerElement: Element | null | undefined,
+	defenderElement: Element
+): TypedDamageSummary {
+	const neutralDamage = Math.max(0, Math.round(baseDamage));
+	if (!attackerElement) {
+		return {
+			damage: neutralDamage,
+			effectiveness: 1,
+			modifierAmount: 0,
+			modifierText: ''
+		};
+	}
+
+	const interaction = getElementInteraction(attackerElement, defenderElement);
+	const damage = Math.max(0, Math.round(neutralDamage * interaction.multiplier));
+
+	return {
+		damage,
+		effectiveness: interaction.multiplier,
+		modifierAmount: damage - neutralDamage,
+		modifierText: interaction.modifierText
+	};
+}
+
+function resolvePlayerAttackElement(s: BattleState, tpl: CardTemplate): Element | null {
+	let attackElement = tpl.element;
+	if (s.player.dragonize && (!attackElement || attackElement === 'normal')) attackElement = 'dragon';
+	return attackElement;
+}
+
+function applyStaticShock(s: BattleState): number {
+	if (s.status !== 'active' || s.player.staticShockDamage <= 0) return 0;
+	const shockDamage = resolveTypedDamage(s.player.staticShockDamage, 'electric', s.enemy.pokemon.element).damage;
+	if (shockDamage <= 0) return 0;
+	const enemyHpBefore = s.enemy.hp;
+	dealToEnemy(shockDamage);
+	return Math.max(0, enemyHpBefore - s.enemy.hp);
 }
 
 function applyCardEffect(s: BattleState, tpl: CardTemplate): void {
 	switch (tpl.kind) {
 		case 'attack': {
+			const attackElement = resolvePlayerAttackElement(s, tpl);
 			const base = (tpl.damage ?? 0) + s.player.nextDamageBonus + playerAttackBonus();
 			s.player.nextDamageBonus = 0;
-			let atkElement = tpl.element;
-			if (s.player.dragonize && (!atkElement || atkElement === 'normal')) atkElement = 'dragon';
-			const mult = atkElement ? effectiveness(atkElement, s.enemy.pokemon.element) : 1;
 			const berserkMult = s.player.berserk ? 2 : 1;
+			const attackDamage = resolveTypedDamage(base * berserkMult, attackElement, s.enemy.pokemon.element);
 			const hits = 1 + s.player.attackRepeat;
 			s.player.attackRepeat = 0;
-			for (let i = 0; i < hits; i++) dealToEnemy(Math.round(base * mult * berserkMult));
+			for (let i = 0; i < hits; i++) dealToEnemy(attackDamage.damage);
+			if ((tpl.drawCount ?? 0) > 0) drawCards(tpl.drawCount ?? 0);
 			break;
 		}
 		case 'defense': {
@@ -215,6 +346,7 @@ function applyCardEffect(s: BattleState, tpl: CardTemplate): void {
 		case 'power':
 			if (tpl.id === 'power_berserk') s.player.berserk = true;
 			if (tpl.id === 'power_dragonize') s.player.dragonize = true;
+			if (tpl.id === 'power_electric_shock') s.player.staticShockDamage += 2;
 			break;
 		case 'relic':
 			s.player.ghostForm = true;
@@ -248,6 +380,20 @@ async function syncPlayerHp(): Promise<void> {
 	const s = battle.state;
 	if (!s) return;
 	await setPokemonCurrentHp(s.player.pokemon.id, s.player.hp);
+}
+
+export function repairActiveBattleState(): void {
+	const s = battle.state;
+	if (!s || s.status !== 'active') return;
+
+	const { removedFromHand, changed } = sanitizeBattleStateCards(s);
+	if (s.turn === 'player' && removedFromHand > 0) {
+		drawCards(removedFromHand);
+	}
+
+	if (changed || removedFromHand > 0) {
+		void persistBattle();
+	}
 }
 
 // ── Battle lifecycle ──────────────────────────────────────────────────────
@@ -288,6 +434,7 @@ export async function startBattle(regionId: string): Promise<void> {
 			poisonCounter: 0,
 			berserk: false,
 			dragonize: false,
+			staticShockDamage: 0,
 			ghostForm: false,
 			attackRepeat: 0
 		},
@@ -295,7 +442,7 @@ export async function startBattle(regionId: string): Promise<void> {
 			pokemon: enemy,
 			hp: enemy.maxHp,
 			block: 0,
-			intent: rollIntent(enemy.maxHp, enemy.maxHp, 1, scaling),
+			intent: rollIntent(enemy.maxHp, enemy.maxHp, 1, scaling, enemy.element),
 			nextDamageBonus: 0,
 			poisonCounter: 0,
 			intimidateTurnsLeft: 0,
@@ -327,6 +474,7 @@ export async function enterBattle(regionId: string): Promise<void> {
 		battle.settled = saved.settled;
 		battle.enemyHurt = 0;
 		battle.playerHurt = 0;
+		repairActiveBattleState();
 		return;
 	}
 	if (saved) await clearSavedBattle();
@@ -361,6 +509,16 @@ export function playCard(cardId: string): PlayCardResult {
 
 	s.player.mana -= tpl.cost;
 	s.hand.splice(idx, 1);
+	const attackElement = tpl.kind === 'attack' ? resolvePlayerAttackElement(s, tpl) : null;
+	const attackHits = tpl.kind === 'attack' ? 1 + s.player.attackRepeat : 0;
+	const attackDamage =
+		tpl.kind === 'attack'
+			? resolveTypedDamage(
+					((tpl.damage ?? 0) + s.player.nextDamageBonus + playerAttackBonus()) * (s.player.berserk ? 2 : 1),
+					attackElement,
+					s.enemy.pokemon.element
+				)
+			: null;
 
 	// Capture pre-effect state so we can compute deltas for the log.
 	const enemyHpBefore = s.enemy.hp;
@@ -368,17 +526,20 @@ export function playCard(cardId: string): PlayCardResult {
 	const playerBlockBefore = s.player.block;
 
 	applyCardEffect(s, tpl);
+	const shockDamage = applyStaticShock(s);
 
 	const exhausted = discardOrExhaust(card);
 
 	// Build enriched result.
 	const result: PlayCardResult = { played: true, exhausted, kind: tpl.kind };
-	if (tpl.kind === 'attack') {
-		result.element = tpl.element;
+	if (tpl.kind === 'attack' && attackDamage) {
+		result.element = attackElement;
 		result.damage = Math.max(0, enemyHpBefore - s.enemy.hp);
-		let atkEl = tpl.element;
-		if (s.player.dragonize && (!atkEl || atkEl === 'normal')) atkEl = 'dragon';
-		result.effectiveness = atkEl ? effectiveness(atkEl, s.enemy.pokemon.element) : 1;
+		result.effectiveness = attackDamage.effectiveness;
+		if (attackDamage.modifierAmount !== 0) {
+			result.damageModifier = attackDamage.modifierAmount * attackHits;
+			result.damageModifierText = attackDamage.modifierText;
+		}
 	} else if (tpl.kind === 'heal') {
 		result.healed = Math.max(0, s.player.hp - playerHpBefore);
 	} else if (tpl.kind === 'defense') {
@@ -386,6 +547,8 @@ export function playCard(cardId: string): PlayCardResult {
 	} else if (tpl.kind === 'energy') {
 		result.manaGained = tpl.manaGain;
 	}
+	if ((tpl.drawCount ?? 0) > 0) result.drawCount = tpl.drawCount;
+	if (shockDamage > 0) result.shockDamage = shockDamage;
 
 	if (s.enemy.hp <= 0 && s.status === 'active') s.status = 'victory';
 	if (tpl.kind === 'heal') void syncPlayerHp();
@@ -408,32 +571,45 @@ export function playRelicCard(cardId: string): PlayCardResult {
 
 	s.relicSlots.splice(idx, 1);
 	applyCardEffect(s, tpl);
+	const shockDamage = applyStaticShock(s);
 	void removeFromInventory(card.id);
+	if (s.enemy.hp <= 0 && s.status === 'active') s.status = 'victory';
 
 	void persistBattle();
-	return { played: true, exhausted: true, kind: 'relic' };
+	return { played: true, exhausted: true, kind: 'relic', shockDamage };
 }
 
 export function endTurn(): EnemyTurnResult | null {
 	const s = battle.state;
 	if (!s || s.status !== 'active' || s.turn !== 'player') return null;
 
+	discardHand(s);
 	s.turn = 'enemy';
 	s.enemy.block = 0;
 
 	const intent = s.enemy.intent;
 	let turnResult: EnemyTurnResult;
 	if (intent.kind === 'attack') {
+		const attackElement = intent.element ?? s.enemy.pokemon.element;
 		let dmg = intent.damage + s.enemy.nextDamageBonus;
 		// Apply intimidate reduction if active
 		if (s.enemy.intimidateTurnsLeft > 0) {
 			dmg = Math.round(dmg * (1 - s.enemy.intimidateDamageReduction));
 			s.enemy.intimidateTurnsLeft--;
 		}
+		const typedDamage = resolveTypedDamage(dmg, attackElement, s.player.pokemon.element);
 		s.enemy.nextDamageBonus = 0;
-		const absorbed = Math.min(s.player.block, dmg);
-		dealToPlayer(dmg);
-		turnResult = { kind: 'attack', damage: Math.max(0, dmg - absorbed), absorbed };
+		const absorbed = Math.min(s.player.block, typedDamage.damage);
+		dealToPlayer(typedDamage.damage);
+		turnResult = {
+			kind: 'attack',
+			element: attackElement,
+			damage: Math.max(0, typedDamage.damage - absorbed),
+			absorbed,
+			effectiveness: typedDamage.effectiveness,
+			damageModifier: typedDamage.modifierAmount,
+			damageModifierText: typedDamage.modifierText
+		};
 	} else if (intent.kind === 'defend') {
 		s.enemy.block += intent.block;
 		turnResult = { kind: 'defend', enemyBlock: intent.block };
@@ -450,13 +626,13 @@ export function endTurn(): EnemyTurnResult | null {
 	}
 
 	const scaling = getRegionScaling(s.regionId);
-	s.enemy.intent = rollIntent(s.enemy.hp, s.enemy.pokemon.maxHp, s.turnNumber, scaling);
+	s.enemy.intent = rollIntent(s.enemy.hp, s.enemy.pokemon.maxHp, s.turnNumber, scaling, s.enemy.pokemon.element);
 	s.turnNumber++;
 	s.player.block = 0;
 	s.player.mana = START_MANA;
 	s.player.ghostForm = false;
 	s.turn = 'player';
-	drawCards(HAND_SIZE - s.hand.length);
+	drawCards(HAND_SIZE);
 	void persistBattle();
 	return turnResult;
 }
@@ -500,6 +676,7 @@ export async function finalizeBattle(): Promise<void> {
 			capturedAt: now(),
 			currentHp: s.enemy.pokemon.maxHp
 		};
+		applyElementalHpBonusToPokemon(captured);
 		await addPokemon(captured);
 		addToRoster(captured);
 	}

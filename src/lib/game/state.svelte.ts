@@ -3,6 +3,8 @@ import { addPokemon, getAllPokemon } from '$lib/db/pokemon';
 import { clamp } from '$lib/utils/math';
 import type { CapturedPokemon, Element, Player, Theme } from './types';
 
+const HP_PER_ELEMENT_LEVEL = 20;
+
 interface GameStore {
 	player: Player | null;
 	roster: CapturedPokemon[];
@@ -74,6 +76,44 @@ export function getElementPoints(element: Element): number {
 	return game.player?.elementPoints[element] ?? 0;
 }
 
+export function getElementalDamageLevel(element: Element | null | undefined): number {
+	if (!element) return 0;
+	return game.player?.ngu.elementalDamageLevels[element] ?? 0;
+}
+
+export function getElementalHpLevel(element: Element | null | undefined): number {
+	if (!element) return 0;
+	return game.player?.ngu.elementalHpLevels[element] ?? 0;
+}
+
+export function getElementalHpBonus(element: Element | null | undefined): number {
+	return getElementalHpLevel(element) * HP_PER_ELEMENT_LEVEL;
+}
+
+export function applyElementalHpBonusToPokemon(pokemon: CapturedPokemon): void {
+	const bonusHp = getElementalHpBonus(pokemon.element);
+	if (bonusHp <= 0) return;
+	pokemon.maxHp += bonusHp;
+	pokemon.currentHp += bonusHp;
+}
+
+export async function applyElementalHpUpgradeToRoster(element: Element, addedLevels = 1): Promise<void> {
+	if (addedLevels <= 0) return;
+
+	const bonusHp = addedLevels * HP_PER_ELEMENT_LEVEL;
+	let rosterChanged = false;
+	for (const pokemon of game.roster) {
+		if (pokemon.element !== element) continue;
+		pokemon.maxHp += bonusHp;
+		pokemon.currentHp = clamp((pokemon.currentHp ?? pokemon.maxHp) + bonusHp, 0, pokemon.maxHp);
+		rosterChanged = true;
+	}
+
+	if (rosterChanged) {
+		await Promise.all(game.roster.map((pokemon) => addPokemon($state.snapshot(pokemon))));
+	}
+}
+
 export function setActivePokemon(id: string | null): void {
 	requirePlayer().activePokemonId = id;
 	schedulePersist();
@@ -134,6 +174,55 @@ export function activePokemon(): CapturedPokemon | undefined {
 	return game.roster.find((p) => p.id === game.player!.activePokemonId);
 }
 
+async function migrateLegacyNguProgress(player: Player): Promise<void> {
+	let playerChanged = false;
+	let rosterChanged = false;
+
+	const active = game.roster.find((pokemon) => pokemon.id === player.activePokemonId);
+	if (!active) return;
+
+	const legacyDamageLevel = player.ngu.globalDamageLevel ?? 0;
+	if (legacyDamageLevel > 0) {
+		const currentDamageLevel = player.ngu.elementalDamageLevels[active.element] ?? 0;
+		player.ngu.elementalDamageLevels[active.element] = Math.max(currentDamageLevel, legacyDamageLevel);
+		player.ngu.globalDamageLevel = 0;
+		playerChanged = true;
+	}
+
+	const legacyHpLevel = active.hpBuffs ?? 0;
+	if (legacyHpLevel > 0) {
+		const currentHpLevel = player.ngu.elementalHpLevels[active.element] ?? 0;
+		const targetHpLevel = Math.max(currentHpLevel, legacyHpLevel);
+		const deltaLevels = targetHpLevel - currentHpLevel;
+		player.ngu.elementalHpLevels[active.element] = targetHpLevel;
+		playerChanged = true;
+
+		if (deltaLevels > 0) {
+			const bonusHp = deltaLevels * HP_PER_ELEMENT_LEVEL;
+			for (const pokemon of game.roster) {
+				if (pokemon.id === active.id || pokemon.element !== active.element) continue;
+				pokemon.maxHp += bonusHp;
+				pokemon.currentHp += bonusHp;
+				rosterChanged = true;
+			}
+		}
+	}
+
+	for (const pokemon of game.roster) {
+		if ((pokemon.hpBuffs ?? 0) !== 0) {
+			pokemon.hpBuffs = 0;
+			rosterChanged = true;
+		}
+	}
+
+	if (playerChanged) {
+		await savePlayer($state.snapshot(player));
+	}
+	if (rosterChanged) {
+		await Promise.all(game.roster.map((pokemon) => addPokemon($state.snapshot(pokemon))));
+	}
+}
+
 // ---- Bootstrap ----
 export interface OfflineSummary {
 	money: number;
@@ -162,6 +251,7 @@ async function doInit(): Promise<InitResult> {
 
 	game.player = player;
 	game.roster = await getAllPokemon();
+	await migrateLegacyNguProgress(player);
 
 	let rosterNeedsFix = false;
 	for (const p of game.roster) {

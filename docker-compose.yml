@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pokengu-web
+    ports:
+      - "${WEB_PORT:-3030}:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - internal
+      - dev-network
+
+networks:
+  internal:
+    driver: bridge
+  dev-network:
+    external: true
+    name: ${EXTERNAL_NETWORK_NAME:-gitea_dev-network}

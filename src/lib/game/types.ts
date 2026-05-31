@@ -37,6 +37,8 @@ export type Theme = 'dark' | 'light';
 
 export type RegionId = string;
 
+export type ElementLevelMap = Partial<Record<Element, number>>;
+
 export interface Player {
 	id: 'me';
 	name: string;
@@ -51,7 +53,9 @@ export interface Player {
 	paidRefreshCountToday: number; // contador para custo crescente
 	ngu: {
 		moneyMultiplierLevel: number;
-		globalDamageLevel: number;
+		elementalDamageLevels: ElementLevelMap;
+		elementalHpLevels: ElementLevelMap;
+		globalDamageLevel?: number; // legado, migrado para o elemento do pokémon ativo
 	};
 }
 
@@ -67,7 +71,7 @@ export interface CapturedPokemon {
 	damageBuffs?: number;
 }
 
-export type CardRarity = 'starter' | 'common' | 'rare' | 'epic';
+export type CardRarity = 'starter' | 'common' | 'rare' | 'epic' | 'secret';
 export type CardKind = 'attack' | 'defense' | 'heal' | 'capture' | 'buff' | 'power' | 'relic' | 'energy' | 'combo' | 'debuff';
 
 export interface CardTemplate {
@@ -87,6 +91,7 @@ export interface CardTemplate {
         poisonAmount?: number; // dano de veneno aplicado por turno
         manaGain?: number; // mana restaurado neste turno (cartas de energia)
         attackRepeat?: number; // golpes extras no próximo ataque (1 = dobra, 2 = triplica)
+		drawCount?: number; // cartas compradas imediatamente ao jogar esta carta
         debuffAmount?: number; // redução de dano do inimigo (cartas de debuff)
         debuffDuration?: number; // turnos que o debuff dura
 	price?: { money: number; element?: { type: Element; amount: number } };
@@ -116,7 +121,7 @@ export interface Region {
 }
 
 export type EnemyIntent =
-	| { kind: 'attack'; damage: number }
+	| { kind: 'attack'; damage: number; element?: Element }
 	| { kind: 'defend'; block: number }
 	| { kind: 'buff'; nextDamage: number };
 
@@ -144,7 +149,8 @@ export interface BattleState {
 		nextDamageBonus: number;
 		poisonCounter: number;
 		berserk: boolean;
-	dragonize: boolean;
+		dragonize: boolean;
+		staticShockDamage: number;
 		ghostForm: boolean;
 		attackRepeat: number;
 	};

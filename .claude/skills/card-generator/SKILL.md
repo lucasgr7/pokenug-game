@@ -276,24 +276,13 @@ Open `src/lib/components/Card.svelte`. Find the footer badge block (look for `tp
 
 ---
 
-## Step 7 — Smoke test
+## Step 7 — Validation
+
+Run static validation after the change:
 
 ```bash
 export PATH="/Users/lucas.ribeiro.br/.nvm/versions/node/v20.19.1/bin:$PATH"
-# Start dev server if not running:
-yarn dev > /tmp/pokengu-dev.log 2>&1 &
-until curl -sf http://localhost:5173 >/dev/null; do sleep 1; done
-
-# Onboard if no player exists:
-node .claude/skills/run-pokengu/driver.mjs onboard Ash Charmander
-
-# Screenshot shop and deck in one session (smoke runs onboard + all routes):
-node .claude/skills/run-pokengu/driver.mjs smoke
+yarn run check
 ```
 
-Screenshots land in `.claude/skills/run-pokengu/screenshots/`. Read them with the `Read` tool.
-
-Also run a build to catch TypeScript errors:
-```bash
-yarn build 2>&1 | tail -8
-```
+Visual or runtime smoke tests are optional and should be performed only when explicitly requested by the user.

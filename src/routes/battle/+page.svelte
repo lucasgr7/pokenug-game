@@ -9,12 +9,14 @@
 	import BattleLogs from '$lib/components/BattleLogs.svelte';
 	import ManaCrystal from '$lib/components/ManaCrystal.svelte';
 	import Modal from '$lib/components/Modal.svelte';
+	import TypeAdvantageAlert from '$lib/components/TypeAdvantageAlert.svelte';
 	import {
 		battle,
 		enterBattle,
 		hasSavedBattle,
 		playCard,
 		playRelicCard,
+		repairActiveBattleState,
 		type PlayCardResult,
 		endTurn,
 		finalizeBattle,
@@ -23,7 +25,7 @@
 	import { buildEndTurnLog, buildPlayLog, type BattleLogEntry, type LogPart } from '$lib/game/battle-log';
 	import { getTemplate } from '$lib/data/cards';
 	import { ELEMENT_LABEL, ELEMENT_EMOJI } from '$lib/game/elements';
-	import { effectiveness, effectivenessLabel } from '$lib/game/type-chart';
+	import { getElementInteraction, interactionLabel } from '$lib/game/type-chart';
 
 	let loading = $state(true);
 	let error = $state<string | null>(null);
@@ -73,6 +75,12 @@
 		}
 	});
 
+	$effect(() => {
+		if (battle.state?.status === 'active') {
+			repairActiveBattleState();
+		}
+	});
+
 	let s = $derived(battle.state);
 	let ended = $derived(!!s && s.status !== 'active');
 	let selectedCard = $derived(s?.hand.find((c) => c.id === selectedCardId) ?? null);
@@ -80,7 +88,12 @@
 	function intentText(): string {
 		if (!s) return '';
 		const it = s.enemy.intent;
-		if (it.kind === 'attack') return `⚔️ ${it.damage + s.enemy.nextDamageBonus}`;
+		if (it.kind === 'attack') {
+			const attackElement = it.element ?? s.enemy.pokemon.element;
+			const interaction = getElementInteraction(attackElement, s.player.pokemon.element);
+			const projectedDamage = Math.max(0, Math.round((it.damage + s.enemy.nextDamageBonus) * interaction.multiplier));
+			return `${ELEMENT_EMOJI[attackElement]} ⚔️ ${projectedDamage}`;
+		}
 		if (it.kind === 'defend') return `🛡️ ${it.block}`;
 		return `✨ +${it.nextDamage}`;
 	}
@@ -93,7 +106,7 @@
 
 	function matchupHint(): string {
 		if (!s) return '';
-		return effectivenessLabel(effectiveness(s.player.pokemon.element, s.enemy.pokemon.element));
+		return interactionLabel(s.player.pokemon.element, s.enemy.pokemon.element);
 	}
 
 	function onPlayRelic(cardId: string, templateId: string) {
@@ -157,7 +170,7 @@
 {:else if error}
 	<div class="flex min-h-dvh flex-col items-center justify-center gap-3 p-6">
 		<p class="text-(--text-muted)">{error}</p>
-		<button class="rounded-xl bg-[var(--accent)] px-4 py-2 font-semibold text-white" onclick={leave}>
+		<button class="rounded-xl bg-(--accent) px-4 py-2 font-semibold text-white" onclick={leave}>
 			Voltar
 		</button>
 	</div>
@@ -196,8 +209,8 @@
 			</div>
 
 			<!-- INFO INIMIGO (canto superior esquerdo) -->
-			<div class="absolute left-2 top-2 z-10 w-[58%] max-w-[260px]">
-				<div class="rounded-xl border border-[var(--border)] bg-[var(--surface)]/85 p-2 shadow-lg backdrop-blur">
+			<div class="absolute left-2 top-2 z-10 w-[58%] max-w-65">
+				<div class="rounded-xl border border-(--border) bg-(--surface)/85 p-2 shadow-lg backdrop-blur">
 					<div class="mb-1 flex items-center justify-between gap-1">
 						<span class="truncate text-xs font-bold">{s.enemy.pokemon.name}</span>
 						<span class="shrink-0 text-[10px] text-(--text-muted)"
@@ -205,13 +218,16 @@
 						>
 					</div>
 					<HpBar hp={s.enemy.hp} maxHp={s.enemy.pokemon.maxHp} block={s.enemy.block} />
-					<div class="mt-1 flex items-center gap-1 text-[11px] font-bold text-[var(--danger)]">
-						<span class="rounded bg-[var(--danger)]/15 px-1.5 py-0.5">Intenção {intentText()}</span>
-					</div>				{#if s.enemy.intimidateTurnsLeft > 0}
-					<div class="mt-1 flex items-center gap-1 text-[11px] font-bold text-red-400">
-						<span class="rounded bg-red-400/15 px-1.5 py-0.5">👤 Intimidado {s.enemy.intimidateTurnsLeft}t</span>
+					<div class="mt-1 flex items-center gap-1 text-[11px] font-bold text-(--danger)">
+						<span class="rounded bg-(--danger)/15 px-1.5 py-0.5">Intenção {intentText()}</span>
 					</div>
-				{/if}				</div>
+					<TypeAdvantageAlert attacker={s.enemy.pokemon.element} defender={s.player.pokemon.element} />
+					{#if s.enemy.intimidateTurnsLeft > 0}
+						<div class="mt-1 flex items-center gap-1 text-[11px] font-bold text-red-400">
+							<span class="rounded bg-red-400/15 px-1.5 py-0.5">👤 Intimidado {s.enemy.intimidateTurnsLeft}t</span>
+						</div>
+					{/if}
+				</div>
 			</div>
 
 			<!-- SPRITE INIMIGO (canto superior direito) -->
@@ -235,20 +251,23 @@
 			</div>
 
 			<!-- INFO JOGADOR (canto inferior direito) -->
-			<div class="absolute bottom-2 right-2 z-10 w-[58%] max-w-[260px]">
-				<div class="rounded-xl border border-[var(--border)] bg-[var(--surface)]/85 p-2 shadow-lg backdrop-blur">
+			<div class="absolute bottom-2 right-2 z-10 w-[58%] max-w-65">
+				<div class="rounded-xl border border-(--border) bg-(--surface)/85 p-2 shadow-lg backdrop-blur">
 					<div class="mb-1 flex items-center justify-between gap-1">
 						<span class="truncate text-xs font-bold">{s.player.pokemon.name}</span>
 						<ManaCrystal mana={s.player.mana} max={s.player.maxMana} />
 					</div>
 					<HpBar hp={s.player.hp} maxHp={s.player.pokemon.maxHp} block={s.player.block} />
-					{#if s.player.nextDamageBonus > 0 || s.player.berserk || s.player.dragonize || s.player.ghostForm}
+					{#if s.player.nextDamageBonus > 0 || s.player.berserk || s.player.dragonize || s.player.staticShockDamage > 0 || s.player.ghostForm}
 						<div class="mt-1.5 flex flex-wrap gap-1">
 							{#if s.player.berserk}
 								<span class="rounded-full px-1.5 py-0.5 text-[9px] font-black" style="color:#ef4444;background:rgba(239,68,68,0.15)" title="ATQ×2, DEF÷2 — toda a batalha">⚡ Fúria</span>
 							{/if}
 							{#if s.player.dragonize}
 								<span class="rounded-full px-1.5 py-0.5 text-[9px] font-black" style="color:#818cf8;background:rgba(79,70,229,0.15)" title="Ataques comuns → tipo Dragão — toda a batalha">🐉 Dragão</span>
+							{/if}
+							{#if s.player.staticShockDamage > 0}
+								<span class="rounded-full px-1.5 py-0.5 text-[9px] font-black" style="color:#facc15;background:rgba(250,204,21,0.16)" title="Cada carta jogada causa dano elétrico extra">⚡ Choque +{s.player.staticShockDamage}</span>
 							{/if}
 							{#if s.player.ghostForm}
 								<span class="rounded-full px-1.5 py-0.5 text-[9px] font-black" style="color:#a78bfa;background:rgba(167,139,250,0.15)" title="Dano máximo 1 neste turno">👻 Fantasma</span>
@@ -338,7 +357,7 @@
 						{ELEMENT_LABEL[battle.reward.elementPoints.type]}
 					</p>
 					{#if battle.reward.unlockedRegionName}
-						<p class="font-semibold text-[var(--success)]">
+						<p class="font-semibold text-(--success)">
 							🗺️ Nova região desbloqueada: {battle.reward.unlockedRegionName}!
 						</p>
 					{/if}
@@ -348,7 +367,7 @@
 			</div>
 		{/if}
 		<button
-			class="mt-4 w-full rounded-xl bg-[var(--accent)] py-2.5 font-semibold text-white"
+			class="mt-4 w-full rounded-xl bg-(--accent) py-2.5 font-semibold text-white"
 			onclick={leave}
 		>
 			Voltar ao mapa

@@ -285,20 +285,31 @@ m-548 -297 c0 -21 -25 -37 -45 -30 -16 6 -15 9 6 25 29 22 39 24 39 5z"/>
 		<!-- brilho no topo -->
 		<path d="M20 20 A6 5 0 0 1 28 18" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.55" />
 	{:else if kind === 'power'}
-		<!-- fúria: explosão radial com núcleo brilhante -->
-		<circle cx="24" cy="24" r="9" fill={color} opacity="0.22" />
-		<circle cx="24" cy="24" r="9" stroke={color} stroke-width="3" />
-		<!-- 8 raios da explosão -->
-		<line x1="24" y1="6"  x2="24" y2="13" stroke={color} stroke-width="3" stroke-linecap="round" />
-		<line x1="38" y1="10" x2="33" y2="16" stroke={color} stroke-width="3" stroke-linecap="round" />
-		<line x1="42" y1="24" x2="35" y2="24" stroke={color} stroke-width="3" stroke-linecap="round" />
-		<line x1="38" y1="38" x2="33" y2="32" stroke={color} stroke-width="3" stroke-linecap="round" />
-		<line x1="24" y1="42" x2="24" y2="35" stroke={color} stroke-width="3" stroke-linecap="round" />
-		<line x1="10" y1="38" x2="15" y2="32" stroke={color} stroke-width="3" stroke-linecap="round" />
-		<line x1="6"  y1="24" x2="13" y2="24" stroke={color} stroke-width="3" stroke-linecap="round" />
-		<line x1="10" y1="10" x2="15" y2="16" stroke={color} stroke-width="3" stroke-linecap="round" />
-		<!-- brilho central branco -->
-		<circle cx="24" cy="24" r="4" fill="white" opacity="0.55" />
+		{#if id === 'power_electric_shock'}
+			<!-- choque elétrico: núcleo energizado com arco estático -->
+			<circle cx="24" cy="24" r="13" fill={color} opacity="0.22" />
+			<circle cx="24" cy="24" r="13" stroke={color} stroke-width="3" />
+			<path d="M18 15 L13 23 H19 L16 32 L27 19 H21 L24 15 Z" fill={color} opacity="0.22" />
+			<path d="M18 15 L13 23 H19 L16 32 L27 19 H21 L24 15 Z" stroke={color} stroke-width="3" stroke-linejoin="round" fill="none" />
+			<path d="M31 16 L28 21 H32 L29 28" stroke={color} stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.85" />
+			<path d="M13 31 C17 36 31 36 35 31" stroke={color} stroke-width="3" stroke-linecap="round" />
+			<path d="M20 12 C22 10 26 10 28 12" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.55" />
+		{:else}
+			<!-- poder: explosão radial com núcleo brilhante -->
+			<circle cx="24" cy="24" r="9" fill={color} opacity="0.22" />
+			<circle cx="24" cy="24" r="9" stroke={color} stroke-width="3" />
+			<!-- 8 raios da explosão -->
+			<line x1="24" y1="6"  x2="24" y2="13" stroke={color} stroke-width="3" stroke-linecap="round" />
+			<line x1="38" y1="10" x2="33" y2="16" stroke={color} stroke-width="3" stroke-linecap="round" />
+			<line x1="42" y1="24" x2="35" y2="24" stroke={color} stroke-width="3" stroke-linecap="round" />
+			<line x1="38" y1="38" x2="33" y2="32" stroke={color} stroke-width="3" stroke-linecap="round" />
+			<line x1="24" y1="42" x2="24" y2="35" stroke={color} stroke-width="3" stroke-linecap="round" />
+			<line x1="10" y1="38" x2="15" y2="32" stroke={color} stroke-width="3" stroke-linecap="round" />
+			<line x1="6"  y1="24" x2="13" y2="24" stroke={color} stroke-width="3" stroke-linecap="round" />
+			<line x1="10" y1="10" x2="15" y2="16" stroke={color} stroke-width="3" stroke-linecap="round" />
+			<!-- brilho central branco -->
+			<circle cx="24" cy="24" r="4" fill="white" opacity="0.55" />
+		{/if}
 	{:else if kind === 'debuff'}
 		<!-- intimidate: rosto assustado com olhos arregalados e boca aberta -->
 		<!-- base do rosto -->

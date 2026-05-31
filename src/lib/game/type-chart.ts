@@ -2,65 +2,71 @@ import type { Element } from './types';
 
 export type Effectiveness = 0.5 | 1 | 2;
 
-// Pares super efetivos (2x), matchups clássicos da gen 1 simplificados.
-const SUPER_EFFECTIVE: Array<[Element, Element]> = [
-	['fire', 'grass'],
-	['fire', 'bug'],
-	['fire', 'ice'],
-	['water', 'fire'],
-	['water', 'rock'],
-	['water', 'ground'],
-	['grass', 'water'],
-	['grass', 'rock'],
-	['grass', 'ground'],
-	['electric', 'water'],
-	['electric', 'flying'],
-	['fighting', 'normal'],
-	['fighting', 'rock'],
-	['fighting', 'ice'],
-	['psychic', 'fighting'],
-	['psychic', 'poison'],
-	['rock', 'fire'],
-	['rock', 'flying'],
-	['rock', 'bug'],
-	['rock', 'ice'],
-	['ground', 'fire'],
-	['ground', 'electric'],
-	['ground', 'poison'],
-	['ground', 'rock'],
-	['ice', 'grass'],
-	['ice', 'ground'],
-	['ice', 'flying'],
-	['ice', 'dragon'],
-	['bug', 'grass'],
-	['bug', 'psychic'],
-	['poison', 'grass'],
-	['ghost', 'psychic'],
-	['ghost', 'ghost'],
-	['dragon', 'dragon']
-];
+export interface ElementMatchup {
+	element: Element;
+	strengths: Element[];
+	weaknesses: Element[];
+}
 
-const key = (a: Element, d: Element) => `${a}>${d}`;
+export interface ElementInteraction {
+	attacker: Element;
+	defender: Element;
+	multiplier: Effectiveness;
+	strongAgainst: boolean;
+	weakAgainst: boolean;
+	modifierText: string;
+	shortLabel: string;
+}
 
-const superSet = new Set(SUPER_EFFECTIVE.map(([a, d]) => key(a, d)));
+const MATCHUPS: Record<Element, ElementMatchup> = {
+	fire: { element: 'fire', strengths: ['grass', 'bug', 'ice'], weaknesses: ['water', 'rock', 'ground'] },
+	water: { element: 'water', strengths: ['fire', 'rock', 'ground'], weaknesses: ['grass', 'electric'] },
+	grass: { element: 'grass', strengths: ['water', 'rock', 'ground'], weaknesses: ['fire', 'bug', 'ice', 'poison', 'flying'] },
+	electric: { element: 'electric', strengths: ['water', 'flying'], weaknesses: ['ground'] },
+	normal: { element: 'normal', strengths: [], weaknesses: ['fighting'] },
+	fighting: { element: 'fighting', strengths: ['normal', 'rock', 'ice'], weaknesses: ['psychic', 'flying'] },
+	psychic: { element: 'psychic', strengths: ['fighting', 'poison'], weaknesses: ['bug', 'ghost'] },
+	rock: { element: 'rock', strengths: ['fire', 'flying', 'bug', 'ice'], weaknesses: ['water', 'grass', 'fighting', 'ground'] },
+	ground: { element: 'ground', strengths: ['fire', 'electric', 'poison', 'rock'], weaknesses: ['water', 'grass', 'ice'] },
+	flying: { element: 'flying', strengths: ['grass', 'fighting', 'bug'], weaknesses: ['electric', 'rock', 'ice'] },
+	bug: { element: 'bug', strengths: ['grass', 'psychic'], weaknesses: ['fire', 'rock', 'flying'] },
+	poison: { element: 'poison', strengths: ['grass'], weaknesses: ['ground', 'psychic'] },
+	ghost: { element: 'ghost', strengths: ['psychic', 'ghost'], weaknesses: ['ghost'] },
+	ice: { element: 'ice', strengths: ['grass', 'ground', 'flying', 'dragon'], weaknesses: ['fire', 'fighting', 'rock'] },
+	dragon: { element: 'dragon', strengths: ['dragon'], weaknesses: ['ice', 'dragon'] }
+};
 
-// Não muito efetivo (0.5x): inverso dos pares super efetivos, ignorando os que
-// já são super efetivos (ex.: ghost>ghost, dragon>dragon).
-const notVerySet = new Set<string>();
-for (const [a, d] of SUPER_EFFECTIVE) {
-	const inverse = key(d, a);
-	if (!superSet.has(inverse)) notVerySet.add(inverse);
+export function getElementMatchup(element: Element): ElementMatchup {
+	return MATCHUPS[element];
+}
+
+export function getElementInteraction(attacker: Element, defender: Element): ElementInteraction {
+	const matchup = getElementMatchup(attacker);
+	const strongAgainst = matchup.strengths.includes(defender);
+	const weakAgainst = matchup.weaknesses.includes(defender);
+	const multiplier: Effectiveness = strongAgainst ? 2 : weakAgainst ? 0.5 : 1;
+
+	return {
+		attacker,
+		defender,
+		multiplier,
+		strongAgainst,
+		weakAgainst,
+		modifierText: strongAgainst ? '+100% dano' : weakAgainst ? '-50% dano' : '',
+		shortLabel: strongAgainst ? 'Super efetivo!' : weakAgainst ? 'Pouco efetivo...' : ''
+	};
 }
 
 export function effectiveness(attacker: Element, defender: Element): Effectiveness {
-	const k = key(attacker, defender);
-	if (superSet.has(k)) return 2;
-	if (notVerySet.has(k)) return 0.5;
-	return 1;
+	return getElementInteraction(attacker, defender).multiplier;
 }
 
 export function effectivenessLabel(value: Effectiveness): string {
 	if (value === 2) return 'Super efetivo!';
 	if (value === 0.5) return 'Pouco efetivo...';
 	return '';
+}
+
+export function interactionLabel(attacker: Element, defender: Element): string {
+	return getElementInteraction(attacker, defender).shortLabel;
 }

@@ -3,11 +3,28 @@ import type { Player } from '$lib/game/types';
 
 const KEY = 'me';
 
+function ensureNgu(player: Player): void {
+	if (!player.ngu) {
+		player.ngu = {
+			moneyMultiplierLevel: 0,
+			elementalDamageLevels: {},
+			elementalHpLevels: {},
+			globalDamageLevel: 0
+		};
+		return;
+	}
+
+	player.ngu.moneyMultiplierLevel ??= 0;
+	player.ngu.elementalDamageLevels ??= {};
+	player.ngu.elementalHpLevels ??= {};
+	player.ngu.globalDamageLevel ??= 0;
+}
+
 export async function getPlayer(): Promise<Player | undefined> {
 	const db = await getDb();
 	const player = await db.get('player', KEY);
-	if (player && !player.ngu) {
-		player.ngu = { moneyMultiplierLevel: 0, globalDamageLevel: 0 };
+	if (player) {
+		ensureNgu(player);
 	}
 	return player;
 }

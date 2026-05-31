@@ -27,7 +27,7 @@
 	let fKind = $state<'all' | CardKind>('all');
 	let fCost = $state<'all' | number>('all');
 
-	const kinds: CardKind[] = ['attack', 'defense', 'heal', 'capture', 'buff'];
+	const kinds: CardKind[] = ['attack', 'defense', 'heal', 'capture', 'buff', 'power', 'debuff', 'energy', 'combo', 'relic'];
 	const kindLabel: Record<CardKind, string> = {
 		attack: 'Ataque',
 		power: 'Poder',
@@ -35,6 +35,7 @@
 		heal: 'Cura',
 		capture: 'Captura',
 		buff: 'Buff',
+		debuff: 'Debuff',
 		relic: 'Relíquia',
 		energy: 'Energia',
 		combo: 'Combo'

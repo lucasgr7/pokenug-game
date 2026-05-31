@@ -6,7 +6,7 @@ import { STARTER_DECK } from '$lib/data/cards';
 import { REGIONS } from '$lib/data/regions';
 import type { StarterDef } from '$lib/data/starters';
 import { now } from '$lib/utils/time';
-import { applyThemeToDom, game } from './state.svelte';
+import { applyElementalHpBonusToPokemon, applyThemeToDom, game } from './state.svelte';
 import type { Card, CapturedPokemon, Player } from './types';
 
 function buildStarterDeck(): Card[] {
@@ -39,6 +39,7 @@ export async function createPlayer(name: string, starter: StarterDef): Promise<v
 		currentHp: maxHp,
 		capturedAt: now()
 	};
+	applyElementalHpBonusToPokemon(pokemon);
 	await addPokemon(pokemon);
 
 	const player: Player = {
@@ -55,6 +56,8 @@ export async function createPlayer(name: string, starter: StarterDef): Promise<v
 		paidRefreshCountToday: 0,
 		ngu: {
 			moneyMultiplierLevel: 0,
+			elementalDamageLevels: {},
+			elementalHpLevels: {},
 			globalDamageLevel: 0
 		}
 	};

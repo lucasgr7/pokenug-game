@@ -245,6 +245,21 @@ function buildCatalog(): CardTemplate[] {
 		});
 	}
 
+	// Splash: ataque leve que repõe a carta jogada.
+	out.push({
+		id: 'atk_splash',
+		name: 'Splash',
+		description: 'Causa 5 de dano de água. Compre 1 carta.',
+		cost: 0,
+		kind: 'attack',
+		element: 'water',
+		rarity: 'rare',
+		tier: 1,
+		damage: 5,
+		drawCount: 1,
+		price: { money: 220, element: { type: 'water', amount: 30 } }
+	});
+
 	// Relíquia: Forma Fantasma — usada uma vez na batalha, fora do deck
 	out.push({
 		id: 'relic_ghost_form',
@@ -281,6 +296,19 @@ function buildCatalog(): CardTemplate[] {
 		price: { money: 100000, element: { type: 'dragon', amount: 2000 } }
 	});
 
+	// Carta de poder: Choque Elétrico
+	out.push({
+		id: 'power_electric_shock',
+		name: 'Choque Elétrico',
+		description: 'Cada carta jogada causa 2 de dano elétrico.',
+		cost: 2,
+		kind: 'power',
+		element: 'electric',
+		rarity: 'rare',
+		tier: 2,
+		price: { money: 2200, element: { type: 'electric', amount: 350 } }
+	});
+
 	// Carta de debuff: Intimidate
 	out.push({
 		id: 'debuff_intimidate',
@@ -300,10 +328,63 @@ function buildCatalog(): CardTemplate[] {
 
 export const CATALOG: CardTemplate[] = buildCatalog();
 
+export const SECRET_TEMPLATES: CardTemplate[] = [
+	{
+		id: 'atk_secret_judgement',
+		name: 'Juízo Final',
+		description: 'Causa 64 de dano elétrico.',
+		cost: 1,
+		kind: 'attack',
+		element: 'electric',
+		rarity: 'secret',
+		damage: 64
+	},
+	{
+		id: 'buff_secret_prophecy',
+		name: 'Profecia',
+		description: 'Aumenta o próximo ataque em 40.',
+		cost: 0,
+		kind: 'buff',
+		element: 'psychic',
+		rarity: 'secret',
+		buffAmount: 40
+	},
+	{
+		id: 'energy_secret_core',
+		name: 'Núcleo Z',
+		description: 'Recupera 5 de energia neste turno.',
+		cost: 0,
+		kind: 'energy',
+		element: 'dragon',
+		rarity: 'secret',
+		manaGain: 5
+	},
+	{
+		id: 'combo_secret_hydra',
+		name: 'Hidra Prime',
+		description: 'Próximo ataque acerta quatro vezes.',
+		cost: 1,
+		kind: 'combo',
+		element: 'water',
+		rarity: 'secret',
+		attackRepeat: 3
+	},
+	{
+		id: 'def_secret_aegis',
+		name: 'Aegis Total',
+		description: 'Ganha 60 de bloqueio.',
+		cost: 1,
+		kind: 'defense',
+		element: 'ghost',
+		rarity: 'secret',
+		block: 60
+	}
+];
+
 // Todos os templates (iniciais + compráveis) indexados por id.
 export const CARD_TEMPLATES: Record<string, CardTemplate> = (() => {
 	const map: Record<string, CardTemplate> = {};
-	for (const t of [...STARTER_TEMPLATES, ...CATALOG]) map[t.id] = t;
+	for (const t of [...STARTER_TEMPLATES, ...CATALOG, ...SECRET_TEMPLATES]) map[t.id] = t;
 	return map;
 })();
 

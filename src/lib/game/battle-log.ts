@@ -36,45 +36,69 @@ function buildAttackPlayLog(result: PlayCardResult, templateName: string): LogPa
 	return parts;
 }
 
+function appendShockDamage(parts: LogPart[], result: PlayCardResult): LogPart[] {
+	return result.shockDamage && result.shockDamage > 0
+		? [...parts, { text: ` · ⚡${result.shockDamage}`, color: '#facc15' }]
+		: parts;
+}
+
+function appendMatchupDamage(parts: LogPart[], modifier?: number): LogPart[] {
+	if (!modifier) return parts;
+	const positive = modifier > 0;
+	return [
+		...parts,
+		{
+			text: ` · ${positive ? '+' : ''}${modifier} tipo`,
+			color: positive ? '#fbbf24' : '#94a3b8'
+		}
+	];
+}
+
 export function buildPlayLog(result: PlayCardResult, templateName: string): LogPart[] {
+	let parts: LogPart[];
 	switch (result.kind) {
 		case 'attack':
-			return appendExhausted(buildAttackPlayLog(result, templateName), result.exhausted);
+			parts = buildAttackPlayLog(result, templateName);
+			parts = appendMatchupDamage(parts, result.damageModifier);
+			if (result.drawCount) {
+				parts = [...parts, { text: ` · +${result.drawCount} carta`, color: '#7dd3fc' }];
+			}
+			break;
 		case 'defense':
-			return appendExhausted(
-				[
-					{ text: `🛡 ${templateName}`, color: '#60a5fa' },
-					...(result.blocked ? [{ text: ` · +${result.blocked}`, color: '#60a5fa' }] : [])
-				],
-				result.exhausted
-			);
+			parts = [
+				{ text: `🛡 ${templateName}`, color: '#60a5fa' },
+				...(result.blocked ? [{ text: ` · +${result.blocked}`, color: '#60a5fa' }] : [])
+			];
+			break;
 		case 'heal':
-			return appendExhausted(
-				[
-					{ text: `❤ ${templateName}`, color: '#4ade80' },
-					...(result.healed ? [{ text: ` · +${result.healed} HP`, color: '#4ade80' }] : [])
-				],
-				result.exhausted
-			);
+			parts = [
+				{ text: `❤ ${templateName}`, color: '#4ade80' },
+				...(result.healed ? [{ text: ` · +${result.healed} HP`, color: '#4ade80' }] : [])
+			];
+			break;
 		case 'energy':
-			return appendExhausted(
-				[
-					{ text: `⚡ ${templateName}`, color: '#eab308' },
-					...(result.manaGained ? [{ text: ` · +${result.manaGained} mana`, color: '#eab308' }] : [])
-				],
-				result.exhausted
-			);
+			parts = [
+				{ text: `⚡ ${templateName}`, color: '#eab308' },
+				...(result.manaGained ? [{ text: ` · +${result.manaGained} mana`, color: '#eab308' }] : [])
+			];
+			break;
 		case 'power':
-			return appendExhausted([{ text: `⚡ ${templateName}`, color: '#a855f7' }], result.exhausted);
+			parts = [{ text: `⚡ ${templateName}`, color: '#a855f7' }];
+			break;
 		case 'combo':
-			return appendExhausted([{ text: `💢 ${templateName}`, color: '#fb923c' }], result.exhausted);
+			parts = [{ text: `💢 ${templateName}`, color: '#fb923c' }];
+			break;
 		case 'debuff':
-			return appendExhausted([{ text: `👤 ${templateName}`, color: '#94a3b8' }], result.exhausted);
+			parts = [{ text: `👤 ${templateName}`, color: '#94a3b8' }];
+			break;
 		case 'capture':
-			return appendExhausted([{ text: `🎯 ${templateName}` }], result.exhausted);
+			parts = [{ text: `🎯 ${templateName}` }];
+			break;
 		default:
-			return appendExhausted([{ text: `🃏 ${templateName}` }], result.exhausted);
+			parts = [{ text: `🃏 ${templateName}` }];
 	}
+
+	return appendExhausted(appendShockDamage(parts, result), result.exhausted);
 }
 
 export function buildEndTurnLog(result: EnemyTurnResult): LogPart[] {
@@ -82,11 +106,11 @@ export function buildEndTurnLog(result: EnemyTurnResult): LogPart[] {
 
 	if (result.kind === 'attack') {
 		if (result.damage && result.damage > 0) {
-			parts.push({ text: `🤺 −${result.damage} HP`, color: '#ef4444' });
+			parts.push({ text: `${result.element ? `${ELEMENT_EMOJI[result.element]} ` : ''}🤺 −${result.damage} HP`, color: '#ef4444' });
 		} else {
 			parts.push({ text: '🛡 Ataque bloqueado!', color: '#60a5fa' });
 		}
-		return parts;
+		return appendMatchupDamage(parts, result.damageModifier);
 	}
 
 	if (result.kind === 'defend') {

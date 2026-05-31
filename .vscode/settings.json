@@ -39,6 +39,14 @@
     "/^yarn check$/": {
       "approve": true,
       "matchCommandLine": true
+    },
+    "/^export PATH=\"/Users/lucas\\.ribeiro\\.br/\\.nvm/versions/node/v20\\.19\\.1/bin:\\$PATH\" && cd \\.claude/skills/run-pokengu && npm install && cd /Users/lucas\\.ribeiro\\.br/GIT/pokengu && node \\.claude/skills/run-pokengu/driver\\.mjs onboard Ash Pikachu$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^command -v docker >/dev/null && docker compose config$/": {
+      "approve": true,
+      "matchCommandLine": true
     }
   }
 }

@@ -10,7 +10,7 @@
 	let fKind = $state<'all' | CardKind>('all');
 	let fCost = $state<'all' | number>('all');
 
-	const kinds: CardKind[] = ['attack', 'defense', 'heal', 'capture', 'buff', 'power', 'relic'];
+	const kinds: CardKind[] = ['attack', 'defense', 'heal', 'capture', 'buff', 'power', 'debuff', 'energy', 'combo', 'relic'];
 	const kindLabel: Record<CardKind, string> = {
 		attack: 'Ataque',
 		power: 'Poder',
@@ -18,6 +18,7 @@
 		heal: 'Cura',
 		capture: 'Captura',
 		buff: 'Buff',
+		debuff: 'Debuff',
 		relic: 'Relíquia',
 		energy: 'Energia',
 		combo: 'Combo'
@@ -116,7 +117,7 @@
 				</div>
 				<div class="bg-[var(--surface)] rounded-xl py-2 border border-white/10">
 					<div class="text-[var(--text-muted)] font-black uppercase mb-1">Raridade</div>
-					<div class="font-bold uppercase {inspectedTemplate.rarity === 'common' ? 'text-slate-400' : inspectedTemplate.rarity === 'rare' ? 'text-blue-400' : inspectedTemplate.rarity === 'epic' ? 'text-purple-400' : 'text-amber-500'}">{inspectedTemplate.rarity}</div>
+					<div class="font-bold uppercase {inspectedTemplate.rarity === 'common' ? 'text-slate-400' : inspectedTemplate.rarity === 'rare' ? 'text-blue-400' : inspectedTemplate.rarity === 'epic' ? 'text-purple-400' : inspectedTemplate.rarity === 'secret' ? 'text-amber-300' : 'text-amber-500'}">{inspectedTemplate.rarity}</div>
 				</div>
 				<div class="bg-[var(--surface)] rounded-xl py-2 border border-white/10">
 					<div class="text-[var(--text-muted)] font-black uppercase mb-1">Elemento</div>

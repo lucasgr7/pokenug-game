@@ -135,21 +135,8 @@ Before shipping any visual change, ask:
 - [ ] If it has animation — is it `transform`/`opacity` only, under 400ms?
 - [ ] If it has an SVG icon — does it follow the `CardKindIcon` viewBox + opacity layer pattern?
 
-## Screenshotting to review visual changes
+## Visual review
 
-After any UI change, run the driver to confirm the rendering:
+Visual validation is optional and should be left to the human unless a screenshot or smoke test was explicitly requested.
 
-```bash
-export PATH="/Users/lucas.ribeiro.br/.nvm/versions/node/v20.19.1/bin:$PATH"
-# Start dev server if not running:
-yarn dev > /tmp/pokengu-dev.log 2>&1 &
-until curl -sf http://localhost:5173 >/dev/null; do sleep 1; done
-
-# Screenshot the affected route:
-node .claude/skills/run-pokengu/driver.mjs ss deck    # for card changes
-node .claude/skills/run-pokengu/driver.mjs ss battle  # for map/region changes
-node .claude/skills/run-pokengu/driver.mjs ss shop    # for shop changes
-node .claude/skills/run-pokengu/driver.mjs ss jobs    # for Pokémon/job UI changes
-```
-
-Screenshots land in `.claude/skills/run-pokengu/screenshots/`. Read them with the `Read` tool — you can see PNGs.
+If a manual screenshot is requested, use the route-specific commands from the `run-pokengu` skill.

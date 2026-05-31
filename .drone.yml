@@ -1,0 +1,38 @@
+kind: pipeline
+type: docker
+name: default
+
+steps:
+  - name: validate
+    image: node:20-alpine
+    commands:
+      - npm install -g yarn@1.22.19
+      - yarn install --frozen-lockfile
+      - yarn run check
+      - yarn run build
+
+  - name: publish-image
+    image: plugins/docker
+    settings:
+      registry:
+        from_secret: docker_registry
+      repo:
+        from_secret: docker_repo
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      dockerfile: Dockerfile
+      tags:
+        - latest
+        - ${DRONE_COMMIT_SHA}
+    when:
+      branch:
+        - main
+      event:
+        - push
+
+trigger:
+  event:
+    - push
+    - pull_request

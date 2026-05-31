@@ -1,0 +1,15 @@
+node_modules
+.svelte-kit
+build
+.git
+.gitignore
+.vscode
+.claude
+npm-debug.log
+yarn-error.log
+Dockerfile*
+docker-compose*.yml
+fix_shop.patch
+update_battle.patch
+path_temp.txt
+test_mask.html
