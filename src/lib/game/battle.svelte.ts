@@ -61,6 +61,21 @@ export interface PlayCardResult {
 	played: boolean;
 	exhausted: boolean;
 	kind: CardKind;
+	// populated on a successful play:
+	element?: string | null;
+	damage?: number;        // net HP damage dealt to enemy
+	effectiveness?: number; // type multiplier (0.5 | 1 | 2 …)
+	healed?: number;        // HP restored to player
+	blocked?: number;       // block gained by player this play
+	manaGained?: number;    // mana recovered (energy cards)
+}
+
+export interface EnemyTurnResult {
+	kind: 'attack' | 'defend' | 'buff';
+	damage?: number;     // net HP damage dealt to player (after block)
+	absorbed?: number;   // damage absorbed by player block
+	enemyBlock?: number; // block the enemy gained
+	buffAmount?: number; // next-damage bonus added
 }
 
 // ── Enemy intent ──────────────────────────────────────────────────────────
@@ -124,11 +139,13 @@ function shouldExhaust(card: Card): boolean {
 	const tpl = getTemplate(card.templateId);
 	if (!tpl) return false;
 	if (tpl.kind === 'heal') return true;
-	// Power, relic, and debuff cards are never exhausted via the normal play path.
-	if (tpl.kind === 'power' || tpl.kind === 'relic' || tpl.kind === 'debuff') return false;
+	// Power cards are single-use per run — permanently consumed on play.
+	if (tpl.kind === 'power') return true;
+	// Relic and debuff cards are never exhausted via the normal play path.
+	if (tpl.kind === 'relic' || tpl.kind === 'debuff') return false;
 	// Non-starter Pokéballs are single-use.
 	if (tpl.kind === 'capture' && tpl.rarity !== 'starter') return true;
-	// Off-element cards burn out — no affinity, no staying power.
+	// Off-element cards are exhausted for this battle only — they return next battle.
 	if (tpl.element !== null && tpl.element !== s.player.pokemon.element) return true;
 	return false;
 }
@@ -137,8 +154,17 @@ function discardOrExhaust(card: Card): boolean {
 	const s = battle.state!;
 	if (shouldExhaust(card)) {
 		s.exhausted.push(card);
-		void removeFromDeck(card.id);
-		void removeFromInventory(card.id);
+		const tpl = getTemplate(card.templateId);
+		// Heals and non-starter pokéballs are consumed permanently.
+		// Off-element cards are exhausted for this battle only — they return next battle.
+		const permanent =
+			tpl?.kind === 'heal' ||
+			tpl?.kind === 'power' ||
+			(tpl?.kind === 'capture' && tpl.rarity !== 'starter');
+		if (permanent) {
+			void removeFromDeck(card.id);
+			void removeFromInventory(card.id);
+		}
 		return true;
 	}
 	s.discard.push(card);
@@ -336,15 +362,36 @@ export function playCard(cardId: string): PlayCardResult {
 	s.player.mana -= tpl.cost;
 	s.hand.splice(idx, 1);
 
+	// Capture pre-effect state so we can compute deltas for the log.
+	const enemyHpBefore = s.enemy.hp;
+	const playerHpBefore = s.player.hp;
+	const playerBlockBefore = s.player.block;
+
 	applyCardEffect(s, tpl);
 
 	const exhausted = discardOrExhaust(card);
+
+	// Build enriched result.
+	const result: PlayCardResult = { played: true, exhausted, kind: tpl.kind };
+	if (tpl.kind === 'attack') {
+		result.element = tpl.element;
+		result.damage = Math.max(0, enemyHpBefore - s.enemy.hp);
+		let atkEl = tpl.element;
+		if (s.player.dragonize && (!atkEl || atkEl === 'normal')) atkEl = 'dragon';
+		result.effectiveness = atkEl ? effectiveness(atkEl, s.enemy.pokemon.element) : 1;
+	} else if (tpl.kind === 'heal') {
+		result.healed = Math.max(0, s.player.hp - playerHpBefore);
+	} else if (tpl.kind === 'defense') {
+		result.blocked = Math.max(0, s.player.block - playerBlockBefore);
+	} else if (tpl.kind === 'energy') {
+		result.manaGained = tpl.manaGain;
+	}
 
 	if (s.enemy.hp <= 0 && s.status === 'active') s.status = 'victory';
 	if (tpl.kind === 'heal') void syncPlayerHp();
 
 	void persistBattle();
-	return { played: true, exhausted, kind: tpl.kind };
+	return result;
 }
 
 export function playRelicCard(cardId: string): PlayCardResult {
@@ -367,14 +414,15 @@ export function playRelicCard(cardId: string): PlayCardResult {
 	return { played: true, exhausted: true, kind: 'relic' };
 }
 
-export function endTurn(): void {
+export function endTurn(): EnemyTurnResult | null {
 	const s = battle.state;
-	if (!s || s.status !== 'active' || s.turn !== 'player') return;
+	if (!s || s.status !== 'active' || s.turn !== 'player') return null;
 
 	s.turn = 'enemy';
 	s.enemy.block = 0;
 
 	const intent = s.enemy.intent;
+	let turnResult: EnemyTurnResult;
 	if (intent.kind === 'attack') {
 		let dmg = intent.damage + s.enemy.nextDamageBonus;
 		// Apply intimidate reduction if active
@@ -383,18 +431,22 @@ export function endTurn(): void {
 			s.enemy.intimidateTurnsLeft--;
 		}
 		s.enemy.nextDamageBonus = 0;
+		const absorbed = Math.min(s.player.block, dmg);
 		dealToPlayer(dmg);
+		turnResult = { kind: 'attack', damage: Math.max(0, dmg - absorbed), absorbed };
 	} else if (intent.kind === 'defend') {
 		s.enemy.block += intent.block;
+		turnResult = { kind: 'defend', enemyBlock: intent.block };
 	} else {
 		s.enemy.nextDamageBonus += intent.nextDamage;
+		turnResult = { kind: 'buff', buffAmount: intent.nextDamage };
 	}
 
 	if (s.player.hp <= 0) {
 		s.status = 'defeat';
 		void setPokemonCurrentHp(s.player.pokemon.id, 0);
 		void persistBattle();
-		return;
+		return turnResult;
 	}
 
 	const scaling = getRegionScaling(s.regionId);
@@ -406,6 +458,7 @@ export function endTurn(): void {
 	s.turn = 'player';
 	drawCards(HAND_SIZE - s.hand.length);
 	void persistBattle();
+	return turnResult;
 }
 
 // ── Reward settlement ─────────────────────────────────────────────────────
@@ -419,10 +472,10 @@ export async function finalizeBattle(): Promise<void> {
 	if (s.status === 'defeat') {
 		await setPokemonCurrentHp(s.player.pokemon.id, 0);
 		setActivePokemon(null);
-		// Power cards exhaust on defeat — remove from inventory across all zones.
-		const allCards = [...s.deck, ...s.hand, ...s.discard, ...s.exhausted];
-		for (const card of allCards) {
-			if (getTemplate(card.templateId)?.kind === 'power') {
+		// On defeat: permanently delete all non-starter cards from deck and inventory.
+		const allInventory = await getInventory();
+		for (const card of allInventory) {
+			if (getTemplate(card.templateId)?.rarity !== 'starter') {
 				await removeFromInventory(card.id);
 			}
 		}

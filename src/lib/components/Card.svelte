@@ -75,7 +75,7 @@
 		<!-- arte central -->
 		<div class="card-art flex flex-1 items-center justify-center body-texture">
 			<div class="icon-wrap">
-				<CardKindIcon id={tpl.id} kind={tpl.kind} color="var(--theme-color)" size={iconSize} />
+				<CardKindIcon id={tpl.id} kind={tpl.kind} element={tpl.element} color="var(--theme-color)" size={iconSize} />
 			</div>
 		</div>
 

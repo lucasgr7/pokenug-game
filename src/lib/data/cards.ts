@@ -4,6 +4,16 @@ import { ATTACK_TIERS, DEF_TIERS, HEAL_TIERS } from './card-constants';
 // Elementos principais usados na geração de cartas compráveis.
 const MAIN_ELEMENTS: Element[] = ['fire', 'water', 'grass', 'electric', 'psychic', 'rock'];
 
+// Nomes temáticos por elemento, indexados pelo tier (0 = mais fraco, 4 = mais forte).
+const elementAttackNames: Partial<Record<Element, [string, string, string, string, string]>> = {
+	fire:     ['Brasa',      'Chamas',             'Labareda',         'Inferno',              'Apocalipse'],
+	water:    ['Gota',       "Jato d'Água",         'Maré Alta',        'Tsunami',              'Dilúvio'],
+	grass:    ['Espinho',    'Chicote Trepadeira',  'Explosão Floral',  'Fúria da Selva',       'Colapso Natural'],
+	electric: ['Centelha',   'Descarga',            'Trovão',           'Relâmpago',            'Tempestade Elétrica'],
+	psychic:  ['Onda Mental','Telecinese',          'Choque Psíquico',  'Explosão Psiônica',    'Singularidade'],
+	rock:     ['Pedrada',    'Rochedão',            'Avalanche',        'Terremoto',            'Colapso Geológico'],
+};
+
 const elementLabel: Record<Element, string> = {
 	fire: 'Fogo',
 	water: 'Água',
@@ -69,10 +79,13 @@ function buildCatalog(): CardTemplate[] {
 
 	// Ataques com elemento: dano x elemento.
 	for (const el of MAIN_ELEMENTS) {
-		for (const t of ATTACK_TIERS) {
+		const names = elementAttackNames[el];
+		for (let i = 0; i < ATTACK_TIERS.length; i++) {
+			const t = ATTACK_TIERS[i];
+			const name = names ? names[i] : `Golpe de ${elementLabel[el]} ${t.damage}`;
 			out.push({
 				id: `atk_${el}_${t.damage}`,
-				name: `Golpe de ${elementLabel[el]} ${t.damage}`,
+				name,
 				description: `Causa ${t.damage} de dano de ${elementLabel[el].toLowerCase()}.`,
 				cost: t.cost,
 				kind: 'attack',
@@ -265,7 +278,7 @@ function buildCatalog(): CardTemplate[] {
 		kind: 'power',
 		element: 'dragon',
 		rarity: 'rare',
-		price: { money: 1000 }
+		price: { money: 100000, element: { type: 'dragon', amount: 2000 } }
 	});
 
 	// Carta de debuff: Intimidate

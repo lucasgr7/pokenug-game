@@ -4,9 +4,10 @@
 	let {
 		id,
 		kind,
+		element = null,
 		color,
 		size = 40
-	}: { id?: string; kind: CardKind; color: string; size?: number } = $props();
+	}: { id?: string; kind: CardKind; element?: string | null; color: string; size?: number } = $props();
 </script>
 
 {#if id === 'power_dragonize'}
@@ -152,19 +153,47 @@ m-548 -297 c0 -21 -25 -37 -45 -30 -16 6 -15 9 6 25 29 22 39 24 39 5z"/>
 	aria-hidden="true"
 >
 	{#if kind === 'attack'}
-		<!-- espada baseada no asset público, colorida pelo tema da carta -->
-		<g transform="translate(5 5) scale(2)">
-			<path
-				d="M9.646 14.096a1 1 0 1 1-1.414 1.414l-1.414-1.414-2.828 2.829a1 1 0 0 1-1.415 1.414l-1.414-1.414a1 1 0 0 1 1.414-1.415l2.829-2.828-1.414-1.414a1 1 0 0 1 1.414-1.414l4.242 4.242zm.708-.707L6.11 9.146 14.596.661l3.536.707.707 3.536-8.485 8.485z"
-				fill={color}
-			/>
-			<path
-				d="M10.354 13.389L6.11 9.146 14.596.661"
-				stroke="white"
-				stroke-width="0.65"
-				opacity="0.55"
-			/>
-		</g>
+		{#if element === 'fire'}
+			<!-- Chama -->
+			<path d="M24 42 C14 42 9 33 11 24 C13 16 18 11 21 8 C20 15 23 20 25 22 C23 16 26 9 24 6 C30 10 34 17 36 25 C38 33 33 42 24 42 Z" fill={color} opacity="0.22" />
+			<path d="M24 42 C14 42 9 33 11 24 C13 16 18 11 21 8 C20 15 23 20 25 22 C23 16 26 9 24 6 C30 10 34 17 36 25 C38 33 33 42 24 42 Z" stroke={color} stroke-width="3" stroke-linejoin="round" fill="none" />
+			<path d="M24 35 C19 30 20 22 24 18" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.55" />
+		{:else if element === 'water'}
+			<!-- Gota -->
+			<path d="M24 6 C24 6 38 22 38 30 A14 14 0 0 1 10 30 C10 22 24 6 24 6 Z" fill={color} opacity="0.22" />
+			<path d="M24 6 C24 6 38 22 38 30 A14 14 0 0 1 10 30 C10 22 24 6 24 6 Z" stroke={color} stroke-width="3" stroke-linejoin="round" fill="none" />
+			<path d="M16 30 Q20 25 24 30 Q28 35 32 30" stroke="white" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.55" />
+		{:else if element === 'grass'}
+			<!-- Folha -->
+			<path d="M10 40 C10 40 12 22 20 16 C28 10 40 8 40 8 C40 8 38 20 30 28 C22 36 10 40 10 40 Z" fill={color} opacity="0.22" />
+			<path d="M10 40 C10 40 12 22 20 16 C28 10 40 8 40 8 C40 8 38 20 30 28 C22 36 10 40 10 40 Z" stroke={color} stroke-width="3" stroke-linejoin="round" fill="none" />
+			<path d="M10 40 L30 17" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.55" />
+			<path d="M10 40 L10 45" stroke={color} stroke-width="3" stroke-linecap="round" />
+		{:else if element === 'electric'}
+			<!-- Raio -->
+			<circle cx="24" cy="24" r="16" fill={color} opacity="0.12" />
+			<path d="M28 6 L15 27 L22 27 L20 42 L33 21 L26 21 Z" fill={color} opacity="0.22" />
+			<path d="M28 6 L15 27 L22 27 L20 42 L33 21 L26 21 Z" stroke={color} stroke-width="3" stroke-linejoin="round" fill="none" />
+			<path d="M26 11 L18 24 L23 24" stroke="white" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.55" />
+		{:else if element === 'psychic'}
+			<!-- Olho -->
+			<path d="M8 24 Q16 12 24 12 Q32 12 40 24 Q32 36 24 36 Q16 36 8 24 Z" fill={color} opacity="0.22" />
+			<path d="M8 24 Q16 12 24 12 Q32 12 40 24 Q32 36 24 36 Q16 36 8 24 Z" stroke={color} stroke-width="3" stroke-linejoin="round" fill="none" />
+			<circle cx="24" cy="24" r="6" fill={color} opacity="0.3" />
+			<circle cx="24" cy="24" r="6" stroke={color} stroke-width="3" fill="none" />
+			<circle cx="24" cy="24" r="2.5" fill="white" opacity="0.55" />
+		{:else if element === 'rock'}
+			<!-- Cristal -->
+			<path d="M24 5 L39 19 L32 43 L16 43 L9 19 Z" fill={color} opacity="0.22" />
+			<path d="M24 5 L39 19 L32 43 L16 43 L9 19 Z" stroke={color} stroke-width="3" stroke-linejoin="round" fill="none" />
+			<path d="M24 5 L9 19 L18 43" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.55" />
+		{:else}
+			<!-- espada (fallback: ataques sem elemento) -->
+			<g transform="translate(5 5) scale(2)">
+				<path d="M9.646 14.096a1 1 0 1 1-1.414 1.414l-1.414-1.414-2.828 2.829a1 1 0 0 1-1.415 1.414l-1.414-1.414a1 1 0 0 1 1.414-1.415l2.829-2.828-1.414-1.414a1 1 0 0 1 1.414-1.414l4.242 4.242zm.708-.707L6.11 9.146 14.596.661l3.536.707.707 3.536-8.485 8.485z" fill={color} />
+				<path d="M10.354 13.389L6.11 9.146 14.596.661" stroke="white" stroke-width="0.65" opacity="0.55" />
+			</g>
+		{/if}
 	{:else if kind === 'defense'}
 		<!-- escudo -->
 		<path

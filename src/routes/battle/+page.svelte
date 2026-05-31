@@ -5,6 +5,8 @@
 	import Sprite from '$lib/components/Sprite.svelte';
 	import Card from '$lib/components/Card.svelte';
 	import HpBar from '$lib/components/HpBar.svelte';
+	import BattleHandControls from '$lib/components/BattleHandControls.svelte';
+	import BattleLogs from '$lib/components/BattleLogs.svelte';
 	import ManaCrystal from '$lib/components/ManaCrystal.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import {
@@ -18,6 +20,7 @@
 		finalizeBattle,
 		endBattleCleanup
 	} from '$lib/game/battle.svelte';
+	import { buildEndTurnLog, buildPlayLog, type BattleLogEntry, type LogPart } from '$lib/game/battle-log';
 	import { getTemplate } from '$lib/data/cards';
 	import { ELEMENT_LABEL, ELEMENT_EMOJI } from '$lib/game/elements';
 	import { effectiveness, effectivenessLabel } from '$lib/game/type-chart';
@@ -34,11 +37,12 @@
 
 	let playedFx = $state<PlayedFx | null>(null);
 	let selectedCardId = $state<string | null>(null);
+	let autoConfirm = $state(false);
 
-	let battleLogs = $state<{id: string, msg: string}[]>([]);
-	
-	function addLog(msg: string) {
-		battleLogs = [...battleLogs, { id: crypto.randomUUID(), msg }];
+	let battleLogs = $state<BattleLogEntry[]>([]);
+
+	function addLog(line: LogPart[]) {
+		battleLogs = [...battleLogs, { id: crypto.randomUUID(), line }];
 		if (battleLogs.length > 3) battleLogs.shift();
 	}
 
@@ -98,7 +102,7 @@
 		const fxId = crypto.randomUUID();
 		playedFx = { id: fxId, templateId, exhausted: true, kind: 'relic' };
 		const tpl = getTemplate(templateId);
-		if (tpl) addLog(`Usou relíquia ${tpl.name}!`);
+		if (tpl) addLog([{ text: `💎 ${tpl.name}`, color: '#6d28d9' }]);
 		setTimeout(() => { if (playedFx?.id === fxId) playedFx = null; }, 620);
 	}
 
@@ -109,7 +113,7 @@
 
 		const fxId = crypto.randomUUID();
 		const tpl = getTemplate(templateId);
-		if (tpl) addLog(`Jogou ${tpl.name}!`);
+		if (tpl) addLog(buildPlayLog(res, tpl.name));
 		playedFx = { id: fxId, templateId, exhausted: res.exhausted, kind: res.kind };
 		setTimeout(() => {
 			if (playedFx?.id === fxId) playedFx = null;
@@ -118,6 +122,10 @@
 
 	function onCardTap(cardId: string, templateId: string) {
 		if (!canPlay(templateId)) return;
+		if (autoConfirm) {
+			onPlay(cardId, templateId);
+			return;
+		}
 		if (selectedCardId === cardId) {
 			onPlay(cardId, templateId);
 		} else {
@@ -125,10 +133,15 @@
 		}
 	}
 
+	function setAutoConfirm(enabled: boolean) {
+		autoConfirm = enabled;
+		if (enabled) selectedCardId = null;
+	}
+
 	function handleEndTurn() {
 		selectedCardId = null;
-		addLog(`Fim do turno.`);
-		endTurn();
+		const res = endTurn();
+		if (res) addLog(buildEndTurnLog(res));
 	}
 
 	async function leave() {
@@ -229,16 +242,21 @@
 						<ManaCrystal mana={s.player.mana} max={s.player.maxMana} />
 					</div>
 					<HpBar hp={s.player.hp} maxHp={s.player.pokemon.maxHp} block={s.player.block} />
-					{#if s.player.nextDamageBonus > 0}
-						<div class="mt-1 text-[10px] font-bold text-purple-400">
-							✨ Próximo ataque +{s.player.nextDamageBonus}
+					{#if s.player.nextDamageBonus > 0 || s.player.berserk || s.player.dragonize || s.player.ghostForm}
+						<div class="mt-1.5 flex flex-wrap gap-1">
+							{#if s.player.berserk}
+								<span class="rounded-full px-1.5 py-0.5 text-[9px] font-black" style="color:#ef4444;background:rgba(239,68,68,0.15)" title="ATQ×2, DEF÷2 — toda a batalha">⚡ Fúria</span>
+							{/if}
+							{#if s.player.dragonize}
+								<span class="rounded-full px-1.5 py-0.5 text-[9px] font-black" style="color:#818cf8;background:rgba(79,70,229,0.15)" title="Ataques comuns → tipo Dragão — toda a batalha">🐉 Dragão</span>
+							{/if}
+							{#if s.player.ghostForm}
+								<span class="rounded-full px-1.5 py-0.5 text-[9px] font-black" style="color:#a78bfa;background:rgba(167,139,250,0.15)" title="Dano máximo 1 neste turno">👻 Fantasma</span>
+							{/if}
+							{#if s.player.nextDamageBonus > 0}
+								<span class="rounded-full px-1.5 py-0.5 text-[9px] font-black" style="color:#c084fc;background:rgba(192,132,252,0.15)" title="Próximo ataque +{s.player.nextDamageBonus}">✨ +{s.player.nextDamageBonus}</span>
+							{/if}
 						</div>
-					{/if}
-					{#if s.player.berserk}
-						<div class="mt-1 text-[10px] font-bold text-red-400">⚡ Fúria — ATQ×2 DEF÷2</div>
-					{/if}
-					{#if s.player.ghostForm}
-						<div class="mt-1 text-[10px] font-bold text-violet-300">👻 Forma Fantasma — DMG MAX 1</div>
 					{/if}
 				</div>
 			</div>
@@ -246,78 +264,20 @@
 		</section>
 
 		<!-- LOGS DA BATALHA -->
-		<section class="relative z-20 border-t border-[var(--border)] bg-[var(--surface-overlay)] h-[54px] flex flex-col justify-end overflow-hidden px-4 pb-1.5 shadow-inner">
-			<div class="flex flex-col items-center justify-end w-full" aria-live="polite">
-				{#each battleLogs.slice(-2) as log (log.id)}
-					<div class="text-[11.5px] font-bold text-[var(--text-muted)] animate-fade-in-up text-center truncate w-full h-[18px]">
-						{log.msg}
-					</div>
-				{/each}
-				{#if battleLogs.length === 0}
-					<div class="text-[11.5px] font-bold text-[var(--text-muted)]/50 text-center w-full h-[18px]">
-						Início da batalha...
-					</div>
-				{/if}
-			</div>
-		</section>
+		<BattleLogs logs={battleLogs} />
 
 		<!-- CONTROLES + MÃO -->
-		<section class="border-t border-white/10 bg-[var(--surface)] px-2 pb-2 pt-2 flex flex-col justify-between" style="height: 40vh;">
-			<div>
-				<div class="mb-1 flex items-center justify-between px-1 text-[10px] text-(--text-muted) uppercase font-bold tracking-widest">
-					<span>🂠 {s.deck.length} · ♻ {s.discard.length} · 💤 {s.exhausted.length}</span>
-					<button
-						class="rounded-xl bg-[var(--accent)] px-4 py-1.5 text-xs font-black text-white hover:brightness-110 disabled:opacity-40 transition-colors"
-						disabled={s.turn !== 'player' || ended}
-						onclick={handleEndTurn}
-					>
-						Fim de turno ↦
-					</button>
-				</div>
-
-				<!-- relíquias: cartas de uso único fora do deck -->
-				{#if s.relicSlots && s.relicSlots.length > 0}
-					<div class="mb-1.5 flex items-center gap-2 px-1">
-						<span class="shrink-0 text-[10px] font-black uppercase tracking-widest text-purple-400">Relíquias</span>
-						{#each s.relicSlots as relic (relic.id)}
-							<div class="w-14 shrink-0">
-								<Card
-									templateId={relic.templateId}
-									playable={s.turn === 'player' && !ended}
-									onclick={() => onPlayRelic(relic.id, relic.templateId)}
-								/>
-							</div>
-						{/each}
-					</div>
-				{/if}
-			</div>
-
-			<!-- fan hand: wrapper div is for positioning only — Card's own button handles clicks -->
-			<div class="hand-fan" role="group" aria-label="Mão de cartas">
-				{#each s.hand as card, i (card.id)}
-					{@const n = s.hand.length || 1}
-					{@const mid = (n - 1) / 2}
-					{@const offset = i - mid}
-					{@const angle = offset * (n > 3 ? 6.5 : 9)}
-					{@const xPos = offset * 90}
-					{@const playable = canPlay(card.templateId)}
-					{@const isSelected = selectedCardId === card.id}
-					<div
-						class="hand-card"
-						class:hand-card--selected={isSelected}
-						class:hand-card--muted={!playable}
-						style="left: calc(50% + {xPos}px - 60px); --angle: {angle}deg; z-index: {isSelected ? 60 : i + 1};"
-					>
-						<Card
-							templateId={card.templateId}
-							flip
-							playable={playable}
-							onclick={() => onCardTap(card.id, card.templateId)}
-						/>
-					</div>
-				{/each}
-			</div>
-		</section>
+		<BattleHandControls
+			state={s}
+			ended={ended}
+			selectedCardId={selectedCardId}
+			autoConfirm={autoConfirm}
+			canPlay={canPlay}
+			onCardTap={onCardTap}
+			onPlayRelic={onPlayRelic}
+			onEndTurn={handleEndTurn}
+			onAutoConfirmChange={setAutoConfirm}
+		/>
 
 		<!-- CARTA SELECIONADA — overlay de confirmação.
 		     Sits at the flex-container level (z-[100]) to beat hand card z-indices (max 60). -->
@@ -397,46 +357,6 @@
 {/if}
 
 <style>
-	/* ── Fan hand ──────────────────────────────────────────────────────────── */
-	.hand-fan {
-		position: relative;
-		height: 100%;
-		min-height: 160px;
-		width: 100%;
-		overflow: visible;
-		margin-top: auto;
-	}
-	.hand-card {
-		position: absolute;
-		bottom: 30px;
-		width: 120px;
-		max-width: 25vh;
-		transform-origin: bottom center;
-		transform: rotate(var(--angle));
-		transition:
-			transform 180ms ease-out,
-			filter 180ms ease-out;
-		cursor: pointer;
-		background: none;
-		border: none;
-		padding: 0;
-	}
-	/* desktop hover — lifts and straightens the card */
-	@media (hover: hover) {
-		.hand-card:not(.hand-card--muted):hover {
-			transform: rotate(calc(var(--angle) * 0.3)) translateY(-22px) scale(1.06);
-			z-index: 50 !important;
-		}
-	}
-	.hand-card--selected {
-		transform: rotate(0deg) translateY(-40px) scale(1.08) !important;
-		z-index: 60 !important;
-		filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.75));
-	}
-	.hand-card--muted {
-		opacity: 0.45;
-		cursor: default;
-	}
 	/* ── Card preview overlay ───────────────────────────────────────────────── */
 	.card-preview {
 		width: 250px;
@@ -567,18 +487,5 @@
 			opacity: 0;
 			transform: translateX(-50%) translateY(-10px);
 		}
-	}
-	@keyframes fade-in-up {
-		from {
-			opacity: 0;
-			transform: translateY(10px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-	.animate-fade-in-up {
-		animation: fade-in-up 250ms ease-out forwards;
 	}
 </style>
