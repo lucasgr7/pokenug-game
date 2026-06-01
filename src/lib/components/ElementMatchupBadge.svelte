@@ -20,35 +20,24 @@
 		event.stopPropagation();
 		open = true;
 	}
-
-	function handleKeydown(event: KeyboardEvent) {
-		if (event.key !== 'Enter' && event.key !== ' ') return;
-		event.preventDefault();
-		event.stopPropagation();
-		open = true;
-	}
 </script>
 
-<div class="pointer-events-auto">
-	<span
-		role="button"
-		tabindex="0"
-		class="matchup-badge inline-flex items-center rounded-full border text-[10px] font-black uppercase tracking-[0.14em]"
-		class:gap-1={!iconOnly}
-		class:px-2={!iconOnly}
-		class:py-1={!iconOnly}
-		class:p-1={iconOnly}
-		style={`--badge-color:${ELEMENT_COLOR[element]};`}
-		onclick={showDetails}
-		onkeydown={handleKeydown}
-		aria-label={`Abrir matchups de ${ELEMENT_LABEL[element]}`}
-	>
-		<span class="text-xs" class:text-[10px]={iconOnly}>{ELEMENT_EMOJI[element]}</span>
-		{#if !iconOnly}
-			<span>{compact ? 'tipo' : ELEMENT_LABEL[element]}</span>
-		{/if}
-	</span>
-</div>
+<button
+	type="button"
+	class="matchup-badge inline-flex items-center rounded-full border text-[10px] font-black uppercase tracking-[0.14em] transition"
+	class:gap-1={!iconOnly}
+	class:px-2={!iconOnly}
+	class:py-1={!iconOnly}
+	class:p-1={iconOnly}
+	style={`--badge-color:${ELEMENT_COLOR[element]};`}
+	onclick={showDetails}
+	aria-label={`Abrir matchups de ${ELEMENT_LABEL[element]}`}
+>
+	<span class="text-xs" class:text-[10px]={iconOnly}>{ELEMENT_EMOJI[element]}</span>
+	{#if !iconOnly}
+		<span>{compact ? 'tipo' : ELEMENT_LABEL[element]}</span>
+	{/if}
+</button>
 
 <Modal open={open} title={`${ELEMENT_EMOJI[element]} ${ELEMENT_LABEL[element]}`} onclose={() => (open = false)}>
 	<ElementMatchupDetails {element} />

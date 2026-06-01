@@ -56,7 +56,7 @@
 </script>
 
 {#if tpl}
-	<div class="card-shell relative">
+	<div class="card-shell flex flex-col gap-1">
 		<button
 			type="button"
 			{onclick}
@@ -156,13 +156,8 @@
 				>
 			{/if}
 		</button>
-
 		{#if tpl.element}
-			<div
-				class="absolute right-1 z-20 max-w-[calc(100%-0.5rem)] overflow-hidden"
-				class:top-1={count <= 1}
-				class:top-7={count > 1}
-			>
+			<div class="flex justify-end px-1 pb-1">
 				<ElementMatchupBadge element={tpl.element as Element} compact={compact || !showcase} iconOnly={iconOnlyBadge} />
 			</div>
 		{/if}
