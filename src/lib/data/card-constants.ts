@@ -29,9 +29,7 @@ export interface HealTier {
 export const ATTACK_TIERS: CardTier[] = [
     { damage: 12,  cost: 1, rarity: 'common', money: 860,     elemAmount: 300,     tier: 1 },
     { damage: 45,  cost: 2, rarity: 'rare',   money: 4000,    elemAmount: 5000,    tier: 2 },
-    { damage: 120, cost: 3, rarity: 'epic',   money: 25000,   elemAmount: 35000,   tier: 3 },
-    { damage: 400, cost: 4, rarity: 'epic',   money: 200000,  elemAmount: 250000,  tier: 4 },
-    { damage: 800, cost: 5, rarity: 'epic',   money: 1000000, elemAmount: 1000000, tier: 5 },
+    { damage: 120, cost: 3, rarity: 'epic',   money: 25000,   elemAmount: 35000,   tier: 3 }
 ];
 
 export const DEF_TIERS: DefTier[] = [

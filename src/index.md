@@ -68,7 +68,7 @@ Scope: only the `src/` tree.
 - `routes/deck/+page.svelte`: deck builder (filters, grouped copies, add/remove cards, min/max constraints).
 - `routes/jobs/+page.svelte`: roster assignment to jobs, production panel, smooth progress animation.
 - `routes/onboarding/+page.svelte`: trainer name + starter selection, creates initial player state.
-- `routes/shop/+page.svelte`: shop screen, paid refresh, purchase buttons.
+- `routes/shop/+page.svelte`: shop screen, 9 ofertas em grade, paid refresh, boosters diários (1 compra/dia).
 
 ### lib entry
 
@@ -98,7 +98,7 @@ Scope: only the `src/` tree.
 
 ### lib/data
 
-- `lib/data/cards.ts`: card templates, starter templates/deck, shop catalog, lookup helper.
+- `lib/data/cards.ts`: card templates, starter templates/deck, shop catalog (ataques elementais para todos os elementos), lookup helper.
 - `lib/data/regions.ts`: region progression chain, encounter pools, query helpers.
 - `lib/data/starters.ts`: starter pokemon definitions for onboarding.
 
@@ -119,7 +119,7 @@ Scope: only the `src/` tree.
 - `lib/game/elements.ts`: element labels/colors/emojis and card kind icon map.
 - `lib/game/jobs.svelte.ts`: job worker math, ticker, offline crediting, flush/persist strategy.
 - `lib/game/onboarding.ts`: create player + starter pokemon + starter deck bootstrap.
-- `lib/game/shop.svelte.ts`: shop slot generation, daily refresh rule, paid refresh scaling, purchase affordability/transaction.
+- `lib/game/shop.svelte.ts`: shop slot generation (9 slots, raridade 60/30/10), daily refresh rule, paid refresh scaling, compra/limite diário de booster.
 - `lib/game/state.svelte.ts`: global game store, money/element/theme mutations, app init, offline summary plumbing.
 - `lib/game/type-chart.ts`: simplified gen1-style effectiveness resolver and labels.
 - `lib/game/types.ts`: all domain types/interfaces.

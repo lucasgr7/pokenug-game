@@ -14,8 +14,9 @@ import {
 } from './state.svelte';
 import type { Card, CardTemplate, Element } from './types';
 
-const SLOT_COUNT = 6;
+const SLOT_COUNT = 9;
 type ShopSlot = CardTemplate & { sold?: boolean };
+type ShopRarityBucket = 'common' | 'rare' | 'epicPlus';
 
 export interface BoosterPackOffer {
 	id: 'secret_single' | 'secret_triple';
@@ -49,22 +50,50 @@ export const NGU_COSTS = {
 	elementalDamage: (level: number) => Math.floor(30 * Math.pow(2, level)),
 	elementalVitamins: (level: number) => Math.floor(20 * Math.pow(2, level))
 };
-function rollSpecificSlot(level: number, filter: (c: CardTemplate) => boolean): ShopSlot {
-	let pool = CATALOG.filter((c) => (c.tier ?? 1) <= level && filter(c));
-	if (pool.length === 0) pool = CATALOG.filter(filter); // fallback
-	if (pool.length === 0) pool = CATALOG; // ultimate fallback
+
+const RARITY_ROLL: Array<{ max: number; bucket: ShopRarityBucket }> = [
+	{ max: 0.6, bucket: 'common' },
+	{ max: 0.9, bucket: 'rare' },
+	{ max: 1, bucket: 'epicPlus' }
+];
+
+const RARITY_RANK: Record<CardTemplate['rarity'], number> = {
+	starter: 0,
+	common: 1,
+	rare: 2,
+	epic: 3,
+	secret: 4
+};
+
+function matchesBucket(card: CardTemplate, bucket: ShopRarityBucket): boolean {
+	if (card.rarity === 'starter') return false;
+	if (bucket === 'common') return card.rarity === 'common';
+	if (bucket === 'rare') return card.rarity === 'rare';
+	return RARITY_RANK[card.rarity] >= RARITY_RANK.epic;
+}
+
+function rollRarityBucket(): ShopRarityBucket {
+	const roll = Math.random();
+	for (const step of RARITY_ROLL) {
+		if (roll <= step.max) return step.bucket;
+	}
+	return 'epicPlus';
+}
+
+function rollSlotByRarity(level: number, bucket: ShopRarityBucket): ShopSlot {
+	let pool = CATALOG.filter((c) => (c.tier ?? 1) <= level && matchesBucket(c, bucket));
+	if (pool.length === 0) pool = CATALOG.filter((c) => matchesBucket(c, bucket));
+	if (pool.length === 0) pool = CATALOG.filter((c) => c.rarity !== 'starter');
+	if (pool.length === 0) pool = CATALOG;
 	return { ...pick(pool), sold: false };
 }
 
 function generateSlots(): ShopSlot[] {
 	const level = Math.max(1, game.player?.unlockedRegions.length ?? 1);
 	const slots: ShopSlot[] = [];
-	slots.push(rollSpecificSlot(level, c => c.kind === 'power' && c.rarity !== 'starter'));
-	slots.push(rollSpecificSlot(level, c => c.kind === 'defense' && c.rarity !== 'starter'));
-	for (let i = 0; i < 3; i++) {
-		slots.push(rollSpecificSlot(level, c => c.kind === 'attack' && c.element != null && c.rarity !== 'starter'));
+	for (let i = 0; i < SLOT_COUNT; i++) {
+		slots.push(rollSlotByRarity(level, rollRarityBucket()));
 	}
-	slots.push(rollSpecificSlot(level, c => c.rarity === 'rare' || c.rarity === 'epic'));
 	return slots;
 }
 
@@ -188,12 +217,23 @@ export async function buyElementalVitamins(): Promise<boolean> {
 export async function buyBoosterPack(packId: BoosterPackOffer['id']): Promise<CardTemplate[] | null> {
 	const pack = BOOSTER_PACKS.find((entry) => entry.id === packId);
 	if (!pack) return null;
+	if (hasPurchasedBoosterToday()) return null;
 	if (!spendMoney(pack.price)) return null;
 
 	const rewards = Array.from({ length: pack.cardCount }, () => pick(SECRET_TEMPLATES));
 	const rewardCards: Card[] = rewards.map((tpl) => ({ id: crypto.randomUUID(), templateId: tpl.id }));
 	await addManyToInventory(rewardCards);
+	if (game.player) {
+		game.player.lastBoosterPackPurchaseAt = now();
+		schedulePersist();
+	}
 	return rewards;
+}
+
+export function hasPurchasedBoosterToday(): boolean {
+	const lastPurchase = game.player?.lastBoosterPackPurchaseAt ?? 0;
+	if (lastPurchase <= 0) return false;
+	return !isDifferentDay(lastPurchase, now());
 }
 
 function canAffordDirect(money: number): boolean {

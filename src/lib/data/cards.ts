@@ -1,8 +1,8 @@
-import type { CardTemplate, Element } from '$lib/game/types';
+import { ELEMENTS, type CardTemplate, type Element } from '$lib/game/types';
 import { ATTACK_TIERS, DEF_TIERS, HEAL_TIERS } from './card-constants';
 
-// Elementos principais usados na geração de cartas compráveis.
-const MAIN_ELEMENTS: Element[] = ['fire', 'water', 'grass', 'electric', 'psychic', 'rock'];
+// Todos os elementos do jogo usados na geração de cartas compráveis.
+const SHOP_ATTACK_ELEMENTS: Element[] = ELEMENTS;
 
 // Nomes temáticos por elemento, indexados pelo tier (0 = mais fraco, 4 = mais forte).
 const elementAttackNames: Partial<Record<Element, [string, string, string, string, string]>> = {
@@ -78,7 +78,7 @@ function buildCatalog(): CardTemplate[] {
 	const out: CardTemplate[] = [];
 
 	// Ataques com elemento: dano x elemento.
-	for (const el of MAIN_ELEMENTS) {
+	for (const el of SHOP_ATTACK_ELEMENTS) {
 		const names = elementAttackNames[el];
 		for (let i = 0; i < ATTACK_TIERS.length; i++) {
 			const t = ATTACK_TIERS[i];

@@ -10,6 +10,7 @@
 		paidRefreshCost,
 		buySlot,
 		buyBoosterPack,
+		hasPurchasedBoosterToday,
 		canAfford,
 		buyElementalDamage,
 		buyIncomeMultiplier,
@@ -20,7 +21,6 @@
 	import { ELEMENT_EMOJI, ELEMENT_LABEL } from '$lib/game/elements';
 	import { formatNumber } from '$lib/utils/math';
 	import { pushToast } from '$lib/stores/toast.svelte';
-	import type { Element } from '$lib/game/types';
 
 	let refreshing = $state(false);
 
@@ -51,7 +51,11 @@
 	async function buyPack(packId: (typeof BOOSTER_PACKS)[number]['id']) {
 		const rewards = await buyBoosterPack(packId);
 		if (!rewards) {
-			pushToast('Dinheiro insuficiente.', 'error');
+			if (hasPurchasedBoosterToday()) {
+				pushToast('Booster diário já comprado.', 'error');
+			} else {
+				pushToast('Dinheiro insuficiente.', 'error');
+			}
 			return;
 		}
 		pushToast(`Pack aberto: ${rewards.map((card) => card.name).join(', ')}`, 'success');
@@ -78,7 +82,7 @@
 	{#if !shop.loaded}
 		<p class="text-sm text-[var(--text-muted)]">Carregando…</p>
 	{:else}
-		<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+		<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
 			{#each shop.slots as slot, i (i)}
 				<div class="flex flex-col gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3">
 					<Card templateId={slot.id} playable={false} dimmed={slot.sold} showcase />
@@ -94,7 +98,7 @@
 							onclick={() => buy(i)}
 						>
 							💰{formatNumber(slot.price?.money ?? 0)}{#if slot.price?.element}
-								· {ELEMENT_EMOJI[slot.price.element.type as Element]}{formatNumber(slot.price.element.amount)}{/if}
+								· {ELEMENT_EMOJI[slot.price.element.type]}{formatNumber(slot.price.element.amount)}{/if}
 						</button>
 					{/if}
 				</div>
@@ -181,6 +185,7 @@
 
 		<div class="mt-8">
 			<h2 class="mb-3 text-lg font-bold">Booster Packs Secretos</h2>
+			<p class="mb-3 text-xs text-[var(--text-muted)]">Cada booster pode ser comprado apenas 1 vez por dia.</p>
 			<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 				{#each BOOSTER_PACKS as pack (pack.id)}
 					<div class="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
@@ -195,10 +200,14 @@
 						<button
 							class="w-full rounded-lg py-2 text-xs font-bold text-white disabled:opacity-40"
 							style="background: linear-gradient(135deg, #f59e0b, #d97706);"
-							disabled={(game.player?.money ?? 0) < pack.price}
+							disabled={(game.player?.money ?? 0) < pack.price || hasPurchasedBoosterToday()}
 							onclick={() => buyPack(pack.id)}
 						>
-							💰{formatNumber(pack.price)}
+							{#if hasPurchasedBoosterToday()}
+								Comprado hoje
+							{:else}
+								💰{formatNumber(pack.price)}
+							{/if}
 						</button>
 					</div>
 				{/each}

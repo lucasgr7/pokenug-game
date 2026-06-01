@@ -18,6 +18,7 @@ function ensureNgu(player: Player): void {
 	player.ngu.elementalDamageLevels ??= {};
 	player.ngu.elementalHpLevels ??= {};
 	player.ngu.globalDamageLevel ??= 0;
+	player.lastBoosterPackPurchaseAt ??= 0;
 }
 
 export async function getPlayer(): Promise<Player | undefined> {

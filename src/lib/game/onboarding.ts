@@ -54,6 +54,7 @@ export async function createPlayer(name: string, starter: StarterDef): Promise<v
 		theme: 'dark',
 		lastShopRefresh: 0,
 		paidRefreshCountToday: 0,
+		lastBoosterPackPurchaseAt: 0,
 		ngu: {
 			moneyMultiplierLevel: 0,
 			elementalDamageLevels: {},

@@ -71,6 +71,7 @@ export interface Player {
 	theme: Theme;
 	lastShopRefresh: number; // timestamp do último refresh diário
 	paidRefreshCountToday: number; // contador para custo crescente
+	lastBoosterPackPurchaseAt: number; // timestamp da última compra de booster diário
 	ngu: {
 		moneyMultiplierLevel: number;
 		elementalDamageLevels: ElementLevelMap;
