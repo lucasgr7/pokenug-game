@@ -64,9 +64,10 @@
 		onPlayCard(cardId, templateId);
 	}
 
-	let inspectPlayable = $derived(
-		!ended && !!inspecting?.cardId && canPlay(inspecting.templateId)
-	);
+	let inspectPlayable = $derived.by(() => {
+		if (ended || !inspecting || !inspecting.cardId) return false;
+		return canPlay(inspecting.templateId);
+	});
 </script>
 
 <section class="shrink-0 flex flex-col border-t border-white/10 bg-(--surface) px-2 pb-2 pt-1.5">
