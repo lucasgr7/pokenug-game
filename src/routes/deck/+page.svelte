@@ -190,7 +190,7 @@
 			<p class="text-base font-bold text-[var(--text-muted)]">Seu deck está completamente vazio.</p>
 		</div>
 	{:else}
-		<div class="mb-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+		<div class="mb-10 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
 			{#each deckGroups as g (g.templateId)}
 				<Card templateId={g.templateId} count={g.inDeck} badge="no deck" onclick={() => inspectCard(g.templateId, true)} />
 			{/each}
@@ -243,7 +243,7 @@
 			<p class="text-base font-bold text-[var(--text-muted)]">Nenhuma carta atende aos filtros.</p>
 		</div>
 	{:else}
-		<div class="grid grid-cols-2 gap-3 pb-12 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+		<div class="grid grid-cols-3 gap-2 pb-12 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
 			{#each invGroups as g (g.templateId)}
 				{@const available = g.total - g.inDeck}
 				<Card
@@ -293,7 +293,7 @@
 			<p class="text-base font-bold text-[var(--text-muted)]">Nenhuma carta encontrada.</p>
 		</div>
 	{:else}
-		<div class="grid grid-cols-2 gap-3 pb-12 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+		<div class="grid grid-cols-3 gap-2 pb-12 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
 			{#each filteredCatalog as card (card.id)}
 				<Card templateId={card.id} onclick={() => (catalogInspectingId = card.id)} />
 			{/each}

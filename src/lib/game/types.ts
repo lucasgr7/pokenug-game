@@ -136,9 +136,19 @@ export interface Region {
 	id: RegionId;
 	name: string;
 	description: string;
-	pool: number[]; // species IDs
+	pool: number[]; // species IDs para encontros comuns
+	bossPool: [number, number, number]; // apenas evolucoes finais da regiao
 	requiredDefeats: number; // default 10
 	unlockAfter: RegionId | null;
+}
+
+export type BattleMode = 'normal' | 'boss';
+
+export interface BossCardReward {
+	templateId: string;
+	rarity: Exclude<CardRarity, 'starter'>;
+	element: Element | null;
+	name: string;
 }
 
 export type EnemyIntent =
@@ -151,6 +161,7 @@ export interface BattleReward {
 	elementPoints: { type: Element; amount: number };
 	captured: CapturedPokemon | null;
 	unlockedRegionName: string | null;
+	bossCardReward: BossCardReward | null;
 }
 
 export interface SavedBattle {
@@ -161,6 +172,8 @@ export interface SavedBattle {
 
 export interface BattleState {
 	regionId: RegionId;
+	mode: BattleMode;
+	bossFirstFightBlockedCapture: boolean;
 	player: {
 		pokemon: CapturedPokemon;
 		hp: number;

@@ -26,6 +26,7 @@
 	import { getTemplate } from '$lib/data/cards';
 	import { ELEMENT_LABEL, ELEMENT_EMOJI } from '$lib/game/elements';
 	import { getElementInteraction, interactionLabel } from '$lib/game/type-chart';
+	import type { BattleMode } from '$lib/game/types';
 
 	let loading = $state(true);
 	let error = $state<string | null>(null);
@@ -49,12 +50,14 @@
 
 	onMount(async () => {
 		const regionId = page.url.searchParams.get('region');
+		const modeParam = page.url.searchParams.get('mode');
+		const mode: BattleMode = modeParam === 'boss' ? 'boss' : 'normal';
 		try {
 			if (regionId) {
-				await enterBattle(regionId);
+				await enterBattle(regionId, mode);
 			} else if (await hasSavedBattle()) {
 				// Sem região na URL, mas há uma batalha em andamento: retoma.
-				await enterBattle('');
+				await enterBattle('', 'normal');
 			} else {
 				await goto('/');
 				return;
@@ -82,6 +85,7 @@
 
 	let s = $derived(battle.state);
 	let ended = $derived(!!s && s.status !== 'active');
+	let isBossBattle = $derived(s?.mode === 'boss');
 
 	function intentText(): string {
 		if (!s) return '';
@@ -163,6 +167,15 @@
 	</div>
 {:else if s}
 	<div class="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+		{#if isBossBattle}
+			<div class="mx-2 mb-1 rounded-xl border border-amber-400/50 bg-amber-400/10 px-3 py-2 text-xs font-semibold text-amber-300">
+				⚔️ Boss Battle
+				{#if s.bossFirstFightBlockedCapture}
+					· Primeira luta: captura bloqueada.
+				{/if}
+			</div>
+		{/if}
+
 		<!-- ARENA -->
 		<section
 			class="relative flex-1 overflow-hidden"
@@ -191,6 +204,7 @@
 			<div
 				class="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded-full bg-black/40 px-3 py-1 text-[11px] font-bold text-white backdrop-blur"
 			>
+				{#if isBossBattle}<span class="mr-1 text-amber-300">BOSS</span>{/if}
 				Turno {s.turnNumber}
 				{#if matchupHint()}<span class="ml-1 text-amber-300">· {matchupHint()}</span>{/if}
 			</div>
@@ -313,6 +327,12 @@
 					{#if battle.reward.unlockedRegionName}
 						<p class="font-semibold text-(--success)">
 							🗺️ Nova região desbloqueada: {battle.reward.unlockedRegionName}!
+						</p>
+					{/if}
+					{#if battle.reward.bossCardReward}
+						<p class="font-semibold text-amber-300">
+							🃏 Recompensa do boss: {battle.reward.bossCardReward.name}
+							({battle.reward.bossCardReward.rarity})
 						</p>
 					{/if}
 				{:else}

@@ -6,7 +6,7 @@ Scope: only the `src/` tree.
 ## 1) 30-second mental model
 
 - App type: SvelteKit SPA game (no SSR/prerender).
-- Core loop: choose region -> battle -> rewards/capture -> jobs/shop/deck progression.
+- Core loop: choose region -> battle normal (farm defeats) + boss daily -> rewards/capture -> jobs/shop/deck progression.
 - Persistence: IndexedDB (`idb`) for player, cards, roster, jobs, battle snapshot, shop, sprites, regions.
 - State style: Svelte runes (`$state`, `$derived`, `$effect`) in domain modules.
 - Route guard: player required for all routes except onboarding.
@@ -32,9 +32,9 @@ Scope: only the `src/` tree.
   - `lib/game/onboarding.ts`
   - `lib/data/starters.ts`
 - Battle system:
-  - `lib/game/battle.svelte.ts` (engine, turn flow, reward settlement)
+  - `lib/game/battle.svelte.ts` (engine, turn flow, normal vs boss mode, reward settlement)
   - `lib/game/type-chart.ts` (element multipliers)
-  - `routes/battle/+page.svelte` (battle screen)
+  - `routes/battle/+page.svelte` (battle screen, boss warnings/rewards)
 - Economy and jobs:
   - `lib/game/jobs.svelte.ts` (tick, offline gain, assignment)
   - `lib/game/shop.svelte.ts` (daily/paid refresh, purchase)
@@ -45,8 +45,8 @@ Scope: only the `src/` tree.
   - `lib/data/cards.ts` (templates/catalog/prices/starter deck)
   - `lib/db/cards.ts` (inventory + active deck)
 - Regions/progression:
-  - `lib/data/regions.ts`
-  - `lib/db/regions.ts`
+  - `lib/data/regions.ts` (common encounter pool + fixed 3-boss pool per region)
+  - `lib/db/regions.ts` (defeats, first boss attempt, 24h boss cooldown)
 - API/network and sprite cache:
   - `lib/api/pokeapi.ts`
   - `lib/api/sprites.ts`
@@ -63,8 +63,8 @@ Scope: only the `src/` tree.
 
 - `routes/+layout.ts`: SPA flags (`ssr=false`, `prerender=false`, `csr=true`).
 - `routes/+layout.svelte`: app bootstrap (`initApp`), route guard, offline summary modal, global nav/toast.
-- `routes/+page.svelte`: regions list, continue-battle CTA, deck-size guard before entering battle.
-- `routes/battle/+page.svelte`: battle arena UI, hand controls, end-of-battle modal, resume/start flow.
+- `routes/+page.svelte`: regions list, continue-battle CTA, normal/boss entry actions, boss cooldown status.
+- `routes/battle/+page.svelte`: battle arena UI, hand controls, end-of-battle modal, resume/start flow, boss battle warnings.
 - `routes/deck/+page.svelte`: deck builder (filters, grouped copies, add/remove cards, min/max constraints).
 - `routes/jobs/+page.svelte`: roster assignment to jobs, production panel, smooth progress animation.
 - `routes/onboarding/+page.svelte`: trainer name + starter selection, creates initial player state.
@@ -99,7 +99,7 @@ Scope: only the `src/` tree.
 ### lib/data
 
 - `lib/data/cards.ts`: card templates, starter templates/deck, shop catalog (ataques elementais para todos os elementos), lookup helper.
-- `lib/data/regions.ts`: region progression chain, encounter pools, query helpers.
+- `lib/data/regions.ts`: region progression chain, normal encounter pools (sem bosses), fixed 3-boss pools.
 - `lib/data/starters.ts`: starter pokemon definitions for onboarding.
 
 ### lib/db
@@ -110,12 +110,12 @@ Scope: only the `src/` tree.
 - `lib/db/jobs.ts`: job assignment persistence CRUD.
 - `lib/db/player.ts`: player read/write and existence check.
 - `lib/db/pokemon.ts`: roster pokemon CRUD.
-- `lib/db/regions.ts`: region defeat progress persistence.
+- `lib/db/regions.ts`: region defeat progress + boss state persistence (first fight + 24h cooldown).
 - `lib/db/shop.ts`: persisted shop state read/write.
 
 ### lib/game
 
-- `lib/game/battle.svelte.ts`: full battle engine, intent logic, card resolution, turn progression, rewards, capture, persistence.
+- `lib/game/battle.svelte.ts`: full battle engine, intent logic, normal/boss routing, card resolution, boss capture rule, rewards, persistence.
 - `lib/game/elements.ts`: element labels/colors/emojis and card kind icon map.
 - `lib/game/jobs.svelte.ts`: job worker math, ticker, offline crediting, flush/persist strategy.
 - `lib/game/onboarding.ts`: create player + starter pokemon + starter deck bootstrap.
@@ -141,7 +141,7 @@ Scope: only the `src/` tree.
 - Deck/card behavior: `routes/deck/+page.svelte`, `lib/data/cards.ts`, `lib/db/cards.ts`
 - Shop pricing/refresh: `lib/game/shop.svelte.ts`, `routes/shop/+page.svelte`
 - Offline gains/jobs: `lib/game/jobs.svelte.ts`, `routes/jobs/+page.svelte`
-- Region unlock/progression: `lib/data/regions.ts`, `lib/db/regions.ts`, `lib/game/battle.svelte.ts`
+- Region unlock/progression: `lib/data/regions.ts`, `lib/db/regions.ts`, `lib/game/battle.svelte.ts`, `routes/+page.svelte`
 - Persistence corruption: `lib/db/index.ts` + affected `lib/db/*.ts`
 
 ## 6) Update rule for this index

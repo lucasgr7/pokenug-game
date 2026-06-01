@@ -16,6 +16,8 @@ export interface ShopState {
 
 export interface RegionProgress {
 	defeats: number;
+	bossLastDefeatedAt: number;
+	bossFirstFightDone: boolean;
 }
 
 export interface PokenguDB extends DBSchema {

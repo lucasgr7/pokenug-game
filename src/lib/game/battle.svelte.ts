@@ -1,15 +1,22 @@
-import { getActiveDeck, getInventory, removeFromDeck, removeFromInventory } from '$lib/db/cards';
+import { addToInventory, getActiveDeck, getInventory, removeFromDeck, removeFromInventory } from '$lib/db/cards';
 import { resetDeckToStarters } from '$lib/db/cards';
 import { addPokemon } from '$lib/db/pokemon';
-import { incrementDefeat } from '$lib/db/regions';
+import {
+	canFightBoss,
+	getRegionProgress,
+	incrementDefeat,
+	markBossDefeated,
+	markBossFightDone
+} from '$lib/db/regions';
 import { clearSavedBattle, getSavedBattle, saveBattle } from '$lib/db/battle';
-import { getTemplate } from '$lib/data/cards';
+import { CATALOG, SECRET_TEMPLATES, getTemplate } from '$lib/data/cards';
 import { getRegion, nextRegion, getRegionScaling } from '$lib/data/regions';
 import { fetchPokemon } from '$lib/api/pokeapi';
 import { getElementInteraction } from './type-chart';
 import { pick, randomInt, shuffle, weightedPick } from '$lib/utils/rng';
 import { clamp } from '$lib/utils/math';
 import { now } from '$lib/utils/time';
+import { pushToast } from '$lib/stores/toast.svelte';
 import {
 	activePokemon,
 	addElementPoints,
@@ -25,10 +32,13 @@ import {
 	unlockRegion
 } from './state.svelte';
 import type {
+	BattleMode,
+	BossCardReward,
 	BattleReward,
 	BattleState,
 	Card,
 	CardKind,
+	CardRarity,
 	CardTemplate,
 	CapturedPokemon,
 	Element,
@@ -59,6 +69,9 @@ const START_MANA = 3;
 const GLOBAL_DAMAGE_PER_LEVEL = 3;
 const DAMAGE_PER_POKEMON_BUFF = 2;
 const ELEMENT_POINTS_PER_MAX_HP = 15; // floor(enemyMaxHp / this) = element points awarded
+const BOSS_HP_MULTIPLIER = 3;
+
+type BossRewardBucket = 'common' | 'rare' | 'epicPlus';
 
 export interface PlayCardResult {
 	played: boolean;
@@ -339,6 +352,10 @@ function applyCardEffect(s: BattleState, tpl: CardTemplate): void {
 			s.player.nextDamageBonus += tpl.buffAmount ?? 0;
 			break;
 		case 'capture': {
+			if (s.mode === 'boss' && s.bossFirstFightBlockedCapture) {
+				pushToast('Primeira luta contra este boss nao permite captura.', 'error');
+				break;
+			}
 			const ratio = s.enemy.pokemon.maxHp > 0 ? s.enemy.hp / s.enemy.pokemon.maxHp : 0;
 			const chance = clamp(1 - ratio + (tpl.captureBonus ?? 0), 0, 1);
 			if (Math.random() < chance) s.status = 'captured';
@@ -388,7 +405,16 @@ export function repairActiveBattleState(): void {
 	const s = battle.state;
 	if (!s || s.status !== 'active') return;
 
-	const { removedFromHand, changed } = sanitizeBattleStateCards(s);
+	const { removedFromHand, changed: cardsChanged } = sanitizeBattleStateCards(s);
+	let changed = cardsChanged;
+	if (!s.mode) {
+		s.mode = 'normal';
+		changed = true;
+	}
+	if (typeof s.bossFirstFightBlockedCapture !== 'boolean') {
+		s.bossFirstFightBlockedCapture = false;
+		changed = true;
+	}
 	if (s.turn === 'player' && removedFromHand > 0) {
 		drawCards(removedFromHand);
 	}
@@ -400,12 +426,60 @@ export function repairActiveBattleState(): void {
 
 // ── Battle lifecycle ──────────────────────────────────────────────────────
 
-export async function startBattle(regionId: string): Promise<void> {
+function rollBossRewardBucket(): BossRewardBucket {
+	const roll = Math.random();
+	if (roll <= 0.6) return 'common';
+	if (roll <= 0.9) return 'rare';
+	return 'epicPlus';
+}
+
+function cardMatchesBossBucket(rarity: CardRarity, bucket: BossRewardBucket): boolean {
+	if (rarity === 'starter') return false;
+	if (bucket === 'common') return rarity === 'common';
+	if (bucket === 'rare') return rarity === 'rare';
+	return rarity === 'epic' || rarity === 'secret';
+}
+
+function pickBossRewardCard(element: Element): BossCardReward | null {
+	const all = [...CATALOG, ...SECRET_TEMPLATES];
+	const bucket = rollBossRewardBucket();
+	let pool = all.filter((c) => c.element === element && cardMatchesBossBucket(c.rarity, bucket));
+	if (pool.length === 0) {
+		pool = all.filter((c) => c.element === element && c.rarity !== 'starter');
+	}
+	if (pool.length === 0) {
+		pool = all.filter((c) => cardMatchesBossBucket(c.rarity, bucket));
+	}
+	if (pool.length === 0) {
+		pool = all.filter((c) => c.rarity !== 'starter');
+	}
+	if (pool.length === 0) return null;
+
+	const chosen = pick(pool);
+	return {
+		templateId: chosen.id,
+		rarity: chosen.rarity as Exclude<CardRarity, 'starter'>,
+		element: chosen.element,
+		name: chosen.name
+	};
+}
+
+export async function startBattle(regionId: string, mode: BattleMode = 'normal'): Promise<void> {
 	const region = getRegion(regionId);
 	const mine = activePokemon();
 	if (!region || !mine) throw new Error('Região ou pokémon ativo inválido');
+	const progress = await getRegionProgress(regionId);
 
-	const speciesId = pick(region.pool);
+	if (mode === 'boss') {
+		if (progress.defeats < region.requiredDefeats) {
+			throw new Error('Boss indisponivel: derrote mais inimigos comuns nesta regiao.');
+		}
+		if (!canFightBoss(progress, now())) {
+			throw new Error('Boss em cooldown de 24h para esta regiao.');
+		}
+	}
+
+	const speciesId = mode === 'boss' ? pick(region.bossPool) : pick(region.pool);
 	let enemyData;
 	try {
 		enemyData = await fetchPokemon(speciesId);
@@ -414,18 +488,21 @@ export async function startBattle(regionId: string): Promise<void> {
 	}
 
 	const scaling = getRegionScaling(regionId);
+	const hpMultiplier = mode === 'boss' ? BOSS_HP_MULTIPLIER : 1;
 	const enemy: CapturedPokemon = {
 		id: crypto.randomUUID(),
 		speciesId,
 		name: enemyData.name,
 		element: enemyData.element,
-		maxHp: enemyData.maxHp * scaling,
-		currentHp: enemyData.maxHp * scaling,
+		maxHp: enemyData.maxHp * scaling * hpMultiplier,
+		currentHp: enemyData.maxHp * scaling * hpMultiplier,
 		capturedAt: now()
 	};
 
 	battle.state = {
 		regionId,
+		mode,
+		bossFirstFightBlockedCapture: mode === 'boss' && !progress.bossFirstFightDone,
 		player: {
 			pokemon: { ...mine },
 			hp: normalizedPokemonHp(mine),
@@ -469,11 +546,11 @@ export async function startBattle(regionId: string): Promise<void> {
 	void persistBattle();
 }
 
-export async function enterBattle(regionId: string): Promise<void> {
+export async function enterBattle(regionId: string, mode: BattleMode = 'normal'): Promise<void> {
 	const saved = await getSavedBattle();
 	if (saved?.state.status === 'active') {
 		battle.state = saved.state;
-		battle.reward = saved.reward;
+		battle.reward = saved.reward ? { ...saved.reward, bossCardReward: saved.reward.bossCardReward ?? null } : null;
 		battle.settled = saved.settled;
 		battle.enemyHurt = 0;
 		battle.playerHurt = 0;
@@ -481,7 +558,7 @@ export async function enterBattle(regionId: string): Promise<void> {
 		return;
 	}
 	if (saved) await clearSavedBattle();
-	await startBattle(regionId);
+	await startBattle(regionId, mode);
 }
 
 export async function hasSavedBattle(): Promise<boolean> {
@@ -648,6 +725,11 @@ export async function finalizeBattle(): Promise<void> {
 	battle.settled = true;
 	await clearSavedBattle();
 
+	const isBossFight = s.mode === 'boss';
+	if (isBossFight && s.bossFirstFightBlockedCapture) {
+		await markBossFightDone(s.regionId);
+	}
+
 	if (s.status === 'defeat') {
 		await setPokemonCurrentHp(s.player.pokemon.id, 0);
 		setActivePokemon(null);
@@ -684,12 +766,26 @@ export async function finalizeBattle(): Promise<void> {
 		addToRoster(captured);
 	}
 
-	const total = await incrementDefeat(s.regionId);
-	recordDefeat(s.regionId, total);
+	if (!isBossFight) {
+		const total = await incrementDefeat(s.regionId);
+		recordDefeat(s.regionId, total);
+	} else {
+		await markBossDefeated(s.regionId);
+	}
+
+	let bossCardReward: BossCardReward | null = null;
+	if (isBossFight) {
+		bossCardReward = pickBossRewardCard(s.enemy.pokemon.element);
+		if (bossCardReward) {
+			await addToInventory({ id: crypto.randomUUID(), templateId: bossCardReward.templateId });
+		}
+	}
 
 	let unlockedRegionName: string | null = null;
 	const region = getRegion(s.regionId);
-	if (region && total >= region.requiredDefeats) {
+	const progress = await getRegionProgress(s.regionId);
+	recordDefeat(s.regionId, progress.defeats);
+	if (region && progress.defeats >= region.requiredDefeats && progress.bossLastDefeatedAt > 0) {
 		const next = nextRegion(s.regionId);
 		if (next && !(game.player?.unlockedRegions.includes(next.id) ?? false)) {
 			unlockRegion(next.id);
@@ -701,6 +797,7 @@ export async function finalizeBattle(): Promise<void> {
 		money,
 		elementPoints: { type: s.enemy.pokemon.element, amount: elementAmount },
 		captured,
-		unlockedRegionName
+		unlockedRegionName,
+		bossCardReward
 	};
 }
