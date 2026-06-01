@@ -55,6 +55,14 @@ docker build -t pokengu:local .
 
 The root `docker-compose.yml` exposes the app through Nginx on port `3030` by default.
 
+For Cloudflare Tunnel (`cloudflared`) running in Docker, point the origin service to the
+container-internal HTTP port, not the published host port:
+
+- `http://pokengu-web:80` (when `cloudflared` shares the same external Docker network)
+- `http://127.0.0.1:3030` (when `cloudflared` runs on the host)
+
+Using `https://` or `:3030` with `pokengu-web` from inside Docker will fail.
+
 Environment variables supported by the stack:
 
 - `WEB_PORT`: host port published by the web container. Default: `3030`
@@ -64,6 +72,15 @@ Example:
 
 ```sh
 WEB_PORT=3030 EXTERNAL_NETWORK_NAME=gitea_dev-network docker compose up -d --build
+```
+
+In Cloudflare Tunnel ingress, use:
+
+```yaml
+ingress:
+  - hostname: pokengu.noonsoft.com.br
+    service: http://pokengu-web:80
+  - service: http_status:404
 ```
 
 ### Drone secrets
