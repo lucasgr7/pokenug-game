@@ -115,6 +115,7 @@ export interface CardTemplate {
 		drawCount?: number; // cartas compradas imediatamente ao jogar esta carta
         debuffAmount?: number; // redução de dano do inimigo (cartas de debuff)
         debuffDuration?: number; // turnos que o debuff dura
+		shieldEffect?: 'fire_thorns' | 'ice_reflect' | 'rock_persist';
 	price?: { money: number; element?: { type: Element; amount: number } };
 }
 
@@ -186,6 +187,7 @@ export interface BattleState {
 		dragonize: boolean;
 		staticShockDamage: number;
 		ghostForm: boolean;
+		shieldEffect: 'none' | 'fire_thorns' | 'ice_reflect' | 'rock_persist';
 		attackRepeat: number;
 		specialize: boolean;
 	};

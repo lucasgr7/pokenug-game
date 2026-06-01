@@ -52,7 +52,6 @@
 				</div>
 
 				<div class="flex items-center justify-between">
-					<span class="text-xs font-bold uppercase tracking-wider text-(--text-muted)">Tipo</span>
 					<span class="text-sm font-bold capitalize">{tpl.kind}</span>
 				</div>
 			</div>

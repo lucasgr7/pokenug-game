@@ -143,6 +143,61 @@ function buildCatalog(): CardTemplate[] {
 		});
 	}
 
+	out.push({
+		id: 'def_fire_barriage',
+		name: 'Fire Barriage',
+		description: 'Ganha 20 de bloqueio. Reflete 10 de dano ao quebrar a barreira.',
+		cost: 2,
+		kind: 'defense',
+		element: 'fire',
+		rarity: 'common',
+		tier: 1,
+		block: 20,
+		shieldEffect: 'fire_thorns',
+		price: { money: 10000, element: { type: 'fire', amount: 1000 } }
+	});
+
+	out.push({
+		id: 'def_ice_barriage',
+		name: 'Ice Barriage',
+		description: 'Ganha 30 de bloqueio. O dano inimigo é refletido enquanto houver barreira.',
+		cost: 2,
+		kind: 'defense',
+		element: 'ice',
+		rarity: 'epic',
+		tier: 3,
+		block: 30,
+		shieldEffect: 'ice_reflect',
+		price: { money: 100000, element: { type: 'ice', amount: 10000 } }
+	});
+
+	out.push({
+		id: 'def_rock_barriage',
+		name: 'Rock Barriage',
+		description: 'Ganha 30 de bloqueio. A barreira permanece até o próximo turno inimigo.',
+		cost: 1,
+		kind: 'defense',
+		element: 'rock',
+		rarity: 'rare',
+		tier: 2,
+		block: 30,
+		shieldEffect: 'rock_persist',
+		price: { money: 50000, element: { type: 'rock', amount: 10000 } }
+	});
+
+	out.push({
+		id: 'def_psyche_barriage',
+		name: 'Psyche Barriage',
+		description: 'Ganha 20 de bloqueio.',
+		cost: 0,
+		kind: 'defense',
+		element: 'psychic',
+		rarity: 'rare',
+		tier: 2,
+		block: 20,
+		price: { money: 100000, element: { type: 'psychic', amount: 10000 } }
+	});
+
 	// Cura.
 	for (const t of HEAL_TIERS) {
 		out.push({

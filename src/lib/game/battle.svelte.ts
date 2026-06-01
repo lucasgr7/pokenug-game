@@ -221,15 +221,17 @@ function dealToEnemy(amount: number): void {
 	}
 }
 
-function dealToPlayer(amount: number): void {
+function dealToPlayer(amount: number): number {
 	const p = battle.state!.player;
 	if (p.ghostForm) amount = 1;
+	const blockBefore = p.block;
 	const afterBlock = amount - p.block;
 	p.block = Math.max(0, p.block - amount);
 	if (afterBlock > 0) {
 		p.hp = Math.max(0, p.hp - afterBlock);
 		battle.playerHurt++;
 	}
+	return Math.min(blockBefore, amount);
 }
 
 // ── Card exhaustion ───────────────────────────────────────────────────────
@@ -343,6 +345,7 @@ function applyCardEffect(s: BattleState, tpl: CardTemplate): void {
 		case 'defense': {
 			const block = tpl.block ?? 0;
 			s.player.block += s.player.berserk ? Math.max(1, Math.floor(block / 2)) : block;
+			s.player.shieldEffect = tpl.shieldEffect ?? 'none';
 			break;
 		}
 		case 'heal':
@@ -415,6 +418,10 @@ export function repairActiveBattleState(): void {
 		s.bossFirstFightBlockedCapture = false;
 		changed = true;
 	}
+		if (!s.player.shieldEffect) {
+			s.player.shieldEffect = 'none';
+			changed = true;
+		}
 	if (s.turn === 'player' && removedFromHand > 0) {
 		drawCards(removedFromHand);
 	}
@@ -515,6 +522,7 @@ export async function startBattle(regionId: string, mode: BattleMode = 'normal')
 			dragonize: false,
 			staticShockDamage: 0,
 			ghostForm: false,
+			shieldEffect: 'none',
 			attackRepeat: 0,
 			specialize: false
 		},
@@ -679,8 +687,14 @@ export function endTurn(): EnemyTurnResult | null {
 		}
 		const typedDamage = resolveTypedDamage(dmg, attackElement, s.player.pokemon.element);
 		s.enemy.nextDamageBonus = 0;
-		const absorbed = Math.min(s.player.block, typedDamage.damage);
-		dealToPlayer(typedDamage.damage);
+		const absorbed = dealToPlayer(typedDamage.damage);
+		if (absorbed > 0) {
+			if (s.player.shieldEffect === 'fire_thorns') {
+				dealToEnemy(10);
+			} else if (s.player.shieldEffect === 'ice_reflect') {
+				dealToEnemy(absorbed);
+			}
+		}
 		turnResult = {
 			kind: 'attack',
 			element: attackElement,
@@ -690,6 +704,11 @@ export function endTurn(): EnemyTurnResult | null {
 			damageModifier: typedDamage.modifierAmount,
 			damageModifierText: typedDamage.modifierText
 		};
+		if (s.enemy.hp <= 0 && s.status === 'active') {
+			s.status = 'victory';
+			void persistBattle();
+			return turnResult;
+		}
 	} else if (intent.kind === 'defend') {
 		s.enemy.block += intent.block;
 		turnResult = { kind: 'defend', enemyBlock: intent.block };
@@ -709,6 +728,7 @@ export function endTurn(): EnemyTurnResult | null {
 	s.enemy.intent = rollIntent(s.enemy.hp, s.enemy.pokemon.maxHp, s.turnNumber, scaling, s.enemy.pokemon.element);
 	s.turnNumber++;
 	s.player.block = 0;
+	s.player.shieldEffect = 'none';
 	s.player.mana = START_MANA;
 	s.player.ghostForm = false;
 	s.turn = 'player';

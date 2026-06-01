@@ -194,6 +194,35 @@ m-548 -297 c0 -21 -25 -37 -45 -30 -16 6 -15 9 6 25 29 22 39 24 39 5z"/>
 				<path d="M10.354 13.389L6.11 9.146 14.596.661" stroke="white" stroke-width="0.65" opacity="0.55" />
 			</g>
 		{/if}
+	{:else if id === 'def_fire_barriage'}
+		<!-- barricade flame -->
+		<path d="M24 6l14 5v10c0 9-6 15.5-14 19-8-3.5-14-10-14-19V11l14-5z" fill={color} opacity="0.22" />
+		<path d="M24 6l14 5v10c0 9-6 15.5-14 19-8-3.5-14-10-14-19V11l14-5z" stroke={color} stroke-width="3" stroke-linejoin="round" fill="none" />
+		<path d="M24 14c-3 3-4 5-4 8 0 3 2 6 4 8 2-2 4-5 4-8 0-3-1-5-4-8z" fill={color} opacity="0.35" />
+		<path d="M24 14c-3 3-4 5-4 8 0 3 2 6 4 8 2-2 4-5 4-8 0-3-1-5-4-8z" stroke={color} stroke-width="3" stroke-linejoin="round" fill="none" />
+		<path d="M14 18l-3-2M34 18l3-2M13 30l-4 1M35 30l4 1" stroke={color} stroke-width="2.5" stroke-linecap="round" opacity="0.8" />
+	{:else if id === 'def_ice_barriage'}
+		<!-- barricade ice -->
+		<path d="M24 6l14 5v10c0 9-6 15.5-14 19-8-3.5-14-10-14-19V11l14-5z" fill={color} opacity="0.22" />
+		<path d="M24 6l14 5v10c0 9-6 15.5-14 19-8-3.5-14-10-14-19V11l14-5z" stroke={color} stroke-width="3" stroke-linejoin="round" fill="none" />
+		<path d="M24 14v16M16 22h16M18.5 16.5l11 11M29.5 16.5l-11 11" stroke={color} stroke-width="2.5" stroke-linecap="round" opacity="0.9" />
+		<circle cx="24" cy="22" r="3.5" fill={color} opacity="0.35" />
+		<circle cx="24" cy="22" r="3.5" stroke={color} stroke-width="2.5" fill="none" />
+	{:else if id === 'def_rock_barriage'}
+		<!-- barricade rock -->
+		<path d="M24 6l14 5v10c0 9-6 15.5-14 19-8-3.5-14-10-14-19V11l14-5z" fill={color} opacity="0.22" />
+		<path d="M24 6l14 5v10c0 9-6 15.5-14 19-8-3.5-14-10-14-19V11l14-5z" stroke={color} stroke-width="3" stroke-linejoin="round" fill="none" />
+		<path d="M14 26l10-8 10 8-10 9-10-9z" fill={color} opacity="0.3" />
+		<path d="M14 26l10-8 10 8-10 9-10-9z" stroke={color} stroke-width="3" stroke-linejoin="round" fill="none" />
+		<path d="M18 24l6-4 6 4M18 30l6-4 6 4" stroke={color} stroke-width="2.5" stroke-linecap="round" opacity="0.75" />
+	{:else if id === 'def_psyche_barriage'}
+		<!-- barricade psyche -->
+		<path d="M24 6l14 5v10c0 9-6 15.5-14 19-8-3.5-14-10-14-19V11l14-5z" fill={color} opacity="0.22" />
+		<path d="M24 6l14 5v10c0 9-6 15.5-14 19-8-3.5-14-10-14-19V11l14-5z" stroke={color} stroke-width="3" stroke-linejoin="round" fill="none" />
+		<path d="M24 14c-5 0-9 4-9 8s4 8 9 8 9-4 9-8-4-8-9-8z" fill={color} opacity="0.28" />
+		<path d="M24 14c-5 0-9 4-9 8s4 8 9 8 9-4 9-8-4-8-9-8z" stroke={color} stroke-width="3" stroke-linejoin="round" fill="none" />
+		<circle cx="24" cy="22" r="2.5" fill={color} opacity="0.6" />
+		<path d="M19 22c2-4 8-4 10 0" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.55" />
 	{:else if kind === 'defense'}
 		<!-- escudo -->
 		<path
