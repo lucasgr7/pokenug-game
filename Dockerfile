@@ -2,7 +2,7 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-RUN npm install -g yarn@1.22.19
+RUN npm install -g yarn@1.22.19 --force
 
 COPY package.json yarn.lock .npmrc ./
 RUN yarn install --frozen-lockfile
