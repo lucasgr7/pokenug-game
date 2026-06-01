@@ -35,6 +35,26 @@ export const ELEMENTS: Element[] = [
 
 export type Theme = 'dark' | 'light';
 
+// ---- Marketplace ----
+
+export interface MarketPriceEntry {
+	timestamp: number;
+	price: number; // money per 100 element points
+}
+
+export interface ElementMarketData {
+	currentPrice: number;
+	lastRandomizedAt: number;
+	lastDriftAt: number; // when hourly drift was last applied
+	lastSnapshotAt: number;
+	history: MarketPriceEntry[]; // max 17 entries (~4h of 15-min snapshots)
+}
+
+export interface MarketState {
+	elements: Record<Element, ElementMarketData>;
+	lastUpdatedAt: number;
+}
+
 export type RegionId = string;
 
 export type ElementLevelMap = Partial<Record<Element, number>>;
@@ -153,6 +173,7 @@ export interface BattleState {
 		staticShockDamage: number;
 		ghostForm: boolean;
 		attackRepeat: number;
+		specialize: boolean;
 	};
 	enemy: {
 		pokemon: CapturedPokemon;

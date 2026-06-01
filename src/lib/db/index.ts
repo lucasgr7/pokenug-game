@@ -5,7 +5,8 @@ import type {
 	CapturedPokemon,
 	CardTemplate,
 	Player,
-	SavedBattle
+	SavedBattle,
+	MarketState
 } from '$lib/game/types';
 
 export interface ShopState {
@@ -54,10 +55,14 @@ export interface PokenguDB extends DBSchema {
 		key: string;
 		value: SavedBattle;
 	};
+	market: {
+		key: string;
+		value: MarketState;
+	};
 }
 
 const DB_NAME = 'pokengu';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let dbPromise: Promise<IDBPDatabase<PokenguDB>> | null = null;
 
@@ -75,6 +80,7 @@ export function getDb(): Promise<IDBPDatabase<PokenguDB>> {
 				if (!db.objectStoreNames.contains('sprites')) db.createObjectStore('sprites');
 				if (!db.objectStoreNames.contains('shop')) db.createObjectStore('shop');
 				if (!db.objectStoreNames.contains('battle')) db.createObjectStore('battle');
+				if (!db.objectStoreNames.contains('market')) db.createObjectStore('market');
 			}
 		});
 	}

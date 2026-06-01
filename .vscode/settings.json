@@ -47,6 +47,10 @@
     "/^command -v docker >/dev/null && docker compose config$/": {
       "approve": true,
       "matchCommandLine": true
+    },
+    "/^npx svelte-check --tsconfig \\./tsconfig\\.json 2>&1 \\| tail -10$/": {
+      "approve": true,
+      "matchCommandLine": true
     }
   }
 }

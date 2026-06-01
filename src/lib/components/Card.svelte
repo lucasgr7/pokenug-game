@@ -154,7 +154,11 @@
 		</button>
 
 		{#if tpl.element}
-			<div class="absolute bottom-1 left-1 z-20">
+			<div
+				class="absolute right-1 z-20"
+				class:top-1={count <= 1}
+				class:top-7={count > 1}
+			>
 				<ElementMatchupBadge element={tpl.element as Element} compact={!showcase} />
 			</div>
 		{/if}

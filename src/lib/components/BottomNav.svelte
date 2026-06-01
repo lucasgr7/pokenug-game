@@ -6,7 +6,7 @@
 		{ href: '/', label: 'Mapa', icon: '🗺️' },
 		{ href: '/jobs', label: 'Jobs', icon: '⛏️' },
 		{ href: '/deck', label: 'Deck', icon: '🃏' },
-		{ href: '/catalog', label: 'Cartas', icon: '📖' },
+		{ href: '/market', label: 'Mercado', icon: '📈' },
 		{ href: '/shop', label: 'Loja', icon: '🛒' }
 	];
 

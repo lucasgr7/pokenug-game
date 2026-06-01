@@ -4,10 +4,28 @@
 	import Card from '$lib/components/Card.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import { getInventory, getActiveDeck, addToDeck, removeFromDeck } from '$lib/db/cards';
-	import { getTemplate } from '$lib/data/cards';
+	import { getTemplate, CATALOG } from '$lib/data/cards';
 	import { ELEMENTS, type Card as CardT, type CardKind, type Element } from '$lib/game/types';
 	import { ELEMENT_LABEL } from '$lib/game/elements';
+
+	// Tabs
+	let activeTab = $state<'deck' | 'catalog'>('deck');
 	import { pushToast } from '$lib/stores/toast.svelte';
+
+	// ---- Catalog tab state ----
+	let catElement = $state<'all' | Element>('all');
+	let catKind = $state<'all' | CardKind>('all');
+	let catCost = $state<'all' | number>('all');
+	let catalogInspectingId = $state<string | null>(null);
+	let catalogInspectedTemplate = $derived(catalogInspectingId ? getTemplate(catalogInspectingId) : null);
+	let filteredCatalog = $derived(
+		CATALOG.filter((t) => {
+			if (catElement !== 'all' && t.element !== catElement) return false;
+			if (catKind !== 'all' && t.kind !== catKind) return false;
+			if (catCost !== 'all' && t.cost !== catCost) return false;
+			return true;
+		})
+	);
 
 	const MAX_DECK = 35;
 	const MIN_DECK = 8;
@@ -116,6 +134,27 @@
 
 <Hud />
 
+<!-- Tab switcher -->
+<div class="sticky top-0 z-20 flex border-b border-[var(--border)] bg-[var(--bg)]">
+	<button
+		class="flex-1 py-3 text-sm font-bold transition-colors"
+		class:text-[var(--accent)]={activeTab === 'deck'}
+		class:border-b-2={activeTab === 'deck'}
+		class:border-[var(--accent)]={activeTab === 'deck'}
+		class:text-[var(--text-muted)]={activeTab !== 'deck'}
+		onclick={() => activeTab = 'deck'}
+	>🃏 Meu Deck</button>
+	<button
+		class="flex-1 py-3 text-sm font-bold transition-colors"
+		class:text-[var(--accent)]={activeTab === 'catalog'}
+		class:border-b-2={activeTab === 'catalog'}
+		class:border-[var(--accent)]={activeTab === 'catalog'}
+		class:text-[var(--text-muted)]={activeTab !== 'catalog'}
+		onclick={() => activeTab = 'catalog'}
+	>📖 Catálogo</button>
+</div>
+
+{#if activeTab === 'deck'}
 <main class="px-4 py-4 max-w-6xl mx-auto">
 	<!-- Deck ativo -->
 	<div class="mb-4 flex flex-col md:flex-row md:items-end justify-between border-b border-white/10 pb-3">
@@ -219,6 +258,50 @@
 	{/if}
 </main>
 
+{:else}
+<!-- Catalog tab -->
+<main class="px-4 py-4 max-w-6xl mx-auto">
+	<div class="mb-4">
+		<h1 class="text-2xl font-black tracking-tight bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Catálogo</h1>
+		<p class="text-sm text-[var(--text-muted)] mt-1">Todas as cartas do universo Pokengu.</p>
+	</div>
+
+	<!-- Catalog filters -->
+	<div class="sticky top-[49px] z-10 -mx-4 px-4 py-3 mb-4 backdrop-blur-xl bg-[#0f172a]/80 border-b border-white/10">
+		<div class="flex flex-wrap gap-2 text-sm">
+			<select bind:value={catElement}
+				class="flex-1 min-w-[130px] rounded-xl border border-white/10 bg-[var(--surface)] px-3 py-2 font-semibold focus:border-[var(--accent)] outline-none">
+				<option value="all">⭐ Elementos</option>
+				{#each ELEMENTS as el (el)}<option value={el}>{ELEMENT_LABEL[el]}</option>{/each}
+			</select>
+			<select bind:value={catKind}
+				class="flex-1 min-w-[130px] rounded-xl border border-white/10 bg-[var(--surface)] px-3 py-2 font-semibold focus:border-[var(--accent)] outline-none">
+				<option value="all">⚔️ Tipos</option>
+				{#each kinds as k (k)}<option value={k}>{kindLabel[k]}</option>{/each}
+			</select>
+			<select bind:value={catCost}
+				class="flex-1 min-w-[100px] rounded-xl border border-white/10 bg-[var(--surface)] px-3 py-2 font-semibold focus:border-[var(--accent)] outline-none">
+				<option value="all">💎 Custo</option>
+				{#each [1,2,3,4,5] as c}<option value={c}>Custo {c}</option>{/each}
+			</select>
+		</div>
+	</div>
+
+	{#if filteredCatalog.length === 0}
+		<div class="flex flex-col items-center justify-center py-12 opacity-60">
+			<span class="text-4xl mb-4 grayscale">🔍</span>
+			<p class="text-base font-bold text-[var(--text-muted)]">Nenhuma carta encontrada.</p>
+		</div>
+	{:else}
+		<div class="grid grid-cols-2 gap-3 pb-12 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+			{#each filteredCatalog as card (card.id)}
+				<Card templateId={card.id} onclick={() => (catalogInspectingId = card.id)} />
+			{/each}
+		</div>
+	{/if}
+</main>
+{/if}
+
 <Modal open={!!inspectingTemplateId} onclose={() => { inspectingTemplateId = null; }} title="Inspecionar Carta">
 	{#if inspectedTemplate && inspectedGroup}
 		<div class="flex flex-col items-center">
@@ -253,6 +336,20 @@
 			{#if deckIds.length >= MAX_DECK && inspectedGroup.total - inspectedGroup.inDeck > 0}
 				<p class="text-xs text-red-400 mt-3 text-center">Deck cheio ({MAX_DECK}/{MAX_DECK}). Remova uma carta para adicionar.</p>
 			{/if}
+		</div>
+	{/if}
+</Modal>
+
+<Modal open={!!catalogInspectingId} onclose={() => { catalogInspectingId = null; }} title="Inspecionar Carta">
+	{#if catalogInspectedTemplate}
+		<div class="flex flex-col items-center">
+			<div class="w-48 mb-4">
+				<Card templateId={catalogInspectedTemplate.id} showcase={true} />
+			</div>
+			<div class="bg-[var(--surface-overlay)] w-full rounded-xl p-4 text-center border border-white/10">
+				<p class="text-xs uppercase font-black text-[var(--text-muted)] mb-1 tracking-widest">Efeito da Carta</p>
+				<p class="text-[var(--text)] italic leading-relaxed text-sm">"{catalogInspectedTemplate.description}"</p>
+			</div>
 		</div>
 	{/if}
 </Modal>

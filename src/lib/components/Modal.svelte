@@ -32,7 +32,7 @@
 			role="presentation"
 		></div>
 		<div
-			class="relative z-10 m-3 w-full max-w-[420px] rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-2xl"
+			class="relative z-10 m-3 w-[calc(100vw-1.5rem)] max-w-none rounded-2xl border border-(--border) bg-(--surface) p-5 shadow-2xl"
 			transition:scale={{ duration: 200, start: 0.92 }}
 		>
 			{#if title}
@@ -40,7 +40,7 @@
 					<h2 class="text-lg font-bold">{title}</h2>
 					{#if closable}
 						<button
-							class="rounded-lg px-2 py-1 text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
+							class="rounded-lg px-2 py-1 text-(--text-muted) hover:bg-(--surface-2)"
 							onclick={() => onclose?.()}
 							aria-label="Fechar">✕</button
 						>
