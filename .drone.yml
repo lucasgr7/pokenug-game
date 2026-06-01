@@ -10,26 +10,23 @@ steps:
       - npm run check
       - npm run build
 
-  - name: publish-image
-    image: plugins/docker
-    settings:
-      registry:
-        from_secret: docker_registry
-      repo:
-        from_secret: docker_repo
-      username:
-        from_secret: docker_username
-      password:
-        from_secret: docker_password
-      dockerfile: Dockerfile
-      tags:
-        - latest
-        - ${DRONE_COMMIT_SHA}
+  - name: deploy
+    image: docker:27-cli
+    volumes:
+      - name: docker-socket
+        path: /var/run/docker.sock
+    commands:
+      - docker compose up --build -d
     when:
       branch:
         - main
       event:
         - push
+
+volumes:
+  - name: docker-socket
+    host:
+      path: /var/run/docker.sock
 
 trigger:
   event:
