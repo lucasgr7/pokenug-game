@@ -38,7 +38,6 @@
 	}
 
 	let playedFx = $state<PlayedFx | null>(null);
-	let selectedCardId = $state<string | null>(null);
 	let autoConfirm = $state(false);
 
 	let battleLogs = $state<BattleLogEntry[]>([]);
@@ -83,7 +82,6 @@
 
 	let s = $derived(battle.state);
 	let ended = $derived(!!s && s.status !== 'active');
-	let selectedCard = $derived(s?.hand.find((c) => c.id === selectedCardId) ?? null);
 
 	function intentText(): string {
 		if (!s) return '';
@@ -120,7 +118,6 @@
 	}
 
 	function onPlay(cardId: string, templateId: string) {
-		selectedCardId = null;
 		const res = playCard(cardId);
 		if (!res.played) return;
 
@@ -135,24 +132,14 @@
 
 	function onCardTap(cardId: string, templateId: string) {
 		if (!canPlay(templateId)) return;
-		if (autoConfirm) {
-			onPlay(cardId, templateId);
-			return;
-		}
-		if (selectedCardId === cardId) {
-			onPlay(cardId, templateId);
-		} else {
-			selectedCardId = cardId;
-		}
+		onPlay(cardId, templateId);
 	}
 
 	function setAutoConfirm(enabled: boolean) {
 		autoConfirm = enabled;
-		if (enabled) selectedCardId = null;
 	}
 
 	function handleEndTurn() {
-		selectedCardId = null;
 		const res = endTurn();
 		if (res) addLog(buildEndTurnLog(res));
 	}
@@ -289,48 +276,15 @@
 		<BattleHandControls
 			state={s}
 			ended={ended}
-			selectedCardId={selectedCardId}
 			autoConfirm={autoConfirm}
 			canPlay={canPlay}
 			onCardTap={onCardTap}
+			onPlayCard={onPlay}
 			onPlayRelic={onPlayRelic}
 			onEndTurn={handleEndTurn}
 			onAutoConfirmChange={setAutoConfirm}
 		/>
 
-		<!-- CARTA SELECIONADA — overlay de confirmação.
-		     Sits at the flex-container level (z-[100]) to beat hand card z-indices (max 60). -->
-		{#if selectedCard && !ended}
-			<div
-				class="absolute inset-0 z-100 flex cursor-pointer flex-col items-center justify-center gap-3"
-				style="background: rgba(0,0,0,0.55); backdrop-filter: blur(3px);"
-				onclick={() => (selectedCardId = null)}
-				onkeydown={(e) => { if (e.key === 'Escape') selectedCardId = null; }}
-				role="button"
-				tabindex="0"
-				aria-label="Desselecionar carta"
-			>
-				<div
-					class="card-preview cursor-default"
-					onclick={(e) => e.stopPropagation()}
-					onkeydown={(e) => e.stopPropagation()}
-					role="presentation"
-				>
-					<Card templateId={selectedCard.templateId} playable={false} showcase />
-				</div>
-				<button
-					type="button"
-					class="rounded-xl px-10 py-2.5 text-sm font-black tracking-wide text-white shadow-xl"
-					style="background: var(--accent);"
-					onclick={(e) => {
-						e.stopPropagation();
-						onPlay(selectedCard!.id, selectedCard!.templateId);
-					}}
-				>
-					Jogar ▶
-				</button>
-			</div>
-		{/if}
 	</div>
 
 	<!-- FIM DE BATALHA -->
@@ -376,17 +330,6 @@
 {/if}
 
 <style>
-	/* ── Card preview overlay ───────────────────────────────────────────────── */
-	.card-preview {
-		width: 250px;
-		max-width: 70vw;
-		filter: drop-shadow(0 16px 40px rgba(0, 0, 0, 0.6));
-		animation: preview-in 180ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
-	}
-	@keyframes preview-in {
-		from { transform: scale(0.82) translateY(16px); opacity: 0; }
-		to   { transform: scale(1) translateY(0);       opacity: 1; }
-	}
 	/* ── sombra elíptica de plataforma sob cada pokémon ──────────────────── */
 	.platform {
 		position: absolute;

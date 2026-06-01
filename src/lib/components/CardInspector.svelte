@@ -8,11 +8,15 @@
 	let {
 		templateId,
 		open = false,
-		onclose
+		onclose,
+		onplay,
+		playable = false
 	}: {
 		templateId: string | null;
 		open?: boolean;
 		onclose: () => void;
+		onplay?: () => void;
+		playable?: boolean;
 	} = $props();
 
 	let tpl = $derived(templateId ? getTemplate(templateId) : null);
@@ -170,6 +174,17 @@
 					Carta de combo
 				{/if}
 			</div>
+
+			{#if onplay}
+				<button
+					class="mt-1 w-full rounded-xl py-2.5 font-semibold text-white disabled:opacity-40"
+					style="background: var(--accent);"
+					disabled={!playable}
+					onclick={onplay}
+				>
+					{playable ? 'Jogar ▶' : 'Mana insuficiente'}
+				</button>
+			{/if}
 		</div>
 	{/if}
 </Modal>
