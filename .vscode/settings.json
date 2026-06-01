@@ -51,6 +51,10 @@
     "/^npx svelte-check --tsconfig \\./tsconfig\\.json 2>&1 \\| tail -10$/": {
       "approve": true,
       "matchCommandLine": true
+    },
+    "/^export PATH=\"/Users/lucas\\.ribeiro\\.br/\\.nvm/versions/node/v20\\.19\\.1/bin:\\$PATH\" && cd /Users/lucas\\.ribeiro\\.br/GIT/pokengu && yarn run check 2>&1 \\| tail -20$/": {
+      "approve": true,
+      "matchCommandLine": true
     }
   }
 }

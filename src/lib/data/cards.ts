@@ -296,6 +296,18 @@ function buildCatalog(): CardTemplate[] {
 		price: { money: 100000, element: { type: 'dragon', amount: 2000 } }
 	});
 
+	// Carta de poder: Especializar
+	out.push({
+		id: 'power_specialize',
+		name: 'Especializar',
+		description: 'Iniciais ganham o tipo do seu pokémon ativo.',
+		cost: 4,
+		kind: 'power',
+		element: null,
+		rarity: 'rare',
+		price: { money: 800 }
+	});
+
 	// Carta de poder: Choque Elétrico
 	out.push({
 		id: 'power_electric_shock',

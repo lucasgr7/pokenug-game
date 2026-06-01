@@ -300,6 +300,7 @@ function resolveTypedDamage(
 function resolvePlayerAttackElement(s: BattleState, tpl: CardTemplate): Element | null {
 	let attackElement = tpl.element;
 	if (s.player.dragonize && (!attackElement || attackElement === 'normal')) attackElement = 'dragon';
+	if (s.player.specialize && tpl.rarity === 'starter' && !attackElement) attackElement = s.player.pokemon.element;
 	return attackElement;
 }
 
@@ -347,6 +348,7 @@ function applyCardEffect(s: BattleState, tpl: CardTemplate): void {
 			if (tpl.id === 'power_berserk') s.player.berserk = true;
 			if (tpl.id === 'power_dragonize') s.player.dragonize = true;
 			if (tpl.id === 'power_electric_shock') s.player.staticShockDamage += 2;
+			if (tpl.id === 'power_specialize') s.player.specialize = true;
 			break;
 		case 'relic':
 			s.player.ghostForm = true;
@@ -436,7 +438,8 @@ export async function startBattle(regionId: string): Promise<void> {
 			dragonize: false,
 			staticShockDamage: 0,
 			ghostForm: false,
-			attackRepeat: 0
+			attackRepeat: 0,
+			specialize: false
 		},
 		enemy: {
 			pokemon: enemy,
