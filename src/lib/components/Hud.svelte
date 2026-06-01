@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { game, setTheme } from '$lib/game/state.svelte';
 	import { formatNumber } from '$lib/utils/math';
 	import type { Element } from '$lib/game/types';
@@ -30,6 +31,27 @@
 	function toggleTheme() {
 		setTheme(game.player?.theme === 'dark' ? 'light' : 'dark');
 	}
+
+	let installPrompt = $state<Event & { prompt(): Promise<void>; userChoice: Promise<{ outcome: string }> } | null>(null);
+	let installed = $state(false);
+
+	onMount(() => {
+		window.addEventListener('beforeinstallprompt', (e) => {
+			e.preventDefault();
+			installPrompt = e as typeof installPrompt;
+		});
+		window.addEventListener('appinstalled', () => {
+			installPrompt = null;
+			installed = true;
+		});
+	});
+
+	async function installPwa() {
+		if (!installPrompt) return;
+		await installPrompt.prompt();
+		const { outcome } = await installPrompt.userChoice;
+		if (outcome === 'accepted') installPrompt = null;
+	}
 </script>
 
 <header
@@ -46,6 +68,16 @@
 			{/each}
 		</div>
 	</div>
+	{#if installPrompt && !installed}
+		<button
+			class="rounded-lg px-2 py-1 text-lg hover:bg-(--surface-2)"
+			onclick={installPwa}
+			aria-label="Instalar aplicativo"
+			title="Instalar app"
+		>
+			📲
+		</button>
+	{/if}
 	<button
 		class="rounded-lg px-2 py-1 text-lg hover:bg-[var(--surface-2)]"
 		onclick={toggleTheme}

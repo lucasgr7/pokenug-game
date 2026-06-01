@@ -16,6 +16,7 @@
 		badge = '',
 		shiny = false,
 		showcase = false,
+		compact = false,
 		onclick
 	}: {
 		templateId: string;
@@ -27,6 +28,7 @@
 		badge?: string;
 		shiny?: boolean;
 		showcase?: boolean;
+		compact?: boolean;
 		onclick?: () => void;
 	} = $props();
 
@@ -47,7 +49,7 @@
 	let typeLabel = $derived(
 		tpl?.element ? ELEMENT_LABEL[tpl.element as Element] : (tpl?.rarity ?? '')
 	);
-	let iconSize = $derived(showcase ? 86 : 65);
+	let iconSize = $derived(showcase ? (compact ? 62 : 86) : (compact ? 48 : 65));
 	let activePkm = $derived(activePokemon());
 </script>
 
@@ -155,11 +157,11 @@
 
 		{#if tpl.element}
 			<div
-				class="absolute right-1 z-20"
+				class="absolute right-1 z-20 max-w-[calc(100%-0.5rem)] overflow-hidden"
 				class:top-1={count <= 1}
 				class:top-7={count > 1}
 			>
-				<ElementMatchupBadge element={tpl.element as Element} compact={!showcase} />
+				<ElementMatchupBadge element={tpl.element as Element} compact={compact || !showcase} />
 			</div>
 		{/if}
 	</div>

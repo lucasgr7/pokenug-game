@@ -85,7 +85,7 @@
 		<div class="grid grid-cols-3 gap-3">
 			{#each shop.slots as slot, i (i)}
 				<div class="flex flex-col gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3">
-					<Card templateId={slot.id} playable={false} dimmed={slot.sold} showcase />
+					<Card templateId={slot.id} playable={false} dimmed={slot.sold} compact />
 					{#if slot.sold}
 						<div class="rounded-lg bg-[var(--surface-2)] py-1.5 text-center text-xs font-bold text-[var(--text-muted)]">
 							Comprado

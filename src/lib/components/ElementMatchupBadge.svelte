@@ -48,6 +48,10 @@
 
 <style>
 	.matchup-badge {
+		max-width: 100%;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
 		color: color-mix(in srgb, var(--badge-color) 72%, white);
 		border-color: color-mix(in srgb, var(--badge-color) 44%, transparent);
 		background:
