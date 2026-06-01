@@ -15,13 +15,3 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
-    networks:
-      - internal
-      - dev-network
-
-networks:
-  internal:
-    driver: bridge
-  dev-network:
-    external: true
-    name: ${EXTERNAL_NETWORK_NAME:-gitea_dev-network}
