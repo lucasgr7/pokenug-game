@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import Hud from '$lib/components/Hud.svelte';
 	import Card from '$lib/components/Card.svelte';
+	import CardInspector from '$lib/components/CardInspector.svelte';
 	import {
 		BOOSTER_PACKS,
 		shop,
@@ -23,6 +24,7 @@
 	import { pushToast } from '$lib/stores/toast.svelte';
 
 	let refreshing = $state(false);
+	let inspectingCard: string | null = $state(null);
 
 	onMount(async () => {
 		await ensureShopLoaded();
@@ -85,7 +87,14 @@
 		<div class="grid grid-cols-3 gap-1.5">
 			{#each shop.slots as slot, i (i)}
 				<div class="shop-card-wrapper relative">
-					<Card templateId={slot.id} playable={false} dimmed={slot.sold} compact iconOnlyBadge />
+					<Card 
+						templateId={slot.id} 
+						playable={!slot.sold} 
+						dimmed={slot.sold} 
+						compact 
+						iconOnlyBadge 
+						onclick={() => inspectingCard = slot.id}
+					/>
 					{#if slot.sold}
 						<div class="absolute inset-x-0 bottom-0 rounded-b-lg bg-black/85 py-1 text-center text-[10px] font-bold text-gray-400">
 							✓ Comprado
@@ -212,6 +221,8 @@
 		</div>
 	{/if}
 </main>
+
+<CardInspector templateId={inspectingCard} open={!!inspectingCard} onclose={() => inspectingCard = null} />
 
 <style>
 	.shop-card-wrapper {

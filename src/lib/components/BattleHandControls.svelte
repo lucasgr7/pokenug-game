@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Card from '$lib/components/Card.svelte';
 	import Modal from '$lib/components/Modal.svelte';
+	import CardInspector from '$lib/components/CardInspector.svelte';
 	import type { Card as BattleCard, BattleState } from '$lib/game/types';
 
 	let {
@@ -28,6 +29,8 @@
 	type PileKind = 'deck' | 'discard' | 'exhausted';
 
 	let openPile: PileKind | null = $state(null);
+	let inspectingCard: string | null = $state(null);
+	let longPressTimer: number | null = null;
 	const pileKinds: PileKind[] = ['deck', 'discard', 'exhausted'];
 
 	const PILE_META: Record<PileKind, { icon: string; label: string }> = {
@@ -51,6 +54,28 @@
 	function getPileCards(pile: PileKind | null): BattleCard[] {
 		if (!pile) return [];
 		return battleState[pile];
+	}
+
+	function handleCardLongPress(cardId: string, templateId: string) {
+		longPressTimer = window.setTimeout(() => {
+			inspectingCard = templateId;
+			longPressTimer = null;
+		}, 500);
+	}
+
+	function handleCardRelease(cardId: string, templateId: string) {
+		if (longPressTimer) {
+			window.clearTimeout(longPressTimer);
+			longPressTimer = null;
+			onCardTap(cardId, templateId);
+		}
+	}
+
+	function handleCardCancel() {
+		if (longPressTimer) {
+			window.clearTimeout(longPressTimer);
+			longPressTimer = null;
+		}
 	}
 </script>
 
@@ -100,7 +125,10 @@
 			<div class="mb-1.5 flex items-center gap-2 px-1">
 				<span class="shrink-0 text-[10px] font-black uppercase tracking-widest text-purple-400">Relíquias</span>
 				{#each battleState.relicSlots as relic (relic.id)}
-					<div class="w-14 shrink-0">
+					<div 
+						class="w-14 shrink-0"
+						oncontextmenu={(e) => { e.preventDefault(); inspectingCard = relic.templateId; }}
+					>
 						<Card
 							templateId={relic.templateId}
 							playable={battleState.turn === 'player' && !ended}
@@ -125,13 +153,18 @@
 				class="hand-card"
 				class:hand-card--selected={isSelected}
 				class:hand-card--muted={!playable}
-				style="left: calc(50% + {xPos}px - 60px); --angle: {angle}deg; z-index: {isSelected ? 60 : i + 1};"
+				style="left: calc(50% + {xPos}px - 47.5px); --angle: {angle}deg; z-index: {isSelected ? 60 : i + 1};"
+				onmousedown={() => handleCardLongPress(card.id, card.templateId)}
+				onmouseup={() => handleCardRelease(card.id, card.templateId)}
+				onmouseleave={handleCardCancel}
+				ontouchstart={() => handleCardLongPress(card.id, card.templateId)}
+				ontouchend={() => handleCardRelease(card.id, card.templateId)}
+				ontouchcancel={handleCardCancel}
 			>
 				<Card
 					templateId={card.templateId}
 					flip
 					playable={playable}
-					onclick={() => onCardTap(card.id, card.templateId)}
 				/>
 			</div>
 		{/each}
@@ -151,7 +184,7 @@
 			{#if getPileCards(openPile).length > 0}
 				<div class="grid max-h-[55vh] grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3">
 					{#each getPileCards(openPile) as card (card.id)}
-						<Card templateId={card.templateId} playable={false} />
+						<Card templateId={card.templateId} playable onclick={() => inspectingCard = card.templateId} />
 					{/each}
 				</div>
 			{:else}
@@ -162,6 +195,8 @@
 		</div>
 	{/if}
 </Modal>
+
+<CardInspector templateId={inspectingCard} open={!!inspectingCard} onclose={() => inspectingCard = null} />
 
 <style>
 	.hand-fan {
@@ -176,8 +211,8 @@
 	.hand-card {
 		position: absolute;
 		bottom: 30px;
-		width: 120px;
-		max-width: 25vh;
+		width: 95px;
+		max-width: 22vh;
 		transform-origin: bottom center;
 		transform: rotate(var(--angle));
 		transition:
