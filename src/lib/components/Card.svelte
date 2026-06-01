@@ -17,6 +17,7 @@
 		shiny = false,
 		showcase = false,
 		compact = false,
+		iconOnlyBadge = false,
 		onclick
 	}: {
 		templateId: string;
@@ -29,6 +30,7 @@
 		shiny?: boolean;
 		showcase?: boolean;
 		compact?: boolean;
+		iconOnlyBadge?: boolean;
 		onclick?: () => void;
 	} = $props();
 
@@ -161,7 +163,7 @@
 				class:top-1={count <= 1}
 				class:top-7={count > 1}
 			>
-				<ElementMatchupBadge element={tpl.element as Element} compact={compact || !showcase} />
+				<ElementMatchupBadge element={tpl.element as Element} compact={compact || !showcase} iconOnly={iconOnlyBadge} />
 			</div>
 		{/if}
 	</div>

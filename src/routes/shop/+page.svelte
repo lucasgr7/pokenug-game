@@ -66,39 +66,38 @@
 
 <Hud />
 
-<main class="px-4 py-4">
-	<div class="mb-3 flex items-center justify-between">
-		<h1 class="text-xl font-bold">Loja</h1>
+<main class="px-2 py-3">
+	<div class="mb-2 flex items-center justify-between">
+		<h1 class="text-lg font-bold">Loja</h1>
 		<button
-			class="rounded-xl bg-[var(--accent)] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40"
+			class="rounded-lg bg-[var(--accent)] px-2.5 py-1 text-[11px] font-bold text-white disabled:opacity-40"
 			disabled={refreshing}
 			onclick={refresh}
 		>
-			🔄 Atualizar · 💰{formatNumber(paidRefreshCost())}
+			🔄 💰{formatNumber(paidRefreshCost())}
 		</button>
 	</div>
-	<p class="mb-3 text-xs text-[var(--text-muted)]">Os itens renovam automaticamente todo dia.</p>
+	<p class="mb-2 text-[10px] text-[var(--text-muted)]">Renovam todo dia automaticamente.</p>
 
 	{#if !shop.loaded}
 		<p class="text-sm text-[var(--text-muted)]">Carregando…</p>
 	{:else}
-		<div class="grid grid-cols-3 gap-3">
+		<div class="grid grid-cols-3 gap-1.5">
 			{#each shop.slots as slot, i (i)}
-				<div class="flex flex-col gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3">
-					<Card templateId={slot.id} playable={false} dimmed={slot.sold} compact />
+				<div class="shop-card-wrapper relative">
+					<Card templateId={slot.id} playable={false} dimmed={slot.sold} compact iconOnlyBadge />
 					{#if slot.sold}
-						<div class="rounded-lg bg-[var(--surface-2)] py-1.5 text-center text-xs font-bold text-[var(--text-muted)]">
-							Comprado
+						<div class="absolute inset-x-0 bottom-0 rounded-b-lg bg-black/85 py-1 text-center text-[10px] font-bold text-gray-400">
+							✓ Comprado
 						</div>
 					{:else}
 						<button
-							class="rounded-lg py-1.5 text-xs font-bold text-white disabled:opacity-40"
-							style="background: var(--accent);"
+							class="absolute inset-x-0 bottom-0 rounded-b-lg py-1.5 text-[10px] font-bold text-white disabled:opacity-40"
+							style="background: linear-gradient(to top, rgba(0,0,0,0.92), rgba(0,0,0,0.82)); backdrop-filter: blur(4px);"
 							disabled={!canAfford(slot)}
 							onclick={() => buy(i)}
 						>
-							💰{formatNumber(slot.price?.money ?? 0)}{#if slot.price?.element}
-								· {ELEMENT_EMOJI[slot.price.element.type]}{formatNumber(slot.price.element.amount)}{/if}
+							💰{formatNumber(slot.price?.money ?? 0)}{#if slot.price?.element}<span class="text-[9px]">·{ELEMENT_EMOJI[slot.price.element.type]}{formatNumber(slot.price.element.amount)}</span>{/if}
 						</button>
 					{/if}
 				</div>
@@ -107,16 +106,16 @@
 	{/if}
 
 	{#if game.player}
-		<div class="mt-8">
-			<h2 class="mb-3 text-lg font-bold">Aprimoramentos Permanentes</h2>
-			<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+		<div class="mt-6">
+			<h2 class="mb-2 text-base font-bold">Aprimoramentos Permanentes</h2>
+			<div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
 				
 				<!-- Income Multiplier -->
-				<div class="flex flex-col gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3">
+				<div class="flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2.5">
 					<div class="flex-1">
-						<h3 class="font-bold">Multiplicador de Renda</h3>
-						<p class="text-xs text-[var(--text-muted)]">Aumenta todos os ganhos dos Trabalhos idle em 50%.</p>
-						<p class="mt-1 text-sm font-bold text-[var(--accent)]">Nível atual: {formatNumber(game.player.ngu.moneyMultiplierLevel)}</p>
+						<h3 class="text-sm font-bold">Multiplicador de Renda</h3>
+						<p class="text-[10px] text-[var(--text-muted)]">+50% ganhos idle</p>
+						<p class="mt-1 text-xs font-bold text-[var(--accent)]">Nv. {formatNumber(game.player.ngu.moneyMultiplierLevel)}</p>
 					</div>
 					<button
 						class="rounded-lg py-1.5 text-xs font-bold text-white disabled:opacity-40"
@@ -129,13 +128,12 @@
 				</div>
 
 				<!-- Elemental Damage -->
-				<div class="flex flex-col gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3">
+				<div class="flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2.5">
 					<div class="flex-1">
-						<h3 class="font-bold">{activePkm ? `Dano ${ELEMENT_LABEL[activePkm.element]}` : 'Dano Elemental'}</h3>
-						<p class="text-xs text-[var(--text-muted)]">Aumenta o dano de todos os pokémons do tipo ativo em +3 por nível.</p>
+						<h3 class="text-sm font-bold">{activePkm ? `Dano ${ELEMENT_LABEL[activePkm.element]}` : 'Dano Elemental'}</h3>
+						<p class="text-[10px] text-[var(--text-muted)]">+3 dano/nível tipo ativo</p>
 						{#if activePkm}
-							<p class="mt-1 text-sm font-bold text-[var(--accent)]">Nível atual: {formatNumber(getElementalDamageLevel(activePkm.element))}</p>
-							<p class="mt-1 text-xs text-[var(--text-muted)]">Saldo: {ELEMENT_EMOJI[activePkm.element]}{formatNumber(getElementPoints(activePkm.element))}</p>
+							<p class="mt-1 text-xs font-bold text-[var(--accent)]">Nv. {formatNumber(getElementalDamageLevel(activePkm.element))} · {ELEMENT_EMOJI[activePkm.element]}{formatNumber(getElementPoints(activePkm.element))}</p>
 						{/if}
 					</div>
 					{#if activePkm}
@@ -155,13 +153,12 @@
 				</div>
 
 				<!-- Vitamins (HP per element) -->
-				<div class="flex flex-col gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3">
+				<div class="flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2.5">
 					<div class="flex-1">
-						<h3 class="font-bold">{activePkm ? `Vitaminas ${ELEMENT_LABEL[activePkm.element]}` : 'Vitaminas Elementais'}</h3>
-						<p class="text-xs text-[var(--text-muted)]">Aumenta em +20 o HP máximo de todos os pokémons do tipo ativo por nível.</p>
+						<h3 class="text-sm font-bold">{activePkm ? `Vitaminas ${ELEMENT_LABEL[activePkm.element]}` : 'Vitaminas Elementais'}</h3>
+						<p class="text-[10px] text-[var(--text-muted)]">+20 HP/nível tipo ativo</p>
 						{#if activePkm}
-							<p class="mt-1 text-sm font-bold text-[var(--accent)]">Nível atual: {formatNumber(getElementalHpLevel(activePkm.element))}</p>
-							<p class="mt-1 text-xs text-[var(--text-muted)]">Saldo: {ELEMENT_EMOJI[activePkm.element]}{formatNumber(getElementPoints(activePkm.element))}</p>
+							<p class="mt-1 text-xs font-bold text-[var(--accent)]">Nv. {formatNumber(getElementalHpLevel(activePkm.element))} · {ELEMENT_EMOJI[activePkm.element]}{formatNumber(getElementPoints(activePkm.element))}</p>
 						{/if}
 					</div>
 					{#if activePkm}
@@ -183,20 +180,20 @@
 			</div>
 		</div>
 
-		<div class="mt-8">
-			<h2 class="mb-3 text-lg font-bold">Booster Packs Secretos</h2>
-			<p class="mb-3 text-xs text-[var(--text-muted)]">Cada booster pode ser comprado apenas 1 vez por dia.</p>
-			<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+		<div class="mt-6">
+			<h2 class="mb-2 text-base font-bold">Booster Packs Secretos</h2>
+			<p class="mb-2 text-[10px] text-[var(--text-muted)]">1x por dia cada pack</p>
+			<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
 				{#each BOOSTER_PACKS as pack (pack.id)}
-					<div class="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
-						<div class="mb-2 flex items-start justify-between gap-3">
+					<div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2.5 shadow-sm">
+						<div class="mb-1.5 flex items-start justify-between gap-2">
 							<div>
-								<h3 class="font-bold text-amber-300">🜲 {pack.name}</h3>
-								<p class="text-xs text-[var(--text-muted)]">{pack.description}</p>
+								<h3 class="text-sm font-bold text-amber-300">🜲 {pack.name}</h3>
+								<p class="text-[10px] text-[var(--text-muted)]">{pack.description}</p>
 							</div>
-							<span class="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-200">{pack.cardCount} segredo{pack.cardCount > 1 ? 's' : ''}</span>
+							<span class="shrink-0 rounded-full border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-200">{pack.cardCount}x</span>
 						</div>
-						<p class="mb-3 text-xs text-[var(--text-muted)]">Somente ouro. Não entra no refresh diário da loja.</p>
+						<p class="mb-2 text-[9px] text-[var(--text-muted)]">Somente ouro. Não entra no refresh diário.</p>
 						<button
 							class="w-full rounded-lg py-2 text-xs font-bold text-white disabled:opacity-40"
 							style="background: linear-gradient(135deg, #f59e0b, #d97706);"
@@ -215,3 +212,48 @@
 		</div>
 	{/if}
 </main>
+
+<style>
+	.shop-card-wrapper {
+		position: relative;
+		isolation: isolate;
+	}
+	
+	.shop-card-wrapper :global(.card-root) {
+		border-width: 2px;
+	}
+	
+	.shop-card-wrapper :global(.card-root .card-cost) {
+		width: 18px;
+		height: 18px;
+		font-size: 11px;
+	}
+	
+	.shop-card-wrapper :global(.icon-wrap) {
+		padding: 2px;
+		transform: scale(0.8);
+	}
+	
+	.shop-card-wrapper :global(.card-root .px-2) {
+		padding-left: 0.375rem;
+		padding-right: 0.375rem;
+	}
+	
+	.shop-card-wrapper :global(.card-root .pb-2) {
+		padding-bottom: 0.375rem;
+	}
+	
+	@media (max-width: 640px) {
+		.shop-card-wrapper :global(.card-root) {
+			font-size: 10px;
+		}
+		
+		.shop-card-wrapper :global(.card-root .truncate) {
+			font-size: 10px;
+		}
+		
+		.shop-card-wrapper :global(.icon-wrap) {
+			transform: scale(0.7);
+		}
+	}
+</style>

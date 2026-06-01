@@ -6,10 +6,12 @@
 
 	let {
 		element,
-		compact = true
+		compact = true,
+		iconOnly = false
 	}: {
 		element: Element;
 		compact?: boolean;
+		iconOnly?: boolean;
 	} = $props();
 
 	let open = $state(false);
@@ -31,14 +33,20 @@
 	<span
 		role="button"
 		tabindex="0"
-		class="matchup-badge inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em]"
+		class="matchup-badge inline-flex items-center rounded-full border text-[10px] font-black uppercase tracking-[0.14em]"
+		class:gap-1={!iconOnly}
+		class:px-2={!iconOnly}
+		class:py-1={!iconOnly}
+		class:p-1={iconOnly}
 		style={`--badge-color:${ELEMENT_COLOR[element]};`}
 		onclick={showDetails}
 		onkeydown={handleKeydown}
 		aria-label={`Abrir matchups de ${ELEMENT_LABEL[element]}`}
 	>
-		<span class="text-xs">{ELEMENT_EMOJI[element]}</span>
-		<span>{compact ? 'tipo' : ELEMENT_LABEL[element]}</span>
+		<span class="text-xs" class:text-[10px]={iconOnly}>{ELEMENT_EMOJI[element]}</span>
+		{#if !iconOnly}
+			<span>{compact ? 'tipo' : ELEMENT_LABEL[element]}</span>
+		{/if}
 	</span>
 </div>
 
