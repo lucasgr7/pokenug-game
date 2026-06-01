@@ -6,10 +6,9 @@ steps:
   - name: validate
     image: node:20-alpine
     commands:
-      - npm install -g yarn@1.22.19
-      - yarn install --frozen-lockfile
-      - yarn run check
-      - yarn run build
+      - npm install
+      - npm run check
+      - npm run build
 
   - name: publish-image
     image: plugins/docker
