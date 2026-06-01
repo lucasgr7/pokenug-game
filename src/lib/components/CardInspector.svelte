@@ -152,16 +152,22 @@
 
 			<!-- Description (if any flavor text is needed) -->
 			<div class="text-center text-xs italic text-(--text-muted)">
-				{#if tpl.kind === 'attack'}
-					Carta de ataque básica
-				{:else if tpl.kind === 'defense'}
-					Carta de defesa
-				{:else if tpl.kind === 'skill'}
-					Habilidade especial
-				{:else if tpl.kind === 'power'}
+				{#if tpl.kind === 'power'}
 					Carta de poder permanente
 				{:else if tpl.kind === 'relic'}
 					Relíquia reutilizável
+				{:else if tpl.kind === 'heal'}
+					Carta de cura
+				{:else if tpl.kind === 'buff'}
+					Carta de fortalecimento
+				{:else if tpl.kind === 'debuff'}
+					Carta de enfraquecimento
+				{:else if tpl.kind === 'capture'}
+					Carta de captura
+				{:else if tpl.kind === 'energy'}
+					Carta de energia
+				{:else if tpl.kind === 'combo'}
+					Carta de combo
 				{/if}
 			</div>
 		</div>

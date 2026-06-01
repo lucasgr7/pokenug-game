@@ -126,8 +126,11 @@
 				<span class="shrink-0 text-[10px] font-black uppercase tracking-widest text-purple-400">Relíquias</span>
 				{#each battleState.relicSlots as relic (relic.id)}
 					<div 
+						role="button"
+						tabindex="0"
 						class="w-14 shrink-0"
 						oncontextmenu={(e) => { e.preventDefault(); inspectingCard = relic.templateId; }}
+						aria-label="Clique direito para inspecionar relíquia"
 					>
 						<Card
 							templateId={relic.templateId}
@@ -150,6 +153,8 @@
 			{@const playable = canPlay(card.templateId)}
 			{@const isSelected = selectedCardId === card.id}
 			<div
+				role="button"
+				tabindex="0"
 				class="hand-card"
 				class:hand-card--selected={isSelected}
 				class:hand-card--muted={!playable}
@@ -160,6 +165,7 @@
 				ontouchstart={() => handleCardLongPress(card.id, card.templateId)}
 				ontouchend={() => handleCardRelease(card.id, card.templateId)}
 				ontouchcancel={handleCardCancel}
+				aria-label="Segure para inspecionar, toque para jogar carta"
 			>
 				<Card
 					templateId={card.templateId}
