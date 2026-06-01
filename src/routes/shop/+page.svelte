@@ -82,7 +82,7 @@
 	{#if !shop.loaded}
 		<p class="text-sm text-[var(--text-muted)]">Carregando…</p>
 	{:else}
-		<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+		<div class="grid grid-cols-3 gap-3">
 			{#each shop.slots as slot, i (i)}
 				<div class="flex flex-col gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3">
 					<Card templateId={slot.id} playable={false} dimmed={slot.sold} showcase />

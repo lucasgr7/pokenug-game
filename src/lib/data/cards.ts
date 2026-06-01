@@ -117,13 +117,13 @@ function buildCatalog(): CardTemplate[] {
 	out.push({
 		id: 'atk_heavy_28',
 		name: 'Esmagamento',
-		description: 'Causa 28 de dano. Sem elemento.',
+		description: 'Causa 100 de dano. Sem elemento.',
 		cost: 4,
 		kind: 'attack',
 		element: null,
 		rarity: 'epic',
 		tier: 2,
-		damage: 28,
+		damage: 100,
 		price: { money: 180 }
 	});
 
