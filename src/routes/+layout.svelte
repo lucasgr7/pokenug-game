@@ -11,6 +11,7 @@
 	import Toast from '$lib/components/Toast.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import BottomNav from '$lib/components/BottomNav.svelte';
+	import { injectAnalytics } from '@vercel/analytics/sveltekit';
 
 	let { children } = $props();
 
@@ -18,6 +19,7 @@
 	let offline = $state<OfflineSummary | null>(null);
 
 	onMount(async () => {
+		injectAnalytics();
 		const res = await initApp();
 		offline = res.offline;
 		initialized = true;
