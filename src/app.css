@@ -3,27 +3,83 @@
 /* Dark mode driven by a `dark` class on <html> */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ── Tailwind custom tokens ─────────────────────────────────────────────── */
+@theme {
+	--font-sans: 'Inter', system-ui, sans-serif;
+	--font-display: 'Russo One', sans-serif;
+	--font-mono: 'JetBrains Mono', monospace;
+
+	--color-acc: var(--acc);
+	--color-acc-2: var(--acc-2);
+	--color-mana: var(--mana);
+	--color-mana-2: var(--mana-2);
+	--color-cta: var(--cta);
+	--color-cta-2: var(--cta-2);
+	--color-enemy: var(--enemy);
+	--color-good: var(--good);
+	--color-good-2: var(--good-2);
+	--color-warn: var(--warn);
+}
+
+/* ── Light mode (default) ───────────────────────────────────────────────── */
 :root {
-	--bg: #f5f5f4;
-	--surface: #ffffff;
-	--surface-2: #ececec;
-	--text: #1c1917;
-	--text-muted: #57534e;
-	--border: #d6d3d1;
-	--accent: #6d28d9;
+	/* Redesign surface layers — light adaptations */
+	--bg-0: #f0eff5;
+	--bg-1: #f8f7fc;
+	--bg-2: #ffffff;
+	--bg-3: #ebebf4;
+	--line: #d1d0dc;
+	--txt: #1a1a2e;
+	--txt-dim: #5a5b72;
+	--txt-mute: #8a8b9e;
+
+	/* Legacy tokens — mapped to redesign values */
+	--bg: var(--bg-0);
+	--surface: var(--bg-2);
+	--surface-2: var(--bg-3);
+	--surface-overlay: color-mix(in srgb, var(--bg-1) 90%, transparent);
+	--text: var(--txt);
+	--text-muted: var(--txt-dim);
+	--border: var(--line);
+	--accent: var(--acc);
 	--accent-text: #ffffff;
 	--danger: #dc2626;
 	--success: #16a34a;
+
+	/* Shared accent palette — same in both modes */
+	--acc: #3ad6c2;
+	--acc-2: #6fe6d4;
+	--mana: #a86bff;
+	--mana-2: #c9a3ff;
+	--cta: #ffc24a;
+	--cta-2: #ffd87a;
+	--enemy: #ff7a5f;
+	--good: #46c45f;
+	--good-2: #7ee08f;
+	--warn: #ff6b6b;
 }
 
+/* ── Dark mode ──────────────────────────────────────────────────────────── */
 .dark {
-	--bg: #0c0a09;
-	--surface: #1c1917;
-	--surface-2: #292524;
-	--text: #f5f5f4;
-	--text-muted: #a8a29e;
-	--border: #3f3f46;
-	--accent: #8b5cf6;
+	/* Redesign surface layers — dark */
+	--bg-0: #0b0b10;
+	--bg-1: #121219;
+	--bg-2: #181821;
+	--bg-3: #20212c;
+	--line: #2b2c38;
+	--txt: #f3f3f7;
+	--txt-dim: #9a9bab;
+	--txt-mute: #6b6c7e;
+
+	/* Legacy tokens — mapped to redesign values */
+	--bg: var(--bg-0);
+	--surface: var(--bg-2);
+	--surface-2: var(--bg-3);
+	--surface-overlay: color-mix(in srgb, var(--bg-1) 90%, transparent);
+	--text: var(--txt);
+	--text-muted: var(--txt-dim);
+	--border: var(--line);
+	--accent: var(--acc);
 	--accent-text: #ffffff;
 	--danger: #ef4444;
 	--success: #22c55e;

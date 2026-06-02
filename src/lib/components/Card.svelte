@@ -2,7 +2,6 @@
 	import { getTemplate } from '$lib/data/cards';
 	import { ELEMENT_COLOR, ELEMENT_LABEL } from '$lib/game/elements';
 	import CardKindIcon from './CardKindIcon.svelte';
-	import ElementMatchupBadge from './ElementMatchupBadge.svelte';
 	import type { Element } from '$lib/game/types';
 	import { activePokemon, getElementalDamageLevel } from '$lib/game/state.svelte';
 
@@ -36,256 +35,458 @@
 
 	let tpl = $derived(getTemplate(templateId));
 
-	// Cor tema: baseada no elemento (ou um cinza neutro se não tiver elemento)
-	let theme = $derived(
-		tpl?.element
-			? ELEMENT_COLOR[tpl.element as Element]
-			: tpl?.kind === 'power'
-				? '#f59e0b'
-				: '#94a3b8'
+	let elementColor = $derived(
+		tpl?.element ? ELEMENT_COLOR[tpl.element as Element] : tpl?.kind === 'power' ? '#f59e0b' : '#9ca3af'
 	);
-	
-	// Classe da raridade para efeitos visuais
-	let rarityClass = $derived(`rarity-${tpl?.rarity ?? 'common'}`);
-	
-	let typeLabel = $derived(
-		tpl?.element ? ELEMENT_LABEL[tpl.element as Element] : (tpl?.rarity ?? '')
+	let elementLabel = $derived(
+		tpl?.element ? ELEMENT_LABEL[tpl.element as Element] : (tpl?.rarity?.toUpperCase() ?? 'CARTA')
 	);
-	let iconSize = $derived(showcase ? (compact ? 62 : 86) : (compact ? 48 : 65));
+
+	let rarityClass = $derived(`rar-${tpl?.rarity ?? 'common'}`);
+	let iconSize = $derived(showcase ? (compact ? 62 : 80) : compact ? 44 : 58);
 	let activePkm = $derived(activePokemon());
+
+	// Primary stat for the art badge
+	let statKind = $derived(
+		tpl?.kind === 'attack' || tpl?.damage ? 'atk'
+		: tpl?.kind === 'defense' || tpl?.block ? 'def'
+		: 'util'
+	);
+	let statValue = $derived(
+		tpl?.damage
+			? tpl.damage + (tpl.kind === 'attack' ? getElementalDamageLevel(activePkm?.element) * 3 + ((activePkm?.damageBuffs ?? 0) * 2) : 0)
+			: tpl?.block ?? tpl?.healHp ?? tpl?.buffAmount ?? tpl?.manaGain ?? tpl?.captureBonus
+				? Math.round((tpl.captureBonus ?? 0) * 100) || tpl?.manaGain || tpl?.drawCount || 1
+				: null
+	);
+
+	// Rarity stars
+	const RARITY_STARS: Record<string, number> = {
+		starter: 0, common: 1, rare: 2, epic: 3, secret: 4
+	};
+	const RARITY_METAL: Record<string, string> = {
+		starter: '#9a9ba6', common: '#aeb4c0', rare: '#dbe6f4', epic: '#ffd884', secret: '#f0f0ff'
+	};
+	let starCount = $derived(RARITY_STARS[tpl?.rarity ?? 'common'] ?? 1);
+	let metalColor = $derived(RARITY_METAL[tpl?.rarity ?? 'common'] ?? '#aeb4c0');
 </script>
 
 {#if tpl}
-	<div class="card-shell flex flex-col gap-1">
-		<button
-			type="button"
-			{onclick}
-			disabled={!playable}
-			class="card-root {rarityClass} relative flex aspect-3/4 w-full flex-col overflow-hidden rounded-xl border-[3px] text-left transition-transform duration-150"
-			class:showcase
-			class:opacity-40={dimmed}
-			class:cursor-default={!playable}
-			class:selected
-			class:flip
-			class:power-card={tpl.kind === 'power'}
-			style="--theme-color: {theme};"
-		>
-			<!-- faixa superior plana -->
-			<div
-				class="flex items-center justify-between px-1.5 py-1 text-white"
-				style="background: var(--theme-color);"
-			>
-				<span
-					class="card-cost flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-[12px] font-extrabold"
-					style="color: var(--theme-color);">{tpl.cost}</span
-				>
-				<span class="truncate pl-1 text-[9px] font-bold uppercase tracking-wider opacity-95"
-					>{typeLabel}</span
-				>
-			</div>
+	<button
+		type="button"
+		{onclick}
+		disabled={!playable}
+		class="card-root {rarityClass}"
+		class:selected
+		class:dimmed
+		class:flip
+		class:showcase
+		class:compact
+		class:power-card={tpl.kind === 'power'}
+		style="--elem-color: {elementColor}; --metal: {metalColor};"
+	>
+		<div class="frame">
+			<div class="inner">
 
-			<!-- arte central -->
-			<div class="card-art flex flex-1 items-center justify-center body-texture">
-				<div class="icon-wrap">
-					<CardKindIcon id={tpl.id} kind={tpl.kind} element={tpl.element} color="var(--theme-color)" size={iconSize} />
+				<!-- HEAD: cost gem + rarity stars -->
+				<div class="c-head">
+					<div class="cost-gem">
+						<span class="cost-num">{tpl.cost}</span>
+					</div>
+					<div class="rarity-stars">
+						{#if starCount === 0}
+							<span class="rarity-dot" style="background: {metalColor};"></span>
+						{:else}
+							{#each Array(starCount) as _, i (i)}
+								<svg class="star" width="11" height="11" viewBox="0 0 24 24" fill={metalColor}>
+									<path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/>
+								</svg>
+							{/each}
+						{/if}
+					</div>
 				</div>
-			</div>
 
-			{#if shiny}
-				<span class="shield-shine" aria-hidden="true"></span>
-			{/if}
+				<!-- NAME -->
+				<div class="c-name">{tpl.name}</div>
 
-			<!-- rodapé -->
-			<div class="px-2 pb-2 pt-1">
-				<div class="truncate text-xs font-black leading-tight mb-1">{tpl.name}</div>
-				<div class="flex flex-wrap gap-x-2 gap-y-1 text-[11px] font-bold text-(--text-muted)">
-					{#if tpl.damage}
-						{@const displayDmg = tpl.damage + (tpl.kind === 'attack' ? getElementalDamageLevel(activePkm?.element) * 3 + ((activePkm?.damageBuffs ?? 0) * 2) : 0)}
-						<span class="flex items-center gap-0.5 text-red-400"><span class="text-sm">⚔</span> {displayDmg}</span>
-					{/if}
-					{#if tpl.block}
-						<span class="flex items-center gap-0.5 text-blue-400"><span class="text-sm">🛡</span> {tpl.block}</span>
-					{/if}
-					{#if tpl.healHp}
-						<span class="flex items-center gap-0.5 text-green-400"><span class="text-sm">❤</span> {tpl.healHp}</span>
-					{/if}
-					{#if tpl.buffAmount}
-						<span class="flex items-center gap-0.5 text-purple-400"><span class="text-sm">✨</span> +{tpl.buffAmount}</span>
-					{/if}
-					{#if tpl.captureBonus}
-						<span class="flex items-center gap-0.5 text-amber-500"><span class="text-sm">●</span> +{Math.round(tpl.captureBonus * 100)}%</span>
-					{/if}
-					{#if tpl.id === 'power_berserk'}
-						<span class="flex items-center gap-0.5 text-red-500"><span class="text-sm">⚔</span> x2</span>
-						<span class="flex items-center gap-0.5 text-blue-500"><span class="text-sm">🛡</span> ÷2</span>
-					{/if}
-					{#if tpl.id === 'power_dragonize'}
-						<span class="flex items-center gap-0.5 text-indigo-400"><span class="text-sm">🐉</span> Dragão</span>
-					{/if}
-					{#if tpl.id === 'power_electric_shock'}
-						<span class="flex items-center gap-0.5 text-amber-400"><span class="text-sm">⚡</span> +2/jogada</span>
-					{/if}
-					{#if tpl.kind === 'relic'}
-						<span class="flex items-center gap-0.5 text-purple-600"><span class="text-sm">👻</span> Dano 1</span>
-					{/if}
-					{#if tpl.manaGain}
-						<span class="flex items-center gap-0.5 text-cyan-400"><span class="text-sm">⚡</span> +{tpl.manaGain}</span>
-					{/if}
-					{#if tpl.attackRepeat}
-						<span class="flex items-center gap-0.5 text-orange-400"><span class="text-sm">⚔</span> ×{tpl.attackRepeat + 1}</span>
-					{/if}
-					{#if tpl.drawCount}
-						<span class="flex items-center gap-0.5 text-sky-300"><span class="text-sm">🃏</span> +{tpl.drawCount}</span>
-					{/if}
-					{#if tpl.debuffAmount}
-						<span class="flex items-center gap-0.5 text-red-400"><span class="text-sm">👤</span> -{Math.round(tpl.debuffAmount * 100)}% {tpl.debuffDuration}t</span>
+				<!-- ART WINDOW -->
+				<div class="c-art">
+					<div class="art-halo" style="background: radial-gradient(circle at 50% 42%, {elementColor}cc, {elementColor}33 55%, transparent 72%);"></div>
+					<div class="art-ring" style="border-color: {elementColor};"></div>
+					<div class="art-glyph">
+						<CardKindIcon id={tpl.id} kind={tpl.kind} element={tpl.element} color={elementColor} size={iconSize} />
+					</div>
+					{#if statValue !== null && statValue !== undefined}
+						<div class="stat-badge {statKind}">
+							{#if statKind === 'atk'}
+								<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 6-9 12-9-12z"/></svg>
+							{:else if statKind === 'def'}
+								<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/></svg>
+							{:else}
+								<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg>
+							{/if}
+							<span class="stat-val">{statValue}</span>
+						</div>
 					{/if}
 				</div>
-			</div>
 
-			{#if count > 1}
-				<span
-					class="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full border border-white/50 bg-black/60 px-1 text-[10px] font-bold text-white"
-					>×{count}</span
-				>
-			{/if}
-			{#if badge}
-				<span
-					class="absolute bottom-1 right-1 rounded-full bg-black/65 px-1.5 py-0.5 text-[9px] font-bold text-white"
-					>{badge}</span
-				>
-			{/if}
-		</button>
-		{#if tpl.element}
-			<div class="flex justify-end px-1 pb-1">
-				<ElementMatchupBadge element={tpl.element as Element} compact={compact || !showcase} iconOnly={iconOnlyBadge} />
+				<!-- FOOT: extra stats + type chip -->
+				<div class="c-foot">
+					<!-- secondary stats row -->
+					<div class="stats-row">
+						{#if tpl.damage}
+							{@const displayDmg = tpl.damage + (tpl.kind === 'attack' ? getElementalDamageLevel(activePkm?.element) * 3 + ((activePkm?.damageBuffs ?? 0) * 2) : 0)}
+							<span class="stat-tag atk">⚔ {displayDmg}</span>
+						{/if}
+						{#if tpl.block}
+							<span class="stat-tag def">🛡 {tpl.block}</span>
+						{/if}
+						{#if tpl.healHp}
+							<span class="stat-tag heal">❤ {tpl.healHp}</span>
+						{/if}
+						{#if tpl.buffAmount}
+							<span class="stat-tag util">✨ +{tpl.buffAmount}</span>
+						{/if}
+						{#if tpl.captureBonus}
+							<span class="stat-tag util">● +{Math.round(tpl.captureBonus * 100)}%</span>
+						{/if}
+						{#if tpl.id === 'power_berserk'}
+							<span class="stat-tag atk">⚔ x2</span>
+							<span class="stat-tag def">🛡 ÷2</span>
+						{/if}
+						{#if tpl.id === 'power_dragonize'}
+							<span class="stat-tag util">🐉 Dragão</span>
+						{/if}
+						{#if tpl.id === 'power_electric_shock'}
+							<span class="stat-tag util">⚡ +2/jogada</span>
+						{/if}
+						{#if tpl.kind === 'relic'}
+							<span class="stat-tag util">👻 Dano 1</span>
+						{/if}
+						{#if tpl.manaGain}
+							<span class="stat-tag util">⚡ +{tpl.manaGain}</span>
+						{/if}
+						{#if tpl.attackRepeat}
+							<span class="stat-tag atk">⚔ ×{tpl.attackRepeat + 1}</span>
+						{/if}
+						{#if tpl.drawCount}
+							<span class="stat-tag util">🃏 +{tpl.drawCount}</span>
+						{/if}
+						{#if tpl.debuffAmount}
+							<span class="stat-tag atk">👤 -{Math.round(tpl.debuffAmount * 100)}% {tpl.debuffDuration}t</span>
+						{/if}
+					</div>
+					<!-- type chip -->
+					{#if tpl.element}
+						<div
+							class="type-chip"
+							style="color:{elementColor}; background: linear-gradient(180deg,{elementColor}22,{elementColor}11); border-color:{elementColor}66;"
+						>
+							{elementLabel.toUpperCase()}
+						</div>
+					{/if}
+				</div>
+
 			</div>
+		</div>
+
+		{#if shiny}
+			<span class="shield-shine" aria-hidden="true"></span>
 		{/if}
-	</div>
+		{#if count > 1}
+			<span class="count-badge">×{count}</span>
+		{/if}
+		{#if badge}
+			<span class="card-badge">{badge}</span>
+		{/if}
+	</button>
 {/if}
 
 <style>
+	/* ── Shell ─────────────────────────────────────────────────────────── */
 	.card-root {
-		background: var(--surface);
-		box-shadow:
-			0 8px 20px rgba(0, 0, 0, 0.32),
-			inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+		position: relative;
+		display: block;
+		width: 100%;
+		aspect-ratio: 3 / 4;
+		cursor: pointer;
+		border: none;
+		padding: 0;
+		background: transparent;
+		transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.25, 1.1), filter 0.2s;
+		text-align: left;
 	}
-	.card-root.showcase {
-		box-shadow:
-			0 14px 32px rgba(0, 0, 0, 0.4),
-			inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+	.card-root:disabled {
+		cursor: default;
+		filter: grayscale(0.55) brightness(0.62);
+	}
+	.card-root.dimmed {
+		opacity: 0.4;
+	}
+	.card-root.selected .frame {
+		outline: 2px solid var(--acc);
+		outline-offset: 2px;
 	}
 	.card-root.selected {
-		border-color: var(--accent) !important;
 		transform: translateY(-6px);
 	}
 	.card-root:not(:disabled):active {
 		transform: scale(0.97);
 	}
-
-	/* Rarity Colors & Body Decals */
-	.card-root.rarity-starter { border-color: #9ca3af; }
-	.card-root.rarity-starter .body-texture {
-		background: radial-gradient(ellipse at 50% 65%, color-mix(in srgb, var(--theme-color) 12%, var(--surface)), var(--surface) 80%);
+	.card-root.flip {
+		animation: card-flip 300ms ease-out backwards;
 	}
 
-	.card-root.rarity-common { border-color: #64748b; }
-	.card-root.rarity-common .body-texture {
-		background: radial-gradient(ellipse at 50% 65%, color-mix(in srgb, var(--theme-color) 18%, var(--surface)), var(--surface) 80%);
-	}
-
-	.card-root.rarity-rare { border-color: #3b82f6; }
-	.card-root.rarity-rare .body-texture {
-		background: 
-			radial-gradient(ellipse at 50% 65%, color-mix(in srgb, var(--theme-color) 25%, var(--surface)), var(--surface) 80%),
-			repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 2px, transparent 2px, transparent 8px);
-		box-shadow: inset 0 0 12px rgba(59, 130, 246, 0.15);
-	}
-
-	.card-root.rarity-epic { border-color: #a855f7; }
-	.card-root.rarity-epic .body-texture {
-		background: 
-			radial-gradient(ellipse at 50% 65%, color-mix(in srgb, var(--theme-color) 35%, var(--surface)), var(--surface) 75%),
-			repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0px, transparent 4px, rgba(255,255,255,0.02) 8px);
-		box-shadow: inset 0 0 20px rgba(168, 85, 247, 0.3);
-	}
-
-	.card-root.rarity-secret {
-		border-color: #facc15;
-		box-shadow:
-			0 14px 30px rgba(0, 0, 0, 0.45),
-			0 0 0 1px rgba(250, 204, 21, 0.55),
-			inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-	}
-	.card-root.rarity-secret .body-texture {
-		background:
-			radial-gradient(circle at 50% 58%, color-mix(in srgb, var(--theme-color) 42%, #fef3c7), var(--surface) 60%),
-			linear-gradient(135deg, rgba(250, 204, 21, 0.18), rgba(59, 130, 246, 0.08) 40%, rgba(168, 85, 247, 0.16) 80%),
-			repeating-linear-gradient(45deg, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 2px, transparent 2px, transparent 9px);
-		box-shadow:
-			inset 0 0 22px rgba(250, 204, 21, 0.28),
-			inset 0 0 36px rgba(255, 255, 255, 0.06);
-	}
-
-	.card-root.power-card {
-		isolation: isolate;
-		box-shadow:
-			0 12px 28px rgba(0, 0, 0, 0.4),
-			0 0 0 1px color-mix(in srgb, var(--theme-color) 45%, white),
-			inset 0 0 24px color-mix(in srgb, var(--theme-color) 22%, transparent);
-	}
-	.card-root.power-card::before {
-		content: '';
-		position: absolute;
-		inset: 8px;
-		border-radius: 0.8rem;
-		border: 1px solid color-mix(in srgb, var(--theme-color) 55%, white);
-		box-shadow: 0 0 18px color-mix(in srgb, var(--theme-color) 28%, transparent);
-		pointer-events: none;
-		z-index: 0;
-	}
-	.card-root.power-card::after {
-		content: '';
-		position: absolute;
-		inset: auto -10% 18% -10%;
-		height: 34%;
-		background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--theme-color) 48%, white), transparent 72%);
-		filter: blur(14px);
-		opacity: 0.4;
-		pointer-events: none;
-		z-index: 0;
-	}
-	.card-root.power-card > * {
+	/* ── Frame (rarity-driven metallic gradient) ────────────────────────── */
+	.frame {
+		width: 100%;
+		height: 100%;
+		border-radius: 13px;
+		padding: 3px;
 		position: relative;
-		z-index: 1;
+		box-shadow: 0 10px 22px -8px rgba(0, 0, 0, 0.85);
 	}
-	.card-root.power-card .body-texture {
-		background:
-			radial-gradient(circle at 50% 58%, color-mix(in srgb, var(--theme-color) 38%, var(--surface)), var(--surface) 62%),
-			linear-gradient(145deg, color-mix(in srgb, var(--theme-color) 14%, transparent), transparent 58%),
-			repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0px, rgba(255, 255, 255, 0.06) 2px, transparent 2px, transparent 9px);
+	.rar-starter .frame  { background: linear-gradient(150deg, #42434d, #26272e 55%, #1b1c22); }
+	.rar-common  .frame  { background: linear-gradient(150deg, #5a5d68, #34363f 50%, #23242b); }
+	.rar-rare    .frame  {
+		background: linear-gradient(150deg, #eef3fa, #9fadbf 42%, #d4dde9 58%, #76808f);
+		animation: glow-rare 3s ease-in-out infinite;
 	}
-	.card-root.power-card .icon-wrap {
-		filter: drop-shadow(0 0 14px color-mix(in srgb, var(--theme-color) 42%, transparent));
+	.rar-epic    .frame  {
+		background: linear-gradient(150deg, #ffe9ab, #cba24c 42%, #f4d488 58%, #9a7830);
+		animation: glow-epic 2.6s ease-in-out infinite;
 	}
-	.card-root.power-card .card-cost {
-		box-shadow:
-			0 0 0 2px color-mix(in srgb, var(--theme-color) 30%, transparent),
-			0 0 16px color-mix(in srgb, var(--theme-color) 30%, transparent);
+	.rar-secret  .frame  {
+		background: conic-gradient(from 0deg, #ff7ad9, #8e9bff, #6ff0d0, #ffd36e, #ff9ad1, #ff7ad9);
+		animation: iridescent 6s linear infinite;
 	}
 
-	.icon-wrap {
+	@keyframes glow-rare {
+		0%, 100% { box-shadow: 0 10px 22px -8px rgba(0,0,0,.85), 0 0 8px rgba(178,205,235,.25); }
+		50%       { box-shadow: 0 10px 22px -8px rgba(0,0,0,.85), 0 0 16px rgba(190,215,245,.6); }
+	}
+	@keyframes glow-epic {
+		0%, 100% { box-shadow: 0 10px 22px -8px rgba(0,0,0,.85), 0 0 10px rgba(255,200,90,.3); }
+		50%       { box-shadow: 0 10px 22px -8px rgba(0,0,0,.85), 0 0 20px rgba(255,210,110,.7); }
+	}
+	@keyframes iridescent {
+		to { filter: hue-rotate(360deg); }
+	}
+
+	/* ── Inner (dark card body) ─────────────────────────────────────────── */
+	.inner {
+		width: 100%;
+		height: 100%;
+		border-radius: 10px;
+		background: linear-gradient(180deg, #1d1e26 0%, #141419 100%);
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+		position: relative;
+	}
+
+	/* ── Head: cost + rarity stars ─────────────────────────────────────── */
+	.c-head {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		padding: 6px 7px 0;
+		position: relative;
+		z-index: 3;
+	}
+	.cost-gem {
+		width: 30px;
+		height: 33px;
+		position: relative;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: 8px;
+		clip-path: polygon(50% 0, 100% 27%, 100% 73%, 50% 100%, 0 73%, 0 27%);
+		background: linear-gradient(160deg, #f3e7ff 0%, #c9a3ff 32%, #8b5cf6 65%, #5926c4 100%);
+		filter: drop-shadow(0 2px 4px rgba(40, 10, 90, 0.55)) drop-shadow(0 0 6px rgba(168, 107, 255, 0.35));
 	}
-	.card-root.showcase .icon-wrap {
-		transform: scale(1.07);
+	.cost-gem::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		clip-path: polygon(50% 0, 100% 27%, 100% 73%, 50% 100%, 0 73%, 0 27%);
+		z-index: 2;
+		pointer-events: none;
+		background: radial-gradient(45% 35% at 30% 22%, rgba(255, 255, 255, 0.75), transparent 65%);
 	}
-	.card-root.flip {
-		animation: card-flip 300ms ease-out backwards;
+	.cost-num {
+		position: relative;
+		z-index: 3;
+		font-family: var(--font-display, 'Russo One', sans-serif);
+		font-size: 15px;
+		color: #fff;
+		text-shadow: 0 1px 0 rgba(60, 20, 140, 0.8), 0 0 4px rgba(0, 0, 0, 0.4);
+	}
+	.rarity-stars {
+		display: flex;
+		gap: 2px;
+		padding-top: 3px;
+	}
+	.rarity-dot {
+		display: inline-block;
+		width: 8px;
+		height: 8px;
+		border-radius: 2px;
+		transform: rotate(45deg);
+		opacity: 0.6;
+		margin-top: 4px;
+	}
+	.star {
+		filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6));
+	}
+
+	/* ── Name ───────────────────────────────────────────────────────────── */
+	.c-name {
+		margin: 5px 6px 0;
+		text-align: center;
+		font-size: 11px;
+		font-weight: 800;
+		letter-spacing: 0.2px;
+		color: #fff;
+		line-height: 1.1;
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+		text-wrap: balance;
+		position: relative;
+		z-index: 3;
+	}
+
+	/* ── Art window ─────────────────────────────────────────────────────── */
+	.c-art {
+		flex: 1;
+		margin: 5px 7px 0;
+		border-radius: 8px;
+		position: relative;
+		overflow: hidden;
+		background: radial-gradient(120% 100% at 50% 38%, #23242e, #101015 80%);
+		border: 1px solid rgba(255, 255, 255, 0.05);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.art-halo {
+		position: absolute;
+		width: 90px;
+		height: 90px;
+		border-radius: 50%;
+		top: 44%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		filter: blur(2px);
+		opacity: 0.85;
+	}
+	.art-ring {
+		position: absolute;
+		width: 60px;
+		height: 60px;
+		border-radius: 50%;
+		top: 44%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		border: 1.5px solid;
+		opacity: 0.55;
+	}
+	.art-glyph {
+		position: relative;
+		z-index: 2;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.card-root.power-card .art-glyph {
+		filter: drop-shadow(0 0 14px color-mix(in srgb, var(--elem-color) 42%, transparent));
+	}
+	.stat-badge {
+		position: absolute;
+		right: 5px;
+		bottom: 5px;
+		z-index: 4;
+		display: flex;
+		align-items: center;
+		gap: 3px;
+		background: rgba(8, 8, 12, 0.85);
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		border-radius: 7px;
+		padding: 2px 5px;
+	}
+	.stat-badge.atk { color: #ff8c5a; }
+	.stat-badge.def { color: #6fe6d4; }
+	.stat-badge.util { color: var(--mana-2, #c9a3ff); }
+	.stat-val {
+		font-family: var(--font-display, 'Russo One', sans-serif);
+		font-size: 13px;
+		line-height: 1;
+	}
+
+	/* ── Footer ─────────────────────────────────────────────────────────── */
+	.c-foot {
+		padding: 4px 6px 6px;
+		position: relative;
+		z-index: 3;
+	}
+	.stats-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 3px;
+		margin-bottom: 4px;
+	}
+	.stat-tag {
+		font-size: 9px;
+		font-weight: 700;
+		padding: 1px 4px;
+		border-radius: 4px;
+		background: rgba(255, 255, 255, 0.06);
+	}
+	.stat-tag.atk  { color: #ff8c5a; }
+	.stat-tag.def  { color: #6fe6d4; }
+	.stat-tag.heal { color: var(--good-2, #7ee08f); }
+	.stat-tag.util { color: var(--mana-2, #c9a3ff); }
+
+	.type-chip {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 6px;
+		padding: 3px 5px;
+		font-size: 8.5px;
+		font-weight: 800;
+		letter-spacing: 0.7px;
+		border: 1px solid;
+		line-height: 1;
+	}
+
+	/* ── Overlays ───────────────────────────────────────────────────────── */
+	.count-badge {
+		position: absolute;
+		right: 6px;
+		top: 6px;
+		display: flex;
+		min-width: 20px;
+		height: 20px;
+		align-items: center;
+		justify-content: center;
+		border-radius: 10px;
+		border: 1px solid rgba(255, 255, 255, 0.5);
+		background: rgba(0, 0, 0, 0.65);
+		padding: 0 4px;
+		font-size: 10px;
+		font-weight: 700;
+		color: #fff;
+	}
+	.card-badge {
+		position: absolute;
+		bottom: 5px;
+		right: 5px;
+		border-radius: 10px;
+		background: rgba(0, 0, 0, 0.65);
+		padding: 2px 6px;
+		font-size: 9px;
+		font-weight: 700;
+		color: #fff;
 	}
 	.shield-shine {
 		position: absolute;
@@ -297,31 +498,80 @@
 		mix-blend-mode: screen;
 		pointer-events: none;
 	}
+
+	/* ── Compact mode (hand fan / small contexts) ──────────────────────── */
+	.card-root.compact .c-head {
+		padding: 4px 5px 0;
+	}
+	.card-root.compact .cost-gem {
+		width: 24px;
+		height: 27px;
+	}
+	.card-root.compact .cost-num {
+		font-size: 12px;
+	}
+	.card-root.compact .rarity-dot {
+		width: 6px;
+		height: 6px;
+	}
+	.card-root.compact .star {
+		width: 9px;
+		height: 9px;
+	}
+	.card-root.compact .c-name {
+		margin: 3px 4px 0;
+		font-size: 9px;
+		letter-spacing: 0;
+		/* clamp to 2 lines then ellipsis */
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+		text-wrap: unset;
+	}
+	.card-root.compact .c-art {
+		margin: 3px 5px 0;
+	}
+	.card-root.compact .art-halo {
+		width: 68px;
+		height: 68px;
+	}
+	.card-root.compact .art-ring {
+		width: 48px;
+		height: 48px;
+	}
+	.card-root.compact .stat-badge {
+		padding: 1px 4px;
+		gap: 2px;
+	}
+	.card-root.compact .stat-val {
+		font-size: 11px;
+	}
+	.card-root.compact .c-foot {
+		padding: 2px 4px 4px;
+	}
+	.card-root.compact .stats-row {
+		gap: 2px;
+		margin-bottom: 2px;
+	}
+	.card-root.compact .stat-tag {
+		font-size: 8px;
+		padding: 1px 3px;
+	}
+	.card-root.compact .type-chip {
+		display: none;
+	}
+
+	/* ── Animations ─────────────────────────────────────────────────────── */
 	@keyframes card-flip {
-		from {
-			transform: perspective(600px) rotateY(80deg);
-			opacity: 0;
-		}
-		to {
-			transform: perspective(600px) rotateY(0);
-			opacity: 1;
-		}
+		from { transform: perspective(600px) rotateY(80deg); opacity: 0; }
+		to   { transform: perspective(600px) rotateY(0);    opacity: 1; }
 	}
 	@keyframes shield-shine {
-		0% {
-			left: -40%;
-			opacity: 0;
-		}
-		20% {
-			opacity: 0.9;
-		}
-		45% {
-			left: 85%;
-			opacity: 0;
-		}
-		100% {
-			left: 85%;
-			opacity: 0;
-		}
+		0%   { left: -40%; opacity: 0; }
+		20%  { opacity: 0.9; }
+		45%  { left: 85%; opacity: 0; }
+		100% { left: 85%; opacity: 0; }
 	}
 </style>

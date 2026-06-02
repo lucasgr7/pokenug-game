@@ -55,14 +55,14 @@
 </script>
 
 <header
-	class="sticky top-0 z-20 flex items-center gap-2 border-b border-[var(--border)] bg-[var(--surface)]/95 px-4 py-2.5 backdrop-blur"
+	class="hud-root sticky top-0 z-20 flex items-center gap-2 px-4 py-2.5 backdrop-blur"
 >
 	<div class="min-w-0 flex-1">
 		<div class="truncate text-sm font-bold">{game.player?.name ?? '—'}</div>
-		<div class="flex flex-wrap items-center gap-1.5 text-xs text-[var(--text-muted)]">
-			<span class="font-semibold text-[var(--text)]">💰 {formatNumber(game.player?.money ?? 0)}</span>
+		<div class="flex flex-wrap items-center gap-1.5 text-xs">
+			<span class="hud-money font-semibold">💰 {formatNumber(game.player?.money ?? 0)}</span>
 			{#each elementChips as [el, v] (el)}
-				<span class="rounded-full bg-[var(--surface-2)] px-1.5 py-0.5">
+				<span class="hud-chip">
 					{elementEmoji[el as Element] ?? ''} {formatNumber(v ?? 0)}
 				</span>
 			{/each}
@@ -79,10 +79,27 @@
 		</button>
 	{/if}
 	<button
-		class="rounded-lg px-2 py-1 text-lg hover:bg-[var(--surface-2)]"
+		class="rounded-lg px-2 py-1 text-lg hover:opacity-75"
 		onclick={toggleTheme}
 		aria-label="Alternar tema"
 	>
 		{game.player?.theme === 'dark' ? '🌙' : '☀️'}
 	</button>
 </header>
+
+<style>
+	.hud-root {
+		background: color-mix(in srgb, var(--bg-0, #0b0b10) 95%, transparent);
+		border-bottom: 1px solid var(--line, #2b2c38);
+	}
+	.hud-money {
+		color: var(--cta, #ffc24a);
+	}
+	.hud-chip {
+		border-radius: 9999px;
+		background: var(--bg-2, #181821);
+		border: 1px solid var(--line, #2b2c38);
+		padding: 2px 8px;
+		color: var(--txt-dim, #9a9bab);
+	}
+</style>

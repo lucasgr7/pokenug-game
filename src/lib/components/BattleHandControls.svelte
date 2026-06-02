@@ -70,14 +70,15 @@
 	});
 </script>
 
-<section class="shrink-0 flex flex-col border-t border-white/10 bg-(--surface) px-2 pb-2 pt-1.5">
-	<!-- Controls row -->
-	<div class="mb-0.5 flex items-center justify-between gap-2 px-1">
-		<div class="flex flex-wrap items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-(--text-muted)">
+<section class="hand-section shrink-0 flex flex-col">
+	<!-- Action bar -->
+	<div class="actionbar">
+		<!-- Left: pile chips -->
+		<div class="meta-chips">
 			{#each pileKinds as pile (pile)}
 				<button
 					type="button"
-					class="rounded-full bg-black/15 px-2 py-1 transition-colors hover:bg-black/25"
+					class="chip"
 					onclick={() => (openPile = pile)}
 					aria-label={`Abrir ${PILE_META[pile].label}`}
 				>
@@ -85,31 +86,35 @@
 				</button>
 			{/each}
 		</div>
-		<div class="flex items-center gap-2">
-			<label
-				class="flex cursor-pointer select-none items-center gap-2 rounded-full bg-black/15 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-(--text-muted)"
-				title="Usa a carta imediatamente com um toque"
-			>
-				<input
-					type="checkbox"
-					class="peer sr-only"
-					checked={autoConfirm}
-					onchange={handleAutoConfirmToggle}
-					aria-label="Auto confirmação"
-				/>
-				<span class="relative h-4 w-7 rounded-full bg-white/15 transition-colors peer-checked:bg-(--accent)">
-					<span class="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white transition-transform peer-checked:translate-x-3"></span>
-				</span>
-				Auto
-			</label>
-			<button
-				class="rounded-xl bg-(--accent) px-4 py-1.5 text-xs font-black text-white transition-colors hover:brightness-110 disabled:opacity-40"
-				disabled={battleState.turn !== 'player' || ended}
-				onclick={onEndTurn}
-			>
-				Fim de turno ↦
-			</button>
-		</div>
+
+		<!-- Center: AUTO toggle -->
+		<label
+			class="auto-toggle"
+			class:on={autoConfirm}
+			title="Usa a carta imediatamente com um toque"
+		>
+			<input
+				type="checkbox"
+				class="sr-only"
+				checked={autoConfirm}
+				onchange={handleAutoConfirmToggle}
+				aria-label="Auto confirmação"
+			/>
+			<span class="switch">
+				<span class="knob"></span>
+			</span>
+			<span>AUTO</span>
+		</label>
+
+		<!-- Right: End turn -->
+		<button
+			class="endturn"
+			class:dim={battleState.turn !== 'player' || ended}
+			disabled={battleState.turn !== 'player' || ended}
+			onclick={onEndTurn}
+		>
+			Fim de turno ↦
+		</button>
 	</div>
 
 	<!-- Relics row -->
@@ -201,18 +206,131 @@
 />
 
 <style>
+	.hand-section {
+		background: linear-gradient(180deg, var(--bg-1, #121219), var(--bg-0, #0b0b10));
+		border-top: 1px solid var(--line, #2b2c38);
+	}
+
+	/* ── action bar ─────────────────────────────────────────────── */
+	.actionbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		padding: 8px 12px 4px;
+	}
+	.meta-chips {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+	.chip {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		font-size: 12px;
+		font-weight: 700;
+		color: var(--txt-dim, #9a9bab);
+		background: rgba(24, 24, 32, 0.85);
+		border: 1px solid var(--line, #2b2c38);
+		border-radius: 9px;
+		padding: 5px 8px;
+		backdrop-filter: blur(4px);
+		cursor: pointer;
+		transition: background 0.15s;
+	}
+	.chip:hover {
+		background: rgba(40, 40, 52, 0.9);
+	}
+
+	/* AUTO toggle */
+	.auto-toggle {
+		display: flex;
+		align-items: center;
+		gap: 7px;
+		font-size: 11px;
+		font-weight: 800;
+		letter-spacing: 0.5px;
+		color: var(--txt-dim, #9a9bab);
+		cursor: pointer;
+		user-select: none;
+	}
+	.auto-toggle.on {
+		color: #7ee9d8;
+	}
+	.switch {
+		width: 38px;
+		height: 21px;
+		border-radius: 999px;
+		background: #2a2b36;
+		border: 1px solid var(--line, #2b2c38);
+		position: relative;
+		transition: background 0.25s, border-color 0.25s;
+		flex-shrink: 0;
+	}
+	.auto-toggle.on .switch {
+		background: linear-gradient(90deg, #1ea193, #3ad6c2);
+		border-color: #6fe6d4;
+	}
+	.knob {
+		position: absolute;
+		top: 1.5px;
+		left: 1.5px;
+		width: 16px;
+		height: 16px;
+		border-radius: 50%;
+		background: #cfd0db;
+		transition: left 0.25s cubic-bezier(0.3, 1.4, 0.5, 1), background 0.2s;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+	}
+	.auto-toggle.on .knob {
+		left: 19px;
+		background: #fff;
+	}
+
+	/* end turn button */
+	.endturn {
+		display: flex;
+		align-items: center;
+		gap: 7px;
+		font-size: 13px;
+		font-weight: 800;
+		letter-spacing: 0.2px;
+		color: #3b2400;
+		background: linear-gradient(180deg, #ffd87a, #f0a91a);
+		border: 1px solid #ffe39a;
+		border-radius: 12px;
+		padding: 9px 14px;
+		cursor: pointer;
+		box-shadow:
+			0 8px 20px -6px rgba(240, 165, 0, 0.55),
+			inset 0 1px 0 rgba(255, 255, 255, 0.55);
+		transition: transform 0.15s, filter 0.15s;
+		text-shadow: 0 1px 0 rgba(255, 240, 200, 0.5);
+		white-space: nowrap;
+	}
+	.endturn:active {
+		transform: translateY(1px) scale(0.98);
+	}
+	.endturn.dim,
+	.endturn:disabled {
+		filter: grayscale(0.4) brightness(0.8);
+		cursor: not-allowed;
+	}
+
+	/* ── hand fan ───────────────────────────────────────────────── */
 	.hand-fan {
 		position: relative;
-		height: 170px;
+		height: 210px;
 		width: 100%;
 		overflow: visible;
 	}
 
 	.hand-card {
 		position: absolute;
-		bottom: 20px;
-		width: 90px;
-		max-width: 22vh;
+		bottom: 24px;
+		width: 100px;
+		max-width: 24vh;
 		transform-origin: bottom center;
 		transform: rotate(var(--angle));
 		transition:
