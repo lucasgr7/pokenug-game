@@ -155,7 +155,7 @@
 				tabindex="0"
 				class="hand-card"
 				class:hand-card--muted={!playable}
-				style="left: calc(50% + {xPos}px - 45px); --angle: {angle}deg; z-index: {i + 1};"
+				style="left: calc(50% + {xPos}px - 65px); --angle: {angle}deg; z-index: {i + 1};"
 				onclick={() => handleCardTap(card.id, card.templateId)}
 				onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleCardTap(card.id, card.templateId); }}
 				aria-label={autoConfirm ? 'Jogar carta' : 'Inspecionar carta'}
@@ -321,7 +321,7 @@
 	/* ── hand fan ───────────────────────────────────────────────── */
 	.hand-fan {
 		position: relative;
-		height: 210px;
+		height: 240px;
 		width: 100%;
 		overflow: visible;
 	}
@@ -329,8 +329,8 @@
 	.hand-card {
 		position: absolute;
 		bottom: 24px;
-		width: 100px;
-		max-width: 24vh;
+		width: 130px;
+		max-width: 30vh;
 		transform-origin: bottom center;
 		transform: rotate(var(--angle));
 		transition:
