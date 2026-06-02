@@ -1,6 +1,4 @@
 <script lang="ts">
-	import Modal from './Modal.svelte';
-	import ElementMatchupDetails from './ElementMatchupDetails.svelte';
 	import { ELEMENT_COLOR, ELEMENT_EMOJI, ELEMENT_LABEL } from '$lib/game/elements';
 	import type { Element } from '$lib/game/types';
 
@@ -13,54 +11,51 @@
 		compact?: boolean;
 		iconOnly?: boolean;
 	} = $props();
-
-	let open = $state(false);
-
-	function showDetails(event: MouseEvent) {
-		event.stopPropagation();
-		open = true;
-	}
 </script>
 
-<button
-	type="button"
-	class="matchup-badge inline-flex items-center rounded-full border text-[10px] font-black uppercase tracking-[0.14em] transition"
-	class:gap-1={!iconOnly}
-	class:px-2={!iconOnly}
-	class:py-1={!iconOnly}
-	class:p-1={iconOnly}
-	style={`--badge-color:${ELEMENT_COLOR[element]};`}
-	onclick={showDetails}
-	aria-label={`Abrir matchups de ${ELEMENT_LABEL[element]}`}
+<span
+	class="type-chip"
+	class:icon-only={iconOnly}
+	style="--chip-color: {ELEMENT_COLOR[element]};"
+	title={ELEMENT_LABEL[element]}
 >
-	<span class="text-xs" class:text-[10px]={iconOnly}>{ELEMENT_EMOJI[element]}</span>
+	<span class="glyph" aria-hidden="true">{ELEMENT_EMOJI[element]}</span>
 	{#if !iconOnly}
-		<span>{compact ? 'tipo' : ELEMENT_LABEL[element]}</span>
+		<span class="label">{compact ? 'tipo' : ELEMENT_LABEL[element]}</span>
 	{/if}
-</button>
-
-<Modal open={open} title={`${ELEMENT_EMOJI[element]} ${ELEMENT_LABEL[element]}`} onclose={() => (open = false)}>
-	<ElementMatchupDetails {element} />
-</Modal>
+</span>
 
 <style>
-	.matchup-badge {
-		max-width: 100%;
-		overflow: hidden;
+	.type-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		padding: 3px 7px;
+		border-radius: 7px;
+		border: 1px solid color-mix(in srgb, var(--chip-color) 55%, transparent);
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--chip-color) 18%, transparent),
+			color-mix(in srgb, var(--chip-color) 10%, transparent)
+		);
+		color: var(--chip-color);
+		font-size: 9.5px;
+		font-weight: 800;
+		letter-spacing: 0.7px;
+		text-transform: uppercase;
 		white-space: nowrap;
-		text-overflow: ellipsis;
-		color: color-mix(in srgb, var(--badge-color) 72%, white);
-		border-color: color-mix(in srgb, var(--badge-color) 44%, transparent);
-		background:
-			linear-gradient(135deg, color-mix(in srgb, var(--badge-color) 18%, rgba(15, 23, 42, 0.92)), rgba(15, 23, 42, 0.84)),
-			rgba(15, 23, 42, 0.82);
-		box-shadow: 0 6px 18px rgba(15, 23, 42, 0.28);
+		line-height: 1;
 	}
+	.type-chip.icon-only {
+		padding: 4px;
+		gap: 0;
+	}
+	.glyph {
+		font-size: 10px;
+		line-height: 1;
+	}
+	.label {
+		opacity: 0.9;
+	}
+</style>
 
-	.matchup-badge:hover,
-	.matchup-badge:focus-visible {
-		outline: none;
-		transform: translateY(-1px);
-		box-shadow: 0 10px 22px rgba(15, 23, 42, 0.34);
-	}
-	</style>

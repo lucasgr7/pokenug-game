@@ -41,6 +41,23 @@
 	let playedFx = $state<PlayedFx | null>(null);
 	let autoConfirm = $state(false);
 
+	// ── Damage / block floats ─────────────────────────────────────────────
+	let enemyDmgFloat = $state<{ id: string; amount: number; block?: boolean } | null>(null);
+	let playerDmgFloat = $state<{ id: string; amount: number; block?: boolean } | null>(null);
+
+	// ── Turn flash ────────────────────────────────────────────────────────
+	let showTurnFlash = $state(false);
+	let prevTurn = $state<'player' | 'enemy' | null>(null);
+
+	$effect(() => {
+		const turn = s?.turn ?? null;
+		if (turn === 'player' && prevTurn === 'enemy') {
+			showTurnFlash = true;
+			setTimeout(() => { showTurnFlash = false; }, 1100);
+		}
+		prevTurn = turn;
+	});
+
 	let battleLogs = $state<BattleLogEntry[]>([]);
 
 	function addLog(line: LogPart[]) {
@@ -132,6 +149,13 @@
 		setTimeout(() => {
 			if (playedFx?.id === fxId) playedFx = null;
 		}, 620);
+
+		// Damage float on enemy sprite
+		if (res.damage && res.damage > 0) {
+			const floatId = crypto.randomUUID();
+			enemyDmgFloat = { id: floatId, amount: res.damage };
+			setTimeout(() => { if (enemyDmgFloat?.id === floatId) enemyDmgFloat = null; }, 1000);
+		}
 	}
 
 	function onCardTap(cardId: string, templateId: string) {
@@ -145,7 +169,19 @@
 
 	function handleEndTurn() {
 		const res = endTurn();
-		if (res) addLog(buildEndTurnLog(res));
+		if (res) {
+			addLog(buildEndTurnLog(res));
+			// Damage float on player sprite
+			if (res.damage && res.damage > 0) {
+				const floatId = crypto.randomUUID();
+				playerDmgFloat = { id: floatId, amount: res.damage };
+				setTimeout(() => { if (playerDmgFloat?.id === floatId) playerDmgFloat = null; }, 1000);
+			} else if (res.absorbed && res.absorbed > 0 && (!res.damage || res.damage === 0)) {
+				const floatId = crypto.randomUUID();
+				playerDmgFloat = { id: floatId, amount: res.absorbed, block: true };
+				setTimeout(() => { if (playerDmgFloat?.id === floatId) playerDmgFloat = null; }, 1000);
+			}
+		}
 	}
 
 	async function leave() {
@@ -178,10 +214,12 @@
 
 		<!-- ARENA -->
 		<section
-			class="relative flex-1 overflow-hidden"
-			style="background:
-				radial-gradient(120% 70% at 80% 0%, color-mix(in srgb, {`var(--accent)`} 20%, var(--bg)), var(--bg) 70%);"
+			class="arena relative flex-1 overflow-hidden"
 		>
+			<!-- arena floor glows -->
+			<div class="floor enemy" aria-hidden="true"></div>
+			<div class="floor player" aria-hidden="true"></div>
+
 			{#if playedFx}
 				<div class="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
 					<div class="played-card-fx" class:vaporize={playedFx.exhausted}>
@@ -208,6 +246,13 @@
 				Turno {s.turnNumber}
 				{#if matchupHint()}<span class="ml-1 text-amber-300">· {matchupHint()}</span>{/if}
 			</div>
+
+			<!-- SEU TURNO flash -->
+			{#if showTurnFlash}
+				<div class="turn-flash" aria-hidden="true">
+					<span class="turn-flash-text">SEU TURNO</span>
+				</div>
+			{/if}
 
 			<!-- INFO INIMIGO (canto superior esquerdo) -->
 			<div class="absolute left-2 top-2 z-10 w-[58%] max-w-65">
@@ -239,6 +284,13 @@
 						<Sprite speciesId={s.enemy.pokemon.speciesId} size={120} alt={s.enemy.pokemon.name} />
 					</div>
 				{/key}
+				{#if enemyDmgFloat}
+					{#key enemyDmgFloat.id}
+						<div class="dmg-float" style="color: #ff6e5a; right: 10px; top: 20px;">
+							{enemyDmgFloat.amount}
+						</div>
+					{/key}
+				{/if}
 			</div>
 
 			<!-- SPRITE JOGADOR (canto inferior esquerdo) -->
@@ -249,6 +301,16 @@
 						<Sprite speciesId={s.player.pokemon.speciesId} size={120} alt={s.player.pokemon.name} />
 					</div>
 				{/key}
+				{#if playerDmgFloat}
+					{#key playerDmgFloat.id}
+						<div
+							class="dmg-float"
+							style="color: {playerDmgFloat.block ? '#6fe6d4' : '#ff6e5a'}; left: 10px; top: 20px;"
+						>
+							{#if playerDmgFloat.block}BLOQUEADO{:else}{playerDmgFloat.amount}{/if}
+						</div>
+					{/key}
+				{/if}
 			</div>
 
 			<!-- INFO JOGADOR (canto inferior direito) -->
@@ -350,6 +412,78 @@
 {/if}
 
 <style>
+	/* ── arena ──────────────────────────────────────────────────────────── */
+	.arena {
+		background:
+			radial-gradient(95% 55% at 70% 12%, rgba(255, 110, 90, 0.22), transparent 60%),
+			radial-gradient(80% 50% at 22% 78%, rgba(58, 214, 194, 0.14), transparent 62%),
+			radial-gradient(120% 60% at 50% 50%, rgba(168, 107, 255, 0.06), transparent 70%),
+			linear-gradient(180deg, #161018 0%, #0d0d12 42%, #0a0e10 100%);
+	}
+	.floor {
+		position: absolute;
+		left: 50%;
+		width: 150%;
+		height: 240px;
+		transform: translateX(-50%);
+		border-radius: 50%;
+		pointer-events: none;
+	}
+	.floor.enemy {
+		top: 88px;
+		background: radial-gradient(50% 60% at 50% 50%, rgba(255, 140, 120, 0.1), transparent 70%);
+	}
+	.floor.player {
+		bottom: 128px;
+		background: radial-gradient(50% 60% at 50% 50%, rgba(80, 210, 190, 0.1), transparent 70%);
+	}
+
+	/* ── turn flash ─────────────────────────────────────────────────────── */
+	.turn-flash {
+		position: absolute;
+		inset: 0;
+		z-index: 55;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		pointer-events: none;
+	}
+	.turn-flash-text {
+		font-family: 'Russo One', sans-serif;
+		font-size: 30px;
+		letter-spacing: 1px;
+		color: #fff;
+		text-shadow:
+			0 4px 16px rgba(58, 214, 194, 0.7),
+			0 0 24px rgba(168, 107, 255, 0.5);
+		animation: turnB 1.1s ease forwards;
+		opacity: 0;
+	}
+	@keyframes turnB {
+		0%   { opacity: 0; transform: scale(0.8); }
+		25%  { opacity: 1; transform: scale(1);   }
+		75%  { opacity: 1; }
+		100% { opacity: 0; transform: scale(1.05); }
+	}
+
+	/* ── damage float ───────────────────────────────────────────────────── */
+	.dmg-float {
+		position: absolute;
+		z-index: 30;
+		font-family: 'Russo One', sans-serif;
+		font-size: 34px;
+		font-weight: 900;
+		pointer-events: none;
+		animation: dmgFloat 1s ease forwards;
+		text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+		white-space: nowrap;
+	}
+	@keyframes dmgFloat {
+		0%   { opacity: 0; transform: translateY(0) scale(0.6); }
+		20%  { opacity: 1; transform: translateY(-10px) scale(1.15); }
+		100% { opacity: 0; transform: translateY(-58px) scale(0.95); }
+	}
+
 	/* ── sombra elíptica de plataforma sob cada pokémon ──────────────────── */
 	.platform {
 		position: absolute;

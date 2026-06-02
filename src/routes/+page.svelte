@@ -105,11 +105,11 @@
 <main class="px-4 py-4">
 	{#if battleInProgress}
 		<button
-			class="mb-3 flex w-full items-center justify-between rounded-2xl border border-[var(--accent)] bg-[var(--accent)]/10 px-4 py-3 text-left"
+			class="mb-3 flex w-full items-center justify-between rounded-2xl border border-(--acc) bg-(--acc)/10 px-4 py-3 text-left"
 			onclick={() => goto('/battle')}
 		>
 			<span class="font-bold">⚔️ Batalha em andamento</span>
-			<span class="text-sm font-semibold text-[var(--accent)]">Continuar →</span>
+			<span class="text-sm font-semibold" style="color: var(--acc)">Continuar →</span>
 		</button>
 	{/if}
 
@@ -121,7 +121,7 @@
 			{@const bossCanStart = bossReady(region.id)}
 			{@const bossHint = bossStatus(region.id)}
 			<div
-				class="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3"
+				class="relative overflow-hidden rounded-2xl p-3 region-card"
 				class:opacity-40={!unlocked}
 			>
 				<div class="mb-2 flex items-center gap-3">
@@ -133,31 +133,31 @@
 						<h2 class="truncate font-bold">{region.name}</h2>
 						{#if !unlocked}<span aria-hidden="true">🔒</span>{/if}
 					</div>
-					<p class="mb-1.5 truncate text-xs text-[var(--text-muted)]">{region.description}</p>
+					<p class="mb-1.5 truncate text-xs" style="color: var(--txt-dim)">{region.description}</p>
 					{#if unlocked}
 						<ProgressBar
 							value={Math.min(done, region.requiredDefeats)}
 							max={region.requiredDefeats}
 							height={6}
 						/>
-						<div class="mt-1 text-[11px] text-[var(--text-muted)]">
+						<div class="mt-1 text-[11px]" style="color: var(--txt-dim)">
 							{Math.min(done, region.requiredDefeats)}/{region.requiredDefeats} derrotados
 						</div>
 					{:else}
-						<div class="text-[11px] text-[var(--text-muted)]">Complete a região anterior.</div>
+						<div class="text-[11px]" style="color: var(--txt-mute)">Complete a região anterior.</div>
 					{/if}
 				</div>
 				</div>
 				<div class="grid grid-cols-2 gap-2">
 					<button
-						class="rounded-xl border border-[var(--border)] bg-black/10 px-3 py-2 text-xs font-semibold transition-transform active:scale-[0.99] disabled:opacity-40"
+						class="region-btn rounded-xl px-3 py-2 text-xs font-semibold transition-transform active:scale-[0.99] disabled:opacity-40"
 						disabled={!unlocked}
 						onclick={() => enter(region.id, 'normal')}
 					>
 						Explorar região
 					</button>
 					<button
-						class="rounded-xl border border-[var(--accent)] bg-[var(--accent)]/10 px-3 py-2 text-xs font-semibold text-[var(--accent)] transition-transform active:scale-[0.99] disabled:opacity-40"
+						class="boss-btn rounded-xl px-3 py-2 text-xs font-semibold transition-transform active:scale-[0.99] disabled:opacity-40"
 						disabled={!bossCanStart}
 						onclick={() => enter(region.id, 'boss')}
 						title={bossHint}
@@ -165,8 +165,29 @@
 						Fight Boss
 					</button>
 				</div>
-				<div class="mt-1 text-[11px] text-[var(--text-muted)]">{bossHint}</div>
+				<div class="mt-1 text-[11px]" style="color: var(--txt-dim)">{bossHint}</div>
 			</div>
 		{/each}
 	</div>
 </main>
+
+<style>
+	.region-card {
+		background: var(--bg-2, #181821);
+		border: 1px solid var(--line, #2b2c38);
+	}
+	.region-btn {
+		background: rgba(0, 0, 0, 0.2);
+		border: 1px solid var(--line, #2b2c38);
+		color: var(--txt-dim, #9a9bab);
+	}
+	.boss-btn {
+		background: linear-gradient(180deg, rgba(255, 194, 74, 0.15), rgba(255, 194, 74, 0.08));
+		border: 1px solid var(--cta, #ffc24a);
+		color: var(--cta, #ffc24a);
+		font-weight: 800;
+	}
+	.boss-btn:disabled {
+		filter: grayscale(0.6) brightness(0.7);
+	}
+</style>
