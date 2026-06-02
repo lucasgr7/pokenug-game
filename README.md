@@ -1,93 +1,144 @@
-# sv
+# Pokengu
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A browser-based card-battler idle game built with **SvelteKit 5** and **Svelte Runes**.  
+Catch Pokémon, build a deck, fight through elemental regions, and let your roster grind while you're away.
 
-## Creating a project
+> [!NOTE]
+> **Looking for contributors!** See [Contributing](#contributing) — all skill levels welcome.
 
-If you're seeing this, you've probably already done this step. Congrats!
+---
+
+## What is Pokengu?
+
+Pokengu blends two genres:
+
+- **Slay-the-Spire-style card combat** — play Attack, Defense, Heal, Buff, Capture, and Combo cards with a 3-mana hand each turn
+- **Idle/NGU progression** — assign captured Pokémon to jobs that passively generate money and elemental points while you're offline
+
+The core loop:
+
+1. **Pick a region** (Verdant Forest → Ember Cave → Crystal Lake → … → Psychic Tower)
+2. **Battle wild Pokémon** using type-advantage mechanics (15 elements, gen-1 type chart)
+3. **Throw a Poké Ball card** to capture enemies and grow your roster
+4. **Fight the region boss** (daily cooldown) for rare card rewards
+5. **Spend earnings** in the Shop, upgrade your deck, and invest in permanent NGU upgrades
+6. **Trade element points** on the in-game marketplace where prices drift over time
+
+All state is stored client-side in **IndexedDB** — no account, no server, fully offline-capable.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | [SvelteKit 5](https://kit.svelte.dev/) — SPA mode (no SSR) |
+| Reactivity | Svelte 5 Runes (`$state`, `$derived`, `$effect`) |
+| Styling | Tailwind CSS v4 |
+| Persistence | IndexedDB via [`idb`](https://github.com/jakearchibald/idb) |
+| Pokémon data | [PokéAPI](https://pokeapi.co/) (sprites + base stats) |
+| Language | TypeScript (strict) |
+| Deploy | Docker → Nginx → Cloudflare Tunnel |
+
+---
+
+## Getting Started
+
+**Prerequisites:** Node 20+, Yarn classic
 
 ```sh
-# create a new project
-npx sv create my-app
+git clone https://github.com/<your-user>/pokengu.git
+cd pokengu
+yarn install
+yarn dev
 ```
 
-To recreate this project with the same configuration:
+Open `http://localhost:5173`, pick a starter, and start battling.
+
+### Other commands
 
 ```sh
-# recreate this project
-npx sv@0.15.3 create --template minimal --types ts --no-install .
+yarn check        # type-check with svelte-check
+yarn build        # production build (static)
+yarn preview      # preview production build locally
 ```
 
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
-
-## Deploy
-
-The project is configured for a static production deploy with Docker, Docker Compose, Portainer, and Drone CI.
-
-### Local image build
+### Docker (production)
 
 ```sh
 docker build -t pokengu:local .
+# or via Compose:
+WEB_PORT=3030 docker compose up -d --build
 ```
 
-### Compose / Portainer stack
+The app is served by Nginx on port `3030` by default.
 
-The root `docker-compose.yml` exposes the app through Nginx on port `3030` by default.
+---
 
-For Cloudflare Tunnel (`cloudflared`) running in Docker, point the origin service to the
-container-internal HTTP port, not the published host port:
+## Project Structure
 
-- `http://pokengu-web:80` (when `cloudflared` shares the same external Docker network)
-- `http://127.0.0.1:3030` (when `cloudflared` runs on the host)
-
-Using `https://` or `:3030` with `pokengu-web` from inside Docker will fail.
-
-Environment variables supported by the stack:
-
-- `WEB_PORT`: host port published by the web container. Default: `3030`
-- `EXTERNAL_NETWORK_NAME`: external Docker network used by Portainer/reverse proxy. Default: `gitea_dev-network`
-
-Example:
-
-```sh
-WEB_PORT=3030 EXTERNAL_NETWORK_NAME=gitea_dev-network docker compose up -d --build
+```
+src/
+├── routes/           # SvelteKit pages
+│   ├── +page.svelte          # Region map & battle entry
+│   ├── battle/               # Card battle arena
+│   ├── shop/                 # Daily card shop
+│   ├── deck/                 # Deck builder
+│   ├── jobs/                 # Idle job assignment
+│   ├── market/               # Element point marketplace
+│   └── catalog/              # Full card catalog
+├── lib/
+│   ├── game/         # Domain logic (battle engine, shop, jobs, state)
+│   ├── data/         # Static data — cards, regions, starters
+│   ├── db/           # IndexedDB adapters (one file per bounded context)
+│   ├── components/   # Svelte UI components
+│   ├── api/          # PokéAPI + sprite cache
+│   └── utils/        # Math, RNG, time helpers
 ```
 
-In Cloudflare Tunnel ingress, use:
+The fastest reading order for new contributors:
 
-```yaml
-ingress:
-  - hostname: pokengu.noonsoft.com.br
-    service: http://pokengu-web:80
-  - service: http_status:404
-```
+1. [`routes/+layout.svelte`](src/routes/+layout.svelte) — bootstrap & route guard
+2. [`lib/game/types.ts`](src/lib/game/types.ts) — all domain types
+3. [`lib/game/battle.svelte.ts`](src/lib/game/battle.svelte.ts) — full battle engine
+4. [`lib/data/cards.ts`](src/lib/data/cards.ts) — card catalog & pricing
 
-### Drone secrets
+---
 
-The `.drone.yml` pipeline validates the project on every push/PR and publishes the Docker image on pushes to `main` when these secrets are configured:
+## Contributing
 
-- `docker_registry`
-- `docker_repo`
-- `docker_username`
-- `docker_password`
+All contributions welcome — game design ideas, balance tweaks, new cards, UI polish, or bug fixes.
+
+**Good first issues to tackle:**
+
+- New card ideas (attack/defense/buff/combo — any element)
+- Balance pass on existing cards or NGU upgrade costs
+- Accessibility improvements (keyboard nav, contrast)
+- Missing regions or boss encounters (gen-1 Pokémon only for now)
+- Mobile layout polish
+
+**How to contribute:**
+
+1. Fork the repo and create a branch
+2. Run `yarn check` before opening a PR — all type errors must be fixed
+3. For new cards, add a `CardTemplate` to [`lib/data/cards.ts`](src/lib/data/cards.ts) and make sure the battle engine handles any new fields
+4. Open a PR with a short description of what changed and why
+
+For bigger changes (new systems, architecture changes) open an issue first so we can align before you invest the time.
+
+---
+
+## Roadmap ideas
+
+- [ ] PvP / async battle replays
+- [ ] Deck-sharing via URL export
+- [ ] More regions (gen-2 Pokémon)
+- [ ] Card fusion / crafting system
+- [ ] Achievements & challenge runs
+- [ ] Localization (currently mixed PT-BR / EN)
+
+---
+
+## License
+
+MIT
