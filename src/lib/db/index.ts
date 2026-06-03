@@ -64,14 +64,14 @@ export interface PokenguDB extends DBSchema {
 }
 
 const DB_NAME = 'pokengu';
-const DB_VERSION = 3;
+const DB_VERSION = 4; // v4: novo catálogo de cartas (GDD) — wipe de inventory/deck
 
 let dbPromise: Promise<IDBPDatabase<PokenguDB>> | null = null;
 
 export function getDb(): Promise<IDBPDatabase<PokenguDB>> {
 	if (!dbPromise) {
 		dbPromise = openDB<PokenguDB>(DB_NAME, DB_VERSION, {
-			upgrade(db) {
+			upgrade(db, oldVersion, _newVersion, transaction) {
 				if (!db.objectStoreNames.contains('player')) db.createObjectStore('player');
 				if (!db.objectStoreNames.contains('pokemon')) db.createObjectStore('pokemon');
 				if (!db.objectStoreNames.contains('cardInventory'))
@@ -83,6 +83,12 @@ export function getDb(): Promise<IDBPDatabase<PokenguDB>> {
 				if (!db.objectStoreNames.contains('shop')) db.createObjectStore('shop');
 				if (!db.objectStoreNames.contains('battle')) db.createObjectStore('battle');
 				if (!db.objectStoreNames.contains('market')) db.createObjectStore('market');
+
+				// Migração v4: IDs de cartas antigos são incompatíveis com o novo catálogo
+				if (oldVersion < 4) {
+					transaction.objectStore('cardInventory').clear();
+					transaction.objectStore('activeDeck').clear();
+				}
 			}
 		});
 	}

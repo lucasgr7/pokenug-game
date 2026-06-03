@@ -19,6 +19,11 @@ function ensureNgu(player: Player): void {
 	player.ngu.elementalHpLevels ??= {};
 	player.ngu.globalDamageLevel ??= 0;
 	player.lastBoosterPackPurchaseAt ??= 0;
+
+	// Campos de run persistentes (GDD) — migração para saves antigos
+	player.pilhaExaurir ??= 0;
+	player.bannedTemplateIds ??= [];
+	player.ghostPermDebuff ??= 0;
 }
 
 export async function getPlayer(): Promise<Player | undefined> {

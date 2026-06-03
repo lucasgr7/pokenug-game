@@ -60,7 +60,10 @@ export async function createPlayer(name: string, starter: StarterDef): Promise<v
 			elementalDamageLevels: {},
 			elementalHpLevels: {},
 			globalDamageLevel: 0
-		}
+		},
+		pilhaExaurir: 0,
+		bannedTemplateIds: [],
+		ghostPermDebuff: 0
 	};
 	await savePlayer(player);
 

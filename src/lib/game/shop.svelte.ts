@@ -1,7 +1,7 @@
 import { addManyToInventory, addToInventory } from '$lib/db/cards';
 import { getShop, saveShop } from '$lib/db/shop';
 import type { ShopState } from '$lib/db/index';
-import { CATALOG, SECRET_TEMPLATES } from '$lib/data/cards';
+import { CATALOG } from '$lib/data/cards';
 import { pick } from '$lib/utils/rng';
 import { isDifferentDay, now } from '$lib/utils/time';
 import {
@@ -81,9 +81,12 @@ function rollRarityBucket(): ShopRarityBucket {
 }
 
 function rollSlotByRarity(level: number, bucket: ShopRarityBucket): ShopSlot {
-	let pool = CATALOG.filter((c) => (c.tier ?? 1) <= level && matchesBucket(c, bucket));
-	if (pool.length === 0) pool = CATALOG.filter((c) => matchesBucket(c, bucket));
-	if (pool.length === 0) pool = CATALOG.filter((c) => c.rarity !== 'starter');
+	const banned = game.player?.bannedTemplateIds ?? [];
+	const notBanned = (c: import('$lib/game/types').CardTemplate) => !banned.includes(c.id);
+	let pool = CATALOG.filter((c) => (c.tier ?? 1) <= level && matchesBucket(c, bucket) && notBanned(c));
+	if (pool.length === 0) pool = CATALOG.filter((c) => matchesBucket(c, bucket) && notBanned(c));
+	if (pool.length === 0) pool = CATALOG.filter((c) => c.rarity !== 'starter' && notBanned(c));
+	if (pool.length === 0) pool = CATALOG.filter(notBanned);
 	if (pool.length === 0) pool = CATALOG;
 	return { ...pick(pool), sold: false };
 }
@@ -220,7 +223,8 @@ export async function buyBoosterPack(packId: BoosterPackOffer['id']): Promise<Ca
 	if (hasPurchasedBoosterToday()) return null;
 	if (!spendMoney(pack.price)) return null;
 
-	const rewards = Array.from({ length: pack.cardCount }, () => pick(SECRET_TEMPLATES));
+	const boosterPool: CardTemplate[] = CATALOG.filter((c) => c.rarity === 'secret' || c.rarity === 'epic');
+	const rewards: CardTemplate[] = Array.from({ length: pack.cardCount }, () => pick(boosterPool.length > 0 ? boosterPool : CATALOG));
 	const rewardCards: Card[] = rewards.map((tpl) => ({ id: crypto.randomUUID(), templateId: tpl.id }));
 	await addManyToInventory(rewardCards);
 	if (game.player) {
