@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import Hud from '$lib/components/Hud.svelte';
 	import Card from '$lib/components/Card.svelte';
-	import CardInspector from '$lib/components/CardInspector.svelte';
+	import CardDetailsModal from '$lib/components/CardDetailsModal.svelte';
 	import {
 		BOOSTER_PACKS,
 		shop,
@@ -222,7 +222,7 @@
 	{/if}
 </main>
 
-<CardInspector templateId={inspectingCard} open={!!inspectingCard} onclose={() => inspectingCard = null} />
+<CardDetailsModal templateId={inspectingCard} open={!!inspectingCard} onclose={() => inspectingCard = null} />
 
 <style>
 	.shop-card-wrapper {

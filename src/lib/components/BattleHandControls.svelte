@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Card from '$lib/components/Card.svelte';
 	import Modal from '$lib/components/Modal.svelte';
-	import CardInspector from '$lib/components/CardInspector.svelte';
+	import CardDetailsModal from '$lib/components/CardDetailsModal.svelte';
 	import type { Card as BattleCard, BattleState } from '$lib/game/types';
 
 	let {
@@ -197,7 +197,7 @@
 </Modal>
 
 <!-- Card inspector (hand + pile) -->
-<CardInspector
+<CardDetailsModal
 	templateId={inspecting?.templateId ?? null}
 	open={!!inspecting}
 	onclose={() => (inspecting = null)}
