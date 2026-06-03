@@ -131,6 +131,35 @@
 		inspectingTemplateId = templateId;
 		isInspectingInDeck = fromDeck;
 	}
+
+	let inspectActionLabel = $derived.by(() => {
+		if (!inspectedGroup) return 'Adicionar ao deck';
+		if (isInspectingInDeck) return 'Remover do deck';
+		return 'Adicionar ao deck';
+	});
+
+	let inspectActionPlayable = $derived.by(() => {
+		if (!inspectedGroup) return false;
+		if (isInspectingInDeck) return inspectedGroup.inDeck > 0;
+		const available = inspectedGroup.total - inspectedGroup.inDeck;
+		return available > 0 && deckIds.length < MAX_DECK;
+	});
+
+	let inspectActionDisabledLabel = $derived.by(() => {
+		if (!inspectedGroup) return 'Acao indisponivel';
+		if (isInspectingInDeck) return 'Sem carta no deck';
+		if (deckIds.length >= MAX_DECK) return `Deck cheio (${MAX_DECK})`;
+		return 'Sem copias livres';
+	});
+
+	async function handleInspectAction() {
+		if (!inspectingTemplateId || !inspectedGroup) return;
+		if (isInspectingInDeck) {
+			removeOne(inspectingTemplateId);
+			return;
+		}
+		await addOne(inspectingTemplateId);
+	}
 </script>
 
 <Hud />
@@ -308,7 +337,10 @@
 	templateId={inspectingTemplateId}
 	open={!!inspectingTemplateId}
 	onclose={() => { inspectingTemplateId = null; }}
-	playable={false}
+	onplay={handleInspectAction}
+	playable={inspectActionPlayable}
+	actionLabel={inspectActionLabel}
+	disabledLabel={inspectActionDisabledLabel}
 	/>
 
 

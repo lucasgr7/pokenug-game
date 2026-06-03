@@ -9,7 +9,9 @@
 		onclose,
 		onplay,
 		playable = false,
-		hidePrice = true
+		hidePrice = true,
+		actionLabel = 'Jogar carta',
+		disabledLabel = 'Acao indisponivel'
 	}: {
 		templateId: string | null;
 		open?: boolean;
@@ -17,6 +19,8 @@
 		onplay?: () => void;
 		playable?: boolean;
 		hidePrice?: boolean;
+		actionLabel?: string;
+		disabledLabel?: string;
 	} = $props();
 
 	let tpl = $derived(templateId ? getTemplate(templateId) : null);
@@ -46,7 +50,7 @@
 				{/if}
 				{#if onplay}
 					<button class="play-btn" disabled={!playable} onclick={onplay}>
-						{playable ? 'Jogar carta' : 'Mana insuficiente'}
+						{playable ? actionLabel : disabledLabel}
 					</button>
 				{/if}
 			</div>
