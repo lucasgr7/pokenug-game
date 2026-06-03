@@ -160,7 +160,7 @@
 				onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleCardTap(card.id, card.templateId); }}
 				aria-label={autoConfirm ? 'Jogar carta' : 'Inspecionar carta'}
 			>
-				<Card templateId={card.templateId} flip playable={playable} />
+				<Card templateId={card.templateId} compact={true} flip playable={playable} />
 			</div>
 		{/each}
 	</div>

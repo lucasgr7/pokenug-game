@@ -88,7 +88,7 @@
 		style="--elem-color: {elementColor}; --metal: {metalColor};"
 	>
 		<div class="frame">
-			<div class="inner">
+			<div class="inner" style="border-color: {elementColor};">
 
 				<!-- HEAD: cost gem + rarity stars -->
 				<div class="c-head">
@@ -121,13 +121,15 @@
 					{#if statValue !== null && statValue !== undefined}
 						<div class="stat-badge {statKind}">
 							{#if statKind === 'atk'}
-								<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 6-9 12-9-12z"/></svg>
+								<svg width="{compact ? 11 : 22}" height="{compact ? 11 : 22}" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 6-9 12-9-12z"/></svg>
+								<span class="stat-val">{tpl.damage}</span>
 							{:else if statKind === 'def'}
-								<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/></svg>
+								<svg width="{compact ? 11 : 22}" height="{compact ? 11 : 22}" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/></svg>
+								<span class="stat-val">{tpl.block}</span>
 							{:else}
-								<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg>
+								<svg width="{compact ? 11 : 22}" height="{compact ? 11 : 22}" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg>
+								<span class="stat-val">{tpl.manaGain}</span>
 							{/if}
-							<span class="stat-val">{statValue}</span>
 						</div>
 					{/if}
 				</div>
@@ -141,14 +143,8 @@
 				<!-- FOOT: extra stats + type chip -->
 				<div class="c-foot">
 					<!-- secondary stats row -->
-					<div class="stats-row">
-						{#if tpl.damage}
-							{@const displayDmg = tpl.damage + (tpl.kind === 'attack' ? getElementalDamageLevel(activePkm?.element) * 3 + ((activePkm?.damageBuffs ?? 0) * 2) : 0)}
-							<span class="stat-tag atk">⚔ {displayDmg}</span>
-						{/if}
-						{#if tpl.block}
-							<span class="stat-tag def">🛡 {tpl.block}</span>
-						{/if}
+					 {#if !compact}
+					<div class="stats-row text-small">
 						{#if tpl.healHp}
 							<span class="stat-tag heal">❤ {tpl.healHp}</span>
 						{/if}
@@ -184,6 +180,7 @@
 							<span class="stat-tag atk">👤 -{Math.round(tpl.debuffAmount * 100)}% {tpl.debuffDuration}t</span>
 						{/if}
 					</div>
+					{/if}
 					<!-- type chip -->
 					{#if tpl.element}
 						<div
@@ -285,7 +282,13 @@
 		width: 100%;
 		height: 100%;
 		border-radius: 10px;
-		background: linear-gradient(180deg, #1d1e26 0%, #141419 100%);
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--elem-color) 24%, #1c1d25) 0%,
+			color-mix(in srgb, var(--elem-color) 14%, #14151c) 50%,
+			#121319 50%,
+			#090a0f 100%
+		);
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
@@ -409,8 +412,8 @@
 	}
 	.stat-badge {
 		position: absolute;
-		right: 5px;
-		bottom: 5px;
+		left: 5px;
+		bottom: 15px;
 		z-index: 4;
 		display: flex;
 		align-items: center;
@@ -425,7 +428,7 @@
 	.stat-badge.util { color: var(--mana-2, #c9a3ff); }
 	.stat-val {
 		font-family: var(--font-display, 'Russo One', sans-serif);
-		font-size: 13px;
+		font-size: 18px;
 		line-height: 1;
 	}
 
@@ -442,7 +445,6 @@
 		margin-bottom: 4px;
 	}
 	.stat-tag {
-		font-size: 9px;
 		font-weight: 700;
 		padding: 1px 4px;
 		border-radius: 4px;

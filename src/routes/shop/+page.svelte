@@ -222,7 +222,7 @@
 	{/if}
 </main>
 
-<CardDetailsModal templateId={inspectingCard} open={!!inspectingCard} onclose={() => inspectingCard = null} />
+<CardDetailsModal templateId={inspectingCard} open={!!inspectingCard} hidePrice={false} onclose={() => inspectingCard = null} />
 
 <style>
 	.shop-card-wrapper {

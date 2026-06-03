@@ -11,6 +11,7 @@
 	// Tabs
 	let activeTab = $state<'deck' | 'catalog'>('deck');
 	import { pushToast } from '$lib/stores/toast.svelte';
+  import CardDetailsModal from '$lib/components/CardDetailsModal.svelte';
 
 	// ---- Catalog tab state ----
 	let catElement = $state<'all' | Element>('all');
@@ -192,7 +193,7 @@
 	{:else}
 		<div class="mb-10 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
 			{#each deckGroups as g (g.templateId)}
-				<Card templateId={g.templateId} count={g.inDeck} badge="no deck" onclick={() => inspectCard(g.templateId, true)} />
+				<Card templateId={g.templateId} count={g.inDeck} badge="no deck" compact={true} onclick={() => inspectCard(g.templateId, true)} />
 			{/each}
 		</div>
 	{/if}
@@ -251,6 +252,7 @@
 					count={g.total}
 					dimmed={available === 0}
 					badge={available > 0 ? `+${available}` : 'no deck'}
+					compact={true}
 					onclick={() => inspectCard(g.templateId, false)}
 				/>
 			{/each}
@@ -302,49 +304,19 @@
 </main>
 {/if}
 
-<Modal open={!!inspectingTemplateId} onclose={() => { inspectingTemplateId = null; }} title="Inspecionar Carta">
-	{#if inspectedTemplate && inspectedGroup}
-		<div class="flex flex-col items-center">
-			<div class="w-48 mb-4">
-				<Card templateId={inspectedTemplate.id} showcase={true} />
-			</div>
-			<div class="bg-[var(--surface-overlay)] w-full rounded-xl p-4 mb-4 text-center">
-				<p class="text-sm font-medium text-[var(--text-muted)] mb-1">Efeito</p>
-				<p class="text-[var(--text)] italic leading-relaxed text-sm">
-					"{inspectedTemplate.description}"
-				</p>
-			</div>
-			<div class="flex items-center gap-3 w-full">
-				{#if inspectedGroup.inDeck > 0}
-					<button
-						onclick={() => removeOne(inspectedTemplate.id)}
-						class="flex-1 py-3 px-4 rounded-xl font-bold bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
-					>
-						Remover (-1)
-					</button>
-				{/if}
-				{#if inspectedGroup.total - inspectedGroup.inDeck > 0}
-					<button
-						onclick={() => addOne(inspectedTemplate.id)}
-						disabled={deckIds.length >= MAX_DECK}
-						class="flex-1 py-3 px-4 rounded-xl font-bold bg-[var(--accent)] text-white hover:brightness-110 transition-colors disabled:opacity-50 disabled:grayscale"
-					>
-						Adicionar Deck (+1)
-					</button>
-				{/if}
-			</div>
-			{#if deckIds.length >= MAX_DECK && inspectedGroup.total - inspectedGroup.inDeck > 0}
-				<p class="text-xs text-red-400 mt-3 text-center">Deck cheio ({MAX_DECK}/{MAX_DECK}). Remova uma carta para adicionar.</p>
-			{/if}
-		</div>
-	{/if}
-</Modal>
+<CardDetailsModal
+	templateId={inspectingTemplateId}
+	open={!!inspectingTemplateId}
+	onclose={() => { inspectingTemplateId = null; }}
+	playable={false}
+	/>
+
 
 <Modal open={!!catalogInspectingId} onclose={() => { catalogInspectingId = null; }} title="Inspecionar Carta">
 	{#if catalogInspectedTemplate}
 		<div class="flex flex-col items-center">
 			<div class="w-48 mb-4">
-				<Card templateId={catalogInspectedTemplate.id} showcase={true} />
+				<Card templateId={catalogInspectedTemplate.id} compact={true} showcase={true} />
 			</div>
 			<div class="bg-[var(--surface-overlay)] w-full rounded-xl p-4 text-center border border-white/10">
 				<p class="text-xs uppercase font-black text-[var(--text-muted)] mb-1 tracking-widest">Efeito da Carta</p>

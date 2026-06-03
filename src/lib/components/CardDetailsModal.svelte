@@ -1,146 +1,25 @@
 <script lang="ts">
-	import Modal from './Modal.svelte';
 	import Card from './Card.svelte';
 	import { getTemplate } from '$lib/data/cards';
-	import { ELEMENT_EMOJI, ELEMENT_LABEL } from '$lib/game/elements';
-	import type { CardTemplate, Element } from '$lib/game/types';
+	import { ELEMENT_LABEL } from '$lib/game/elements';
 
 	let {
 		templateId,
 		open = false,
 		onclose,
 		onplay,
-		playable = false
+		playable = false,
+		hidePrice = true
 	}: {
 		templateId: string | null;
 		open?: boolean;
 		onclose: () => void;
 		onplay?: () => void;
 		playable?: boolean;
+		hidePrice?: boolean;
 	} = $props();
 
-	type InfoTone = 'default' | 'positive' | 'warning' | 'danger' | 'accent';
-	type InfoRow = { label: string; value: string; tone?: InfoTone };
-
-	const rarityLabel: Record<CardTemplate['rarity'], string> = {
-		starter: 'Starter',
-		common: 'Comum',
-		rare: 'Rara',
-		epic: 'Epica',
-		secret: 'Secreta'
-	};
-
-	const kindLabel: Record<CardTemplate['kind'], string> = {
-		attack: 'Ataque',
-		defense: 'Defesa',
-		heal: 'Cura',
-		capture: 'Captura',
-		buff: 'Buff',
-		power: 'Power',
-		relic: 'Reliquia',
-		energy: 'Energia',
-		combo: 'Combo',
-		debuff: 'Debuff'
-	};
-
 	let tpl = $derived(templateId ? getTemplate(templateId) : null);
-
-	function formatPercent(v: number): string {
-		return `${Math.round(v * 100)}%`;
-	}
-
-	let primaryData = $derived.by<InfoRow[]>(() => {
-		if (!tpl) return [];
-		const rows: InfoRow[] = [
-			{ label: 'Custo', value: `${tpl.cost} mana`, tone: 'accent' },
-			{ label: 'Tipo', value: kindLabel[tpl.kind] },
-			{ label: 'Raridade', value: rarityLabel[tpl.rarity] }
-		];
-
-		if (tpl.element) {
-			rows.push({
-				label: 'Elemento',
-				value: `${ELEMENT_EMOJI[tpl.element as Element]} ${ELEMENT_LABEL[tpl.element as Element]}`
-			});
-		}
-
-		if (tpl.exhaust) {
-			rows.push({
-				label: 'Exaure',
-				value: tpl.exhaust === 'combat' ? 'No combate' : 'Na run',
-				tone: 'warning'
-			});
-		}
-
-		if (tpl.isPower) {
-			rows.push({ label: 'Power', value: 'Uma vez por combate', tone: 'warning' });
-		}
-
-		return rows;
-	});
-
-	let statRows = $derived.by<InfoRow[]>(() => {
-		if (!tpl) return [];
-		const rows: InfoRow[] = [];
-
-		if (tpl.damage) rows.push({ label: 'Dano', value: `${tpl.damage}`, tone: 'danger' });
-		if (tpl.block) rows.push({ label: 'Escudo', value: `${tpl.block}`, tone: 'positive' });
-		if (tpl.healHp) rows.push({ label: 'Cura', value: `${tpl.healHp} HP`, tone: 'positive' });
-		if (tpl.manaGain) rows.push({ label: 'Mana', value: `+${tpl.manaGain}`, tone: 'accent' });
-		if (tpl.drawCount) rows.push({ label: 'Compra', value: `+${tpl.drawCount}`, tone: 'accent' });
-		if (tpl.attackRepeat) rows.push({ label: 'Ataques', value: `x${tpl.attackRepeat + 1}`, tone: 'danger' });
-		if (tpl.buffAmount) rows.push({ label: 'Buff dano', value: `+${tpl.buffAmount}`, tone: 'positive' });
-		if (tpl.debuffAmount) rows.push({ label: 'Debuff dano', value: formatPercent(tpl.debuffAmount), tone: 'danger' });
-		if (tpl.debuffDuration) rows.push({ label: 'Duracao debuff', value: `${tpl.debuffDuration} turno(s)` });
-		if (tpl.captureBonus) rows.push({ label: 'Captura', value: `+${formatPercent(tpl.captureBonus)}`, tone: 'warning' });
-		if (tpl.selfDamage) rows.push({ label: 'Auto dano', value: `${tpl.selfDamage}`, tone: 'danger' });
-		if (tpl.poisonAmount) rows.push({ label: 'Veneno', value: `${tpl.poisonAmount}`, tone: 'danger' });
-		if (tpl.imobilizadoTurns) rows.push({ label: 'Imobilizado', value: `${tpl.imobilizadoTurns} turno(s)`, tone: 'warning' });
-		if (tpl.enraizadoTurns) rows.push({ label: 'Enraizado', value: `${tpl.enraizadoTurns} turno(s)`, tone: 'warning' });
-		if (tpl.fraquezaStacks) rows.push({ label: 'Fraqueza', value: `${tpl.fraquezaStacks} stack(s)`, tone: 'warning' });
-
-		return rows;
-	});
-
-	let mechanics = $derived.by<string[]>(() => {
-		if (!tpl) return [];
-		const list: string[] = [];
-
-		if (tpl.artReflexo) list.push('Ativa REFLEXO neste turno.');
-		if (tpl.artDuplicarCarta) list.push('Proxima carta nao-POWER executa duas vezes.');
-		if (tpl.artDanoEletrico) list.push(`Ativa dano eletrico extra por carta: +${tpl.artDanoEletrico}.`);
-		if (tpl.artCancelEscudo) list.push('Cancela o escudo do inimigo neste turno.');
-		if (tpl.artReduzShield) list.push('Escudo do inimigo fica reduzido a 50%.');
-		if (tpl.artReduzBuff) list.push('Buff de dano do inimigo fica reduzido a 50%.');
-		if (tpl.artAmplifica) list.push('Dobra todos os debuffs ativos no inimigo.');
-		if (tpl.artCopiaDescarte) list.push(`Cria copia no descarte (limite ${tpl.artCopiaDescarte}).`);
-		if (tpl.artSequencia) list.push('Ativa o sistema SEQUENCIA para cartas Lutador.');
-		if (tpl.artAutoJogar) list.push('Ativa AUTO_JOGAR para cartas Lutador.');
-		if (tpl.artPilhaExaurir) list.push(`Ajusta PILHA_EXAURIR em ${tpl.artPilhaExaurir}.`);
-		if (tpl.artBanido) list.push('A carta e banida da run ao ser jogada.');
-		if (tpl.artPrisaoEterna) list.push('Duplica duracao de IMOBILIZADO ativo no inimigo.');
-		if (tpl.artBlockDecrement) list.push('Escudo desta carta reduz permanentemente em 1 por uso.');
-		if (tpl.artFuriaDragao) list.push('Dano escala com CARGA_DRAGAO acumulada.');
-		if (tpl.artDuplicarDragao) list.push('Furia do Dragao causa dano dobrado neste combate.');
-		if (tpl.artCongelamento) list.push('Dano escala com cartas de Gelo jogadas no combate.');
-		if (tpl.artRevengeShield) list.push(`Se escudo quebrar, causa ${tpl.artRevengeShield} de dano ao inimigo.`);
-		if (tpl.artEndsTurn) list.push('Termina o turno imediatamente apos uso.');
-		if (tpl.nextTurnBonusDraw) list.push(`Concede +${tpl.nextTurnBonusDraw} compra no proximo turno.`);
-		if (tpl.nextTurnBonusMana) list.push(`Concede +${tpl.nextTurnBonusMana} mana no proximo turno.`);
-		if (tpl.artGrassDoubleIfEnraizado) list.push('Dobra dano quando ENRAIZADO estiver ativo.');
-		if (tpl.artGhostPermDebuff) list.push('Aplica reducao permanente de dano inimigo.');
-		if (tpl.selfMaxHpReduction) list.push(`Reduz max HP proprio em ${tpl.selfMaxHpReduction}.`);
-		if (tpl.cargaDragaoGain) list.push(`Gera ${tpl.cargaDragaoGain} CARGA_DRAGAO.`);
-		if (tpl.generatesTokens) {
-			list.push(`Gera ${tpl.generatesTokens.count} token(s): ${tpl.generatesTokens.templateId}.`);
-		}
-		if (tpl.shieldEffect) list.push(`Escudo especial: ${tpl.shieldEffect}.`);
-
-		if (tpl.kind === 'relic') list.push('Reliquia reutilizavel e pode ser jogada varias vezes.');
-		if (tpl.kind === 'power') list.push('Efeito permanente durante o combate atual.');
-
-		return list;
-	});
 
 	let priceLabel = $derived.by(() => {
 		if (!tpl?.price) return null;
@@ -151,171 +30,91 @@
 	});
 </script>
 
-<Modal open={open && !!tpl} title={tpl?.name ?? ''} onclose={onclose}>
-	{#if tpl}
-		<div class="grid space-y-4 items-center justify-center">
-			<div class="w-60 justify-self-center">
+{#if open && tpl}
+	<div class="overlay" role="presentation">
+		<div class="backdrop" onclick={onclose} role="presentation"></div>
+		<div class="card-stage" role="dialog" aria-modal="true" aria-label={tpl.name} tabindex="-1">
+			<div class="card-wrap">
 				<Card templateId={tpl.id} playable={false} description={tpl.description} showcase />
 			</div>
-
-			<!-- {#if statRows.length > 0}
-				<section class="panel">
-					<h3>Atributos</h3>
-					<div class="stats-grid">
-						{#each statRows as stat (stat.label)}
-							<div class="stat-chip tone-{stat.tone ?? 'default'}">
-								<span>{stat.label}</span>
-								<strong>{stat.value}</strong>
-							</div>
-						{/each}
-					</div>
-				</section>
-			{/if}
-
-			{#if mechanics.length > 0}
-				<section class="panel">
-					<h3>Mecanicas</h3>
-					<ul class="mechanics-list">
-						{#each mechanics as line (line)}
-							<li>{line}</li>
-						{/each}
-					</ul>
-				</section>
-			{/if} -->
-
-			<section class="panel">
-				<h3>Preço</h3>
-				{#if priceLabel}
-					<p class="price">Preco base: {priceLabel}</p>
-				{/if}
-			</section>
-
-			{#if onplay}
-				<button
-					class="play-btn"
-					disabled={!playable}
-					onclick={onplay}
-				>
-					{playable ? 'Jogar carta' : 'Mana insuficiente'}
-				</button>
-			{/if}
 		</div>
-	{/if}
-</Modal>
+
+		{#if (!hidePrice && priceLabel) || onplay}
+			<div class="bottom-float">
+				{#if !hidePrice && priceLabel}
+					<p class="price">Preco: {priceLabel}</p>
+				{/if}
+				{#if onplay}
+					<button class="play-btn" disabled={!playable} onclick={onplay}>
+						{playable ? 'Jogar carta' : 'Mana insuficiente'}
+					</button>
+				{/if}
+			</div>
+		{/if}
+	</div>
+{/if}
 
 <style>
-	.details {
-		color: var(--text, #ececf4);
+	.overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 100;
+		display: grid;
+		place-items: center;
+		padding: 18px;
 	}
 
-	.preview-wrap {
+	.backdrop {
+		position: absolute;
+		inset: 0;
+		background: color-mix(in srgb, #000 72%, transparent);
+		backdrop-filter: blur(8px);
+	}
+
+	.card-stage {
 		display: grid;
-		grid-template-columns: minmax(0, 180px) minmax(0, 1fr);
-		gap: 12px;
-		columns: 2;
+		place-items: center;
+		width: 100%;
+		height: 100%;
+		padding-bottom: 100px;
+	}
+
+	.card-wrap {
+		width: min(360px, 84vw);
+		filter: drop-shadow(0 26px 36px rgba(0, 0, 0, 0.55));
+	}
+
+	.bottom-float {
+		position: fixed;
+		left: 50%;
+		bottom: 18px;
+		transform: translateX(-50%);
+		z-index: 102;
+		display: flex;
 		align-items: center;
-	}
-
-	.preview-card {
-		width: min(100%, 180px);
-		justify-self: center;
-	}
-
-	.preview-meta {
-		display: grid;
-		gap: 8px;
-	}
-
-	.row {
-		display: flex;
-		justify-content: space-between;
-		gap: 12px;
-		padding: 8px 10px;
-		border: 1px solid color-mix(in srgb, var(--border, #2f3040) 80%, transparent);
-		border-radius: 10px;
-		background: color-mix(in srgb, var(--surface-2, #141622) 80%, black 20%);
-	}
-
-	.label {
-		font-size: 11px;
-		font-weight: 800;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--text-muted, #9fa2b8);
-	}
-
-	.value {
-		font-size: 12px;
-		font-weight: 800;
-		text-align: right;
-	}
-
-	.panel {
+		gap: 10px;
+		max-width: min(540px, calc(100vw - 24px));
 		padding: 10px;
-		border-radius: 12px;
-		border: 1px solid color-mix(in srgb, var(--border, #2f3040) 80%, transparent);
-		background: color-mix(in srgb, var(--surface-2, #141622) 85%, black 15%);
-	}
-
-	.panel h3 {
-		margin: 0 0 8px;
-		font-size: 11px;
-		font-weight: 900;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		color: var(--text-muted, #9fa2b8);
-	}
-
-	.stats-grid {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 8px;
-	}
-
-	.stat-chip {
-		display: flex;
-		justify-content: space-between;
-		gap: 8px;
-		padding: 8px;
-		border-radius: 10px;
-		font-size: 12px;
-		font-weight: 700;
-		background: rgba(15, 16, 25, 0.65);
-		border: 1px solid rgba(255, 255, 255, 0.08);
-	}
-
-	.stat-chip strong {
-		font-weight: 900;
-	}
-
-	.mechanics-list {
-		margin: 0;
-		padding-left: 18px;
-		display: grid;
-		gap: 4px;
-		font-size: 12px;
-		line-height: 1.4;
-	}
-
-	.description {
-		margin: 0;
-		font-size: 13px;
-		line-height: 1.45;
+		border-radius: 14px;
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		background: color-mix(in srgb, var(--surface, #11141b) 86%, #000 14%);
+		box-shadow: 0 16px 30px rgba(0, 0, 0, 0.45);
 	}
 
 	.price {
-		margin: 10px 0 0;
-		font-size: 11px;
+		margin: 0;
+		padding: 0 4px;
+		font-size: 12px;
 		font-weight: 700;
-		color: var(--text-muted, #9fa2b8);
+		color: var(--text, #f3f3f7);
+		white-space: nowrap;
 	}
 
 	.play-btn {
-		width: 100%;
 		border: 0;
-		border-radius: 12px;
+		border-radius: 10px;
 		padding: 10px 14px;
-		font-size: 14px;
+		font-size: 13px;
 		font-weight: 900;
 		color: #f8f9ff;
 		background: linear-gradient(135deg, #ff8d2a, #ff5b2d);
@@ -327,37 +126,14 @@
 		cursor: not-allowed;
 	}
 
-	.tone-default {
-		color: var(--text, #ececf4);
-	}
-
-	.tone-positive {
-		color: #7de3b4;
-	}
-
-	.tone-warning {
-		color: #f5c866;
-	}
-
-	.tone-danger {
-		color: #ff7f86;
-	}
-
-	.tone-accent {
-		color: #7eb8ff;
-	}
-
 	@media (max-width: 640px) {
-		.preview-wrap {
-			grid-template-columns: 1fr;
+		.card-wrap {
+			width: min(320px, 86vw);
 		}
 
-		.preview-card {
-			width: 160px;
-		}
-
-		.stats-grid {
-			grid-template-columns: 1fr;
+		.bottom-float {
+			width: calc(100vw - 24px);
+			justify-content: space-between;
 		}
 	}
 </style>
