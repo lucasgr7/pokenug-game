@@ -17,6 +17,7 @@
 		showcase = false,
 		compact = false,
 		iconOnlyBadge = false,
+		description = '',
 		onclick
 	}: {
 		templateId: string;
@@ -30,6 +31,7 @@
 		showcase?: boolean;
 		compact?: boolean;
 		iconOnlyBadge?: boolean;
+		description?: string;
 		onclick?: () => void;
 	} = $props();
 
@@ -130,6 +132,12 @@
 					{/if}
 				</div>
 
+				{#if tpl.description != null && tpl.description.trim() !== '' && !compact}
+				<div class="p-4 text-sm text-center text-(--text-muted) line-clamp-4">
+					{tpl.description}
+				</div>
+				{/if}
+
 				<!-- FOOT: extra stats + type chip -->
 				<div class="c-foot">
 					<!-- secondary stats row -->
@@ -218,7 +226,6 @@
 	}
 	.card-root:disabled {
 		cursor: default;
-		filter: grayscale(0.55) brightness(0.62);
 	}
 	.card-root.dimmed {
 		opacity: 0.4;

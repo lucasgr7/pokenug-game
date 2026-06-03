@@ -49,7 +49,7 @@
 		return `${Math.round(v * 100)}%`;
 	}
 
-	let primaryRows = $derived.by<InfoRow[]>(() => {
+	let primaryData = $derived.by<InfoRow[]>(() => {
 		if (!tpl) return [];
 		const rows: InfoRow[] = [
 			{ label: 'Custo', value: `${tpl.cost} mana`, tone: 'accent' },
@@ -153,22 +153,12 @@
 
 <Modal open={open && !!tpl} title={tpl?.name ?? ''} onclose={onclose}>
 	{#if tpl}
-		<div class="details space-y-4">
-			<div class="preview-wrap">
-				<div class="preview-card">
-					<Card templateId={tpl.id} playable={false} showcase />
-				</div>
-				<div class="preview-meta">
-					{#each primaryRows as row (row.label)}
-						<div class="row">
-							<span class="label">{row.label}</span>
-							<span class="value tone-{row.tone ?? 'default'}">{row.value}</span>
-						</div>
-					{/each}
-				</div>
+		<div class="grid space-y-4 items-center justify-center">
+			<div class="w-60 justify-self-center">
+				<Card templateId={tpl.id} playable={false} description={tpl.description} showcase />
 			</div>
 
-			{#if statRows.length > 0}
+			<!-- {#if statRows.length > 0}
 				<section class="panel">
 					<h3>Atributos</h3>
 					<div class="stats-grid">
@@ -191,11 +181,10 @@
 						{/each}
 					</ul>
 				</section>
-			{/if}
+			{/if} -->
 
 			<section class="panel">
-				<h3>Descricao</h3>
-				<p class="description">{tpl.description}</p>
+				<h3>Preço</h3>
 				{#if priceLabel}
 					<p class="price">Preco base: {priceLabel}</p>
 				{/if}
@@ -223,6 +212,7 @@
 		display: grid;
 		grid-template-columns: minmax(0, 180px) minmax(0, 1fr);
 		gap: 12px;
+		columns: 2;
 		align-items: center;
 	}
 
