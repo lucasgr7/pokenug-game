@@ -1,59 +1,102 @@
-import { ELEMENTS, type CardTemplate, type Element } from '$lib/game/types';
-import { ATTACK_TIERS, DEF_TIERS, HEAL_TIERS } from './card-constants';
+import type { CardTemplate } from '$lib/game/types';
 
-// Todos os elementos do jogo usados na geração de cartas compráveis.
-const SHOP_ATTACK_ELEMENTS: Element[] = ELEMENTS;
-
-// Nomes temáticos por elemento, indexados pelo tier (0 = mais fraco, 4 = mais forte).
-const elementAttackNames: Partial<Record<Element, [string, string, string, string, string]>> = {
-	fire:     ['Brasa',      'Chamas',             'Labareda',         'Inferno',              'Apocalipse'],
-	water:    ['Gota',       "Jato d'Água",         'Maré Alta',        'Tsunami',              'Dilúvio'],
-	grass:    ['Espinho',    'Chicote Trepadeira',  'Explosão Floral',  'Fúria da Selva',       'Colapso Natural'],
-	electric: ['Centelha',   'Descarga',            'Trovão',           'Relâmpago',            'Tempestade Elétrica'],
-	psychic:  ['Onda Mental','Telecinese',          'Choque Psíquico',  'Explosão Psiônica',    'Singularidade'],
-	rock:     ['Pedrada',    'Rochedão',            'Avalanche',        'Terremoto',            'Colapso Geológico'],
-};
-
-const elementLabel: Record<Element, string> = {
-	fire: 'Fogo',
-	water: 'Água',
-	grass: 'Planta',
-	electric: 'Elétrico',
-	normal: 'Normal',
-	fighting: 'Lutador',
-	psychic: 'Psíquico',
-	rock: 'Pedra',
-	ground: 'Terra',
-	flying: 'Voador',
-	bug: 'Inseto',
-	poison: 'Veneno',
-	ghost: 'Fantasma',
-	ice: 'Gelo',
-	dragon: 'Dragão'
-};
-
-// ---- Cartas iniciais (não compráveis, base do deck do jogador) ----
+// ---- Cartas neutras (starter) — nunca sofrem Misalignment ----
 export const STARTER_TEMPLATES: CardTemplate[] = [
+	// Ataques neutros
 	{
-		id: 'atk_basic',
-		name: 'Ataque Básico',
-		description: 'Causa 6 de dano.',
+		id: 'neu_atk_preciso',
+		name: 'Ataque Preciso',
+		description: 'Cause 4 de dano.',
+		cost: 0,
+		kind: 'attack',
+		element: null,
+		rarity: 'starter',
+		damage: 4
+	},
+	{
+		id: 'neu_atk_golpe_direto',
+		name: 'Golpe Direto',
+		description: 'Cause 8 de dano.',
 		cost: 1,
 		kind: 'attack',
 		element: null,
 		rarity: 'starter',
-		damage: 6
+		damage: 8
 	},
 	{
-		id: 'def_basic',
-		name: 'Defesa Básica',
-		description: 'Ganha 5 de bloqueio.',
+		id: 'neu_atk_investida',
+		name: 'Investida',
+		description: 'Cause 18 de dano.',
+		cost: 2,
+		kind: 'attack',
+		element: null,
+		rarity: 'starter',
+		damage: 18
+	},
+	// Defesas neutras
+	{
+		id: 'neu_def_bloqueio',
+		name: 'Bloqueio',
+		description: 'Ganha 6 de escudo.',
+		cost: 0,
+		kind: 'defense',
+		element: null,
+		rarity: 'starter',
+		block: 6
+	},
+	{
+		id: 'neu_def_postura',
+		name: 'Postura Defensiva',
+		description: 'Ganha 10 de escudo.',
 		cost: 1,
 		kind: 'defense',
 		element: null,
 		rarity: 'starter',
-		block: 5
+		block: 10
 	},
+	{
+		id: 'neu_def_recuo',
+		name: 'Recuo Estratégico',
+		description: 'Ganha 20 de escudo.',
+		cost: 2,
+		kind: 'defense',
+		element: null,
+		rarity: 'starter',
+		block: 20
+	},
+	// Suporte neutro
+	{
+		id: 'neu_sup_respiro',
+		name: 'Respiro',
+		description: 'Ganha +1 de energia neste turno.',
+		cost: 0,
+		kind: 'energy',
+		element: null,
+		rarity: 'starter',
+		manaGain: 1
+	},
+	{
+		id: 'neu_sup_concentracao',
+		name: 'Concentração',
+		description: 'Compre 1 carta.',
+		cost: 1,
+		kind: 'buff',
+		element: null,
+		rarity: 'starter',
+		drawCount: 1
+	},
+	{
+		id: 'neu_sup_reserva',
+		name: 'Reserva',
+		description: 'Compre 1 carta. Ganha 4 de escudo.',
+		cost: 1,
+		kind: 'defense',
+		element: null,
+		rarity: 'starter',
+		drawCount: 1,
+		block: 4
+	},
+	// Pokébola inicial
 	{
 		id: 'pokeball_basic',
 		name: 'Pokébola',
@@ -68,390 +111,718 @@ export const STARTER_TEMPLATES: CardTemplate[] = [
 
 // Composição do deck inicial: [templateId, quantidade]
 export const STARTER_DECK: Array<[string, number]> = [
-	['atk_basic', 5],
-	['def_basic', 5],
+	['neu_atk_preciso', 5],
+	['neu_def_bloqueio', 4],
+	['neu_sup_respiro', 2],
 	['pokeball_basic', 2]
 ];
 
-// ---- Catálogo comprável ----
-function buildCatalog(): CardTemplate[] {
-	const out: CardTemplate[] = [];
-
-	// Ataques com elemento: dano x elemento.
-	for (const el of SHOP_ATTACK_ELEMENTS) {
-		const names = elementAttackNames[el];
-		for (let i = 0; i < ATTACK_TIERS.length; i++) {
-			const t = ATTACK_TIERS[i];
-			const name = names ? names[i] : `Golpe de ${elementLabel[el]} ${t.damage}`;
-			out.push({
-				id: `atk_${el}_${t.damage}`,
-				name,
-				description: `Causa ${t.damage} de dano de ${elementLabel[el].toLowerCase()}.`,
-				cost: t.cost,
-				kind: 'attack',
-				element: el,
-				rarity: t.rarity,
-				tier: t.tier,
-				damage: t.damage,
-				price:
-					t.elemAmount > 0
-						? { money: t.money, element: { type: el, amount: t.elemAmount } }
-						: { money: t.money }
-			});
-		}
-	}
-
-	// Ataques pesados sem elemento.
-	out.push({
-		id: 'atk_heavy_20',
-		name: 'Pancada Pesada',
-		description: 'Causa 20 de dano. Sem elemento.',
+// ---- Catálogo comprável (GDD cards.md) ----
+export const CATALOG: CardTemplate[] = [
+	// ── Água ──────────────────────────────────────────────
+	{
+		id: 'water_splash',
+		name: 'Splash',
+		description: 'Cause 4 de dano. Compre 1 carta.',
+		cost: 0,
+		kind: 'attack',
+		element: 'water',
+		rarity: 'common',
+		damage: 4,
+		drawCount: 1,
+		price: { money: 40 }
+	},
+	{
+		id: 'water_fluxo',
+		name: 'Fluxo',
+		description: 'Cause 14 de dano. Compre 2 cartas.',
+		cost: 2,
+		kind: 'attack',
+		element: 'water',
+		rarity: 'rare',
+		damage: 14,
+		drawCount: 2,
+		price: { money: 90 }
+	},
+	{
+		id: 'water_torrent',
+		name: 'Torrent',
+		description: 'Cause 28 de dano.',
 		cost: 3,
 		kind: 'attack',
-		element: null,
-		rarity: 'rare',
-		tier: 2,
-		damage: 20,
-		price: { money: 110 }
-	});
-	out.push({
-		id: 'atk_heavy_28',
-		name: 'Esmagamento',
-		description: 'Causa 100 de dano. Sem elemento.',
-		cost: 4,
-		kind: 'attack',
-		element: null,
+		element: 'water',
 		rarity: 'epic',
-		tier: 2,
-		damage: 100,
+		damage: 28,
 		price: { money: 180 }
-	});
+	},
 
-	// Defesas.
-	for (const t of DEF_TIERS) {
-		out.push({
-			id: `def_${t.block}`,
-			name: `Escudo ${t.block}`,
-			description: `Ganha ${t.block} de bloqueio.`,
-			cost: t.cost,
-			kind: 'defense',
-			element: null,
-			rarity: t.rarity,
-			tier: t.tier,
-			block: t.block,
-			price: { money: t.money }
-		});
-	}
-
-	out.push({
-		id: 'def_fire_barriage',
-		name: 'Fire Barriage',
-		description: 'Ganha 20 de bloqueio. Reflete 10 de dano ao quebrar a barreira.',
-		cost: 2,
-		kind: 'defense',
+	// ── Fogo ──────────────────────────────────────────────
+	{
+		id: 'fire_chama_ardente',
+		name: 'Chama Ardente',
+		description: 'Cause 8 de dano. Você sofre 1 de dano.',
+		cost: 0,
+		kind: 'attack',
 		element: 'fire',
 		rarity: 'common',
-		tier: 1,
-		block: 20,
-		shieldEffect: 'fire_thorns',
-		price: { money: 10000, element: { type: 'fire', amount: 1000 } }
-	});
+		damage: 8,
+		selfDamage: 1,
+		price: { money: 40 }
+	},
+	{
+		id: 'fire_incineracao',
+		name: 'Incineração',
+		description: 'Cause 20 de dano. Você sofre 2 de dano.',
+		cost: 2,
+		kind: 'attack',
+		element: 'fire',
+		rarity: 'rare',
+		damage: 20,
+		selfDamage: 2,
+		price: { money: 90 }
+	},
+	{
+		id: 'fire_inferno',
+		name: 'Inferno',
+		description: 'Cause 30 de dano. Você sofre 8 de dano.',
+		cost: 2,
+		kind: 'attack',
+		element: 'fire',
+		rarity: 'rare',
+		damage: 30,
+		selfDamage: 8,
+		price: { money: 90 }
+	},
 
-	out.push({
-		id: 'def_ice_barriage',
-		name: 'Ice Barriage',
-		description: 'Ganha 30 de bloqueio. O dano inimigo é refletido enquanto houver barreira.',
+	// ── Grama ─────────────────────────────────────────────
+	{
+		id: 'grass_raiz_profunda',
+		name: 'Raiz Profunda',
+		description: 'Aplica ENRAIZADO(2) no inimigo. Cartas Grama causam dobro de dano enquanto ativo.',
+		cost: 2,
+		kind: 'debuff',
+		element: 'grass',
+		rarity: 'rare',
+		enraizadoTurns: 2,
+		price: { money: 90 }
+	},
+	{
+		id: 'grass_sementes',
+		name: 'Sementes de Vida',
+		description: 'Ganha +1 de energia. Compre 1 carta. [EXHAUST_COMBATE]',
+		cost: 0,
+		kind: 'energy',
+		element: 'grass',
+		rarity: 'rare',
+		manaGain: 1,
+		drawCount: 1,
+		exhaust: 'combat',
+		price: { money: 90 }
+	},
+	{
+		id: 'grass_brotos_ofensivos',
+		name: 'Brotos Ofensivos',
+		description: 'Cause 6 de dano (12 se ENRAIZADO ativo).',
+		cost: 1,
+		kind: 'attack',
+		element: 'grass',
+		rarity: 'common',
+		damage: 6,
+		artGrassDoubleIfEnraizado: true,
+		price: { money: 40 }
+	},
+	{
+		id: 'grass_espinhos',
+		name: 'Espinhos',
+		description: 'Ganha 12 de escudo. O escudo fornecido reduz -1 permanentemente a cada uso.',
+		cost: 1,
+		kind: 'defense',
+		element: 'grass',
+		rarity: 'common',
+		block: 12,
+		artBlockDecrement: true,
+		price: { money: 40 }
+	},
+
+	// ── Dragão ────────────────────────────────────────────
+	{
+		id: 'dragon_furia',
+		name: 'Fúria do Dragão',
+		description: 'Cause 10 de dano base + valor total de CARGA_DRAGÃO.',
+		cost: 2,
+		kind: 'attack',
+		element: 'dragon',
+		rarity: 'epic',
+		artFuriaDragao: true,
+		price: { money: 180, element: { type: 'dragon', amount: 60 } }
+	},
+	{
+		id: 'dragon_bafo',
+		name: 'Bafo Ancestral',
+		description: 'Compre 1 carta. Adiciona +8 em CARGA_DRAGÃO.',
+		cost: 1,
+		kind: 'buff',
+		element: 'dragon',
+		rarity: 'common',
+		drawCount: 1,
+		cargaDragaoGain: 8,
+		price: { money: 40 }
+	},
+	{
+		id: 'dragon_choque',
+		name: 'Choque Dracônico',
+		description: 'Cause 6 de dano. Adiciona +8 em CARGA_DRAGÃO.',
+		cost: 1,
+		kind: 'attack',
+		element: 'dragon',
+		rarity: 'common',
+		damage: 6,
+		cargaDragaoGain: 8,
+		price: { money: 40 }
+	},
+	{
+		id: 'dragon_poder',
+		name: 'Poder Canalizado',
+		description: '[POWER] Fúria do Dragão causa o dobro do dano total nesta luta. [EXHAUST_COMBATE]',
+		cost: 3,
+		kind: 'power',
+		element: 'dragon',
+		rarity: 'secret',
+		isPower: true,
+		artDuplicarDragao: true,
+		exhaust: 'combat',
+		price: { money: 300, element: { type: 'dragon', amount: 80 } }
+	},
+
+	// ── Psíquico ──────────────────────────────────────────
+	{
+		id: 'psychic_refluxo',
+		name: 'Refluxo Mental',
+		description: 'Todo dano sofrido no último turno é causado de volta ao inimigo (máx. 30).',
+		cost: 2,
+		kind: 'attack',
+		element: 'psychic',
+		rarity: 'epic',
+		price: { money: 180, element: { type: 'psychic', amount: 50 } }
+	},
+	{
+		id: 'psychic_espelho',
+		name: 'Espelho Psíquico',
+		description: 'Ganha 18 de escudo. [REFLEXO] 50% do dano absorvido é devolvido ao inimigo neste turno.',
+		cost: 2,
+		kind: 'defense',
+		element: 'psychic',
+		rarity: 'rare',
+		block: 18,
+		artReflexo: true,
+		price: { money: 90 }
+	},
+	{
+		id: 'psychic_mente',
+		name: 'Mente Contorcida',
+		description: 'Cause 13 de dano.',
+		cost: 1,
+		kind: 'attack',
+		element: 'psychic',
+		rarity: 'common',
+		damage: 13,
+		price: { money: 40 }
+	},
+	{
+		id: 'psychic_paradoxo',
+		name: 'Paradoxo Cerebral',
+		description: '[DUPLICAR_CARTA] A próxima carta jogada é executada duas vezes. [EXHAUST_COMBATE]',
+		cost: 2,
+		kind: 'buff',
+		element: 'psychic',
+		rarity: 'epic',
+		artDuplicarCarta: true,
+		exhaust: 'combat',
+		price: { money: 180 }
+	},
+
+	// ── Terra ─────────────────────────────────────────────
+	{
+		id: 'ground_imobilizacao',
+		name: 'Imobilização Total',
+		description: 'Aplica IMOBILIZADO(2) no inimigo (dano reduzido a 50% por 2 turnos).',
+		cost: 2,
+		kind: 'debuff',
+		element: 'ground',
+		rarity: 'rare',
+		imobilizadoTurns: 2,
+		price: { money: 90 }
+	},
+	{
+		id: 'ground_peso',
+		name: 'Peso da Terra',
+		description: 'Ganha 12 de escudo. Perde 1 de energia neste turno.',
+		cost: 0,
+		kind: 'defense',
+		element: 'ground',
+		rarity: 'common',
+		block: 12,
+		manaGain: -1,
+		price: { money: 40 }
+	},
+	{
+		id: 'ground_compressao',
+		name: 'Compressão Terrestre',
+		description: '[POWER] No próximo turno, comece com +1 de energia adicional.',
+		cost: 3,
+		kind: 'power',
+		element: 'ground',
+		rarity: 'secret',
+		isPower: true,
+		nextTurnBonusMana: 1,
+		price: { money: 300 }
+	},
+	{
+		id: 'ground_prisao',
+		name: 'Prisão Eterna',
+		description: 'Cause 5 de dano. Se o inimigo estiver IMOBILIZADO, duplica sua duração.',
+		cost: 1,
+		kind: 'attack',
+		element: 'ground',
+		rarity: 'rare',
+		damage: 5,
+		artPrisaoEterna: true,
+		price: { money: 90 }
+	},
+
+	// ── Lutador ───────────────────────────────────────────
+	{
+		id: 'fighting_rajada',
+		name: 'Rajada de Socos',
+		description: 'Cause 6 de dano. [COPIA_DESCARTE] Cria 1 cópia desta carta no descarte. (Limite: 2)',
+		cost: 0,
+		kind: 'attack',
+		element: 'fighting',
+		rarity: 'common',
+		damage: 6,
+		artCopiaDescarte: 2,
+		price: { money: 40 }
+	},
+	{
+		id: 'fighting_punho',
+		name: 'Punho Sincronizado',
+		description: '[POWER] [SEQUÊNCIA] Cartas Lutador consecutivas acumulam +2 de dano por carta. [EXHAUST_COMBATE]',
+		cost: 2,
+		kind: 'power',
+		element: 'fighting',
+		rarity: 'secret',
+		isPower: true,
+		artSequencia: true,
+		exhaust: 'combat',
+		price: { money: 300, element: { type: 'fighting', amount: 60 } }
+	},
+	{
+		id: 'fighting_serie',
+		name: 'Série de Ataques',
+		description: 'Cause 32 de dano.',
+		cost: 3,
+		kind: 'attack',
+		element: 'fighting',
+		rarity: 'epic',
+		damage: 32,
+		price: { money: 180 }
+	},
+	{
+		id: 'fighting_ritmo',
+		name: 'Ritmo Implacável',
+		description: '[POWER] [AUTO_JOGAR] Cartas Lutador na mão são jogadas automaticamente no início do turno. (Limite: 3)',
+		cost: 0,
+		kind: 'power',
+		element: 'fighting',
+		rarity: 'secret',
+		isPower: true,
+		artAutoJogar: true,
+		price: { money: 300, element: { type: 'fighting', amount: 60 } }
+	},
+
+	// ── Voador ────────────────────────────────────────────
+	{
+		id: 'flying_evasao_total',
+		name: 'Evasão Total',
+		description: 'Termine seu turno imediatamente. Próximo turno: compre +2 cartas e ganha +1 de energia.',
+		cost: 3,
+		kind: 'power',
+		element: 'flying',
+		rarity: 'epic',
+		artEndsTurn: true,
+		nextTurnBonusDraw: 2,
+		nextTurnBonusMana: 1,
+		price: { money: 180 }
+	},
+	{
+		id: 'flying_golpe_aereo',
+		name: 'Golpe Aéreo',
+		description: 'Cause 9 de dano. Se for o primeiro ataque do turno, compre 1 carta.',
+		cost: 1,
+		kind: 'attack',
+		element: 'flying',
+		rarity: 'common',
+		damage: 9,
+		price: { money: 40 }
+	},
+	{
+		id: 'flying_evasao',
+		name: 'Evasão',
+		description: 'Ganha 12 de escudo. Se não sofreu dano neste turno, ganha +4 de escudo adicional.',
+		cost: 1,
+		kind: 'defense',
+		element: 'flying',
+		rarity: 'common',
+		block: 12,
+		price: { money: 40 }
+	},
+
+	// ── Inseto ────────────────────────────────────────────
+	{
+		id: 'bug_picada',
+		name: 'Picada Rápida',
+		description: 'Cause 5 de dano. [EXHAUST_COMBATE] [PILHA_EXAURIR +1]',
+		cost: 0,
+		kind: 'attack',
+		element: 'bug',
+		rarity: 'common',
+		damage: 5,
+		exhaust: 'combat',
+		artPilhaExaurir: 1,
+		price: { money: 40 }
+	},
+	{
+		id: 'bug_corte',
+		name: 'Corte de Tesoura',
+		description: 'Cause 12 de dano. Exaure 1 carta Inseto da mão. [PILHA_EXAURIR +1]',
+		cost: 1,
+		kind: 'attack',
+		element: 'bug',
+		rarity: 'common',
+		damage: 12,
+		artPilhaExaurir: 1,
+		price: { money: 40 }
+	},
+	{
+		id: 'bug_nuvem',
+		name: 'Nuvem de Insetos',
+		description: 'Gere 3 cartas Picada Rápida (custo 0) na sua mão.',
+		cost: 1,
+		kind: 'buff',
+		element: 'bug',
+		rarity: 'rare',
+		generatesTokens: { templateId: 'bug_picada_token', count: 3 },
+		price: { money: 90 }
+	},
+	{
+		id: 'bug_enxame',
+		name: 'Enxame Voraz',
+		description: 'Cause 2 de dano por cada carta em PILHA_EXAURIR.',
+		cost: 2,
+		kind: 'attack',
+		element: 'bug',
+		rarity: 'epic',
+		price: { money: 180, element: { type: 'bug', amount: 50 } }
+	},
+
+	// ── Veneno ────────────────────────────────────────────
+	{
+		id: 'poison_intoxicacao',
+		name: 'Intoxicação',
+		description: 'Cause 5 de dano. [REDUZ_SHIELD] Escudo que o inimigo ganhar neste turno é reduzido a 50%.',
+		cost: 1,
+		kind: 'attack',
+		element: 'poison',
+		rarity: 'common',
+		damage: 5,
+		artReduzShield: true,
+		price: { money: 40 }
+	},
+	{
+		id: 'poison_morte_lenta',
+		name: 'Morte Lenta',
+		description: 'Cause 8 de dano. [REDUZ_BUFF] Buff de dano do inimigo neste turno é reduzido a 50%.',
+		cost: 1,
+		kind: 'attack',
+		element: 'poison',
+		rarity: 'rare',
+		damage: 8,
+		artReduzBuff: true,
+		price: { money: 90 }
+	},
+	{
+		id: 'poison_toxina',
+		name: 'Toxina Mortífera',
+		description: 'Cause 16 de dano. [AMPLIFICA] Dobra todos os efeitos negativos ativos no inimigo.',
+		cost: 3,
+		kind: 'attack',
+		element: 'poison',
+		rarity: 'epic',
+		damage: 16,
+		artAmplifica: true,
+		price: { money: 180, element: { type: 'poison', amount: 50 } }
+	},
+	{
+		id: 'poison_colapso',
+		name: 'Colapso Tóxico',
+		description: 'Por 5 turnos, o inimigo recebe FRAQUEZA(5) — +25% de dano recebido.',
+		cost: 3,
+		kind: 'debuff',
+		element: 'poison',
+		rarity: 'epic',
+		fraquezaStacks: 5,
+		price: { money: 180 }
+	},
+
+	// ── Fantasma ──────────────────────────────────────────
+	{
+		id: 'ghost_alma_penada',
+		name: 'Alma Penada',
+		description: 'Reduz dano do inimigo em 1 permanentemente. Exaure 1 carta aleatória da mão. [EXHAUST_RUN desta carta]',
+		cost: 0,
+		kind: 'debuff',
+		element: 'ghost',
+		rarity: 'rare',
+		artGhostPermDebuff: true,
+		exhaust: 'run',
+		price: { money: 90 }
+	},
+	{
+		id: 'ghost_espectro',
+		name: 'Espectro Voraz',
+		description: 'Cause 18 de dano. Reduz seu HP máximo em 4.',
+		cost: 1,
+		kind: 'attack',
+		element: 'ghost',
+		rarity: 'rare',
+		damage: 18,
+		selfMaxHpReduction: 4,
+		price: { money: 90 }
+	},
+	{
+		id: 'ghost_assombracao',
+		name: 'Assombração Progressiva',
+		description: '[POWER] Cartas Fantasma ganham +1 de dano a cada turno desta luta.',
+		cost: 3,
+		kind: 'power',
+		element: 'ghost',
+		rarity: 'secret',
+		isPower: true,
+		price: { money: 300, element: { type: 'ghost', amount: 60 } }
+	},
+	{
+		id: 'ghost_fantasmagoria',
+		name: 'Fantasmagoria',
+		description: 'Cause 8 de dano e ganha 8 de escudo.',
+		cost: 2,
+		kind: 'attack',
+		element: 'ghost',
+		rarity: 'common',
+		damage: 8,
+		block: 8,
+		price: { money: 40 }
+	},
+	{
+		id: 'ghost_maldicao',
+		name: 'Maldição Eterna',
+		description: 'Perca 1 de HP máximo. Ganha +1 de energia e compre 1 carta.',
+		cost: 1,
+		kind: 'buff',
+		element: 'ghost',
+		rarity: 'rare',
+		selfMaxHpReduction: 1,
+		manaGain: 1,
+		drawCount: 1,
+		price: { money: 90 }
+	},
+
+	// ── Gelo ──────────────────────────────────────────────
+	{
+		id: 'ice_congelamento',
+		name: 'Congelamento Progressivo',
+		description: '[POWER] Cause 3 de dano por cada carta Gelo jogada nesta luta.',
+		cost: 2,
+		kind: 'power',
+		element: 'ice',
+		rarity: 'secret',
+		isPower: true,
+		artCongelamento: true,
+		price: { money: 300, element: { type: 'ice', amount: 60 } }
+	},
+	{
+		id: 'ice_cristal',
+		name: 'Cristal Imobilizante',
+		description: 'Cause 11 de dano. [DUPLICAR_CARTA] A próxima carta Gelo jogada é executada duas vezes.',
+		cost: 1,
+		kind: 'attack',
+		element: 'ice',
+		rarity: 'rare',
+		damage: 11,
+		artDuplicarCarta: true,
+		price: { money: 90 }
+	},
+	{
+		id: 'ice_friagem',
+		name: 'Friagem Cortante',
+		description: 'Cause 14 de dano. Aplica FRAQUEZA(1) no inimigo por 1 turno.',
+		cost: 2,
+		kind: 'attack',
+		element: 'ice',
+		rarity: 'rare',
+		damage: 14,
+		fraquezaStacks: 1,
+		price: { money: 90 }
+	},
+	{
+		id: 'ice_glaciacao',
+		name: 'Glaciação',
+		description: 'Ganha 20 de escudo. Se o escudo for completamente destruído, cause 20 de dano ao inimigo.',
 		cost: 2,
 		kind: 'defense',
 		element: 'ice',
 		rarity: 'epic',
-		tier: 3,
-		block: 30,
-		shieldEffect: 'ice_reflect',
-		price: { money: 100000, element: { type: 'ice', amount: 10000 } }
-	});
+		block: 20,
+		artRevengeShield: 20,
+		price: { money: 180 }
+	},
 
-	out.push({
-		id: 'def_rock_barriage',
-		name: 'Rock Barriage',
-		description: 'Ganha 30 de bloqueio. A barreira permanece até o próximo turno inimigo.',
-		cost: 1,
+	// ── Eletricidade ──────────────────────────────────────
+	{
+		id: 'electric_sobrecarga',
+		name: 'Sobrecarga',
+		description: 'Ativa DANO_ELÉTRICO(2): cada carta jogada causa +2 de dano elétrico até o fim do combate.',
+		cost: 3,
+		kind: 'power',
+		element: 'electric',
+		rarity: 'epic',
+		artDanoEletrico: 2,
+		price: { money: 180, element: { type: 'electric', amount: 50 } }
+	},
+	{
+		id: 'electric_descarga',
+		name: 'Descarga Elétrica',
+		description: 'Descarte todas as cartas da mão. Cause 2 de dano por carta descartada.',
+		cost: 2,
+		kind: 'attack',
+		element: 'electric',
+		rarity: 'rare',
+		price: { money: 90 }
+	},
+	{
+		id: 'electric_eletrocussao',
+		name: 'Eletrocussão',
+		description: 'Ganha 8 de escudo. [CANCEL_ESCUDO] Se o inimigo for usar escudo neste turno, cancela sua ação.',
+		cost: 2,
+		kind: 'defense',
+		element: 'electric',
+		rarity: 'rare',
+		block: 8,
+		artCancelEscudo: true,
+		price: { money: 90 }
+	},
+
+	// ── Pedra ─────────────────────────────────────────────
+	{
+		id: 'rock_muralha',
+		name: 'Muralha de Pedra',
+		description: '[ESCUDO_PERSISTE] O escudo atual não decai no início do próximo turno. [EXHAUST_COMBATE]',
+		cost: 3,
+		kind: 'defense',
+		element: 'rock',
+		rarity: 'epic',
+		exhaust: 'combat',
+		price: { money: 180, element: { type: 'rock', amount: 50 } }
+	},
+	{
+		id: 'rock_barreira',
+		name: 'Barreira Mineral',
+		description: 'Ganha 10 de escudo. [COPIA_DESCARTE] Cria 1 cópia com -1 de defesa no descarte. (Limite: 3)',
+		cost: 0,
 		kind: 'defense',
 		element: 'rock',
 		rarity: 'rare',
-		tier: 2,
-		block: 30,
-		shieldEffect: 'rock_persist',
-		price: { money: 50000, element: { type: 'rock', amount: 10000 } }
-	});
-
-	out.push({
-		id: 'def_psyche_barriage',
-		name: 'Psyche Barriage',
-		description: 'Ganha 20 de bloqueio.',
-		cost: 0,
-		kind: 'defense',
-		element: 'psychic',
-		rarity: 'rare',
-		tier: 2,
-		block: 20,
-		price: { money: 100000, element: { type: 'psychic', amount: 10000 } }
-	});
-
-	// Cura.
-	for (const t of HEAL_TIERS) {
-		out.push({
-			id: `heal_${t.heal}`,
-			name: `Cura ${t.heal}`,
-			description: `Restaura ${t.heal} de HP do pokémon ativo.`,
-			cost: t.cost,
-			kind: 'heal',
-			element: null,
-			rarity: t.rarity,
-			tier: t.tier,
-			healHp: t.heal,
-			price: { money: t.money }
-		});
-	}
-
-	// Pokébolas aprimoradas.
-	const ballTiers: Array<{ id: string; bonus: number; rarity: CardTemplate['rarity']; money: number; tier: number }> = [
-		{ id: 'pokeball_great', bonus: 0.15, rarity: 'common', money: 600, tier: 1 },
-		{ id: 'pokeball_ultra', bonus: 0.3, rarity: 'rare', money: 1200, tier: 2 },
-		{ id: 'pokeball_master', bonus: 0.5, rarity: 'epic', money: 2000, tier: 3 }
-	];
-	for (const t of ballTiers) {
-		out.push({
-			id: t.id,
-			name:
-				t.id === 'pokeball_great'
-					? 'Great Ball'
-					: t.id === 'pokeball_ultra'
-						? 'Ultra Ball'
-						: 'Master Ball',
-			description: `Captura com +${Math.round(t.bonus * 100)}% de chance.`,
-			cost: 2,
-			kind: 'capture',
-			element: null,
-			rarity: t.rarity,
-			tier: t.tier,
-			captureBonus: t.bonus,
-			price: { money: t.money }
-		});
-	}
-
-	// Buffs de próximo dano.
-	const buffTiers: Array<{ next: number; cost: number; rarity: CardTemplate['rarity']; money: number; tier: number }> = [
-		{ next: 8, cost: 1, rarity: 'common', money: 50, tier: 1 },
-		{ next: 15, cost: 2, rarity: 'rare', money: 100, tier: 2 }
-	];
-	for (const t of buffTiers) {
-		out.push({
-			id: `buff_${t.next}`,
-			name: `Foco +${t.next}`,
-			description: `Aumenta o próximo ataque em ${t.next}.`,
-			cost: t.cost,
-			kind: 'buff',
-			element: null,
-			rarity: t.rarity,
-			tier: t.tier,
-			buffAmount: t.next,
-			price: { money: t.money }
-		});
-	}
-
-	// Vínculo Parental: próximo ataque acerta múltiplas vezes
-	const parentalBondTiers: Array<{ id: string; name: string; hits: number; cost: number; rarity: CardTemplate['rarity']; money: number }> = [
-		{ id: 'combo_double',       name: 'Vínculo Parental',  hits: 2, cost: 1, rarity: 'common', money: 120 },
-		{ id: 'combo_triple_rare',  name: 'Vínculo Supremo',   hits: 3, cost: 2, rarity: 'rare',   money: 350 },
-		{ id: 'combo_triple_epic',  name: 'Vínculo Supremo+',  hits: 3, cost: 1, rarity: 'epic',   money: 600 }
-	];
-	for (const t of parentalBondTiers) {
-		out.push({
-			id: t.id,
-			name: t.name,
-			description: `Próximo ataque acerta ${t.hits === 2 ? 'duas' : 'três'} vezes.`,
-			cost: t.cost,
-			kind: 'combo',
-			element: null,
-			rarity: t.rarity,
-			attackRepeat: t.hits - 1,
-			price: { money: t.money }
-		});
-	}
-
-	// Estamina: recupera mana neste turno
-	const staminaTiers: Array<{ id: string; name: string; mana: number; cost: number; rarity: CardTemplate['rarity']; money: number }> = [
-		{ id: 'energy_common', name: 'Estamina',    mana: 2, cost: 1, rarity: 'common', money: 150 },
-		{ id: 'energy_rare',   name: 'Estamina II', mana: 3, cost: 1, rarity: 'rare',   money: 300 },
-		{ id: 'energy_epic',   name: 'Estamina III',mana: 3, cost: 0, rarity: 'epic',   money: 500 }
-	];
-	for (const t of staminaTiers) {
-		out.push({
-			id: t.id,
-			name: t.name,
-			description: `Recupera ${t.mana} de energia neste turno.`,
-			cost: t.cost,
-			kind: 'energy',
-			element: null,
-			rarity: t.rarity,
-			manaGain: t.mana,
-			price: { money: t.money }
-		});
-	}
-
-	// Splash: ataque leve que repõe a carta jogada.
-	out.push({
-		id: 'atk_splash',
-		name: 'Splash',
-		description: 'Causa 5 de dano de água. Compre 1 carta.',
-		cost: 0,
-		kind: 'attack',
-		element: 'water',
-		rarity: 'rare',
-		tier: 1,
-		damage: 5,
-		drawCount: 1,
-		price: { money: 220, element: { type: 'water', amount: 30 } }
-	});
-
-	// Relíquia: Forma Fantasma — usada uma vez na batalha, fora do deck
-	out.push({
-		id: 'relic_ghost_form',
-		name: 'Forma Fantasma',
-		description: 'Todo dano recebido neste turno é reduzido a 1.',
-		cost: 0,
-		kind: 'relic',
-		element: 'ghost',
-		rarity: 'epic',
-		price: { money: 15000, element: { type: 'ghost', amount: 500 } }
-	});
-
-	// Carta de poder: Fúria (Berserk)
-	out.push({
-		id: 'power_berserk',
-		name: 'Fúria',
-		description: 'Ataque ×2 e defesa ÷2 por toda a batalha.',
-		cost: 3,
-		kind: 'power',
-		element: null,
-		rarity: 'epic',
-		price: { money: 1500 }
-	});
-
-	// Carta de poder: Dragonize
-	out.push({
-		id: 'power_dragonize',
-		name: 'Dragonize',
-		description: 'Seus ataques comuns passam a ser do elemento dragão por toda a batalha.',
-		cost: 3,
-		kind: 'power',
-		element: 'dragon',
-		rarity: 'rare',
-		price: { money: 100000, element: { type: 'dragon', amount: 2000 } }
-	});
-
-	// Carta de poder: Especializar
-	out.push({
-		id: 'power_specialize',
-		name: 'Especializar',
-		description: 'Iniciais ganham o tipo do seu pokémon ativo.',
-		cost: 4,
-		kind: 'power',
-		element: null,
-		rarity: 'rare',
-		price: { money: 800 }
-	});
-
-	// Carta de poder: Choque Elétrico
-	out.push({
-		id: 'power_electric_shock',
-		name: 'Choque Elétrico',
-		description: 'Cada carta jogada causa 2 de dano elétrico.',
-		cost: 2,
-		kind: 'power',
-		element: 'electric',
-		rarity: 'rare',
-		tier: 2,
-		price: { money: 2200, element: { type: 'electric', amount: 350 } }
-	});
-
-	// Carta de debuff: Intimidate
-	out.push({
-		id: 'debuff_intimidate',
-		name: 'Intimidate',
-		description: 'Reduz o dano do inimigo em 50% pelos próximos 2 turnos.',
-		cost: 2,
-		kind: 'debuff',
-		element: null,
-		rarity: 'common',
-		debuffAmount: 0.5,
-		debuffDuration: 2,
-		price: { money: 300 }
-	});
-
-	return out;
-}
-
-export const CATALOG: CardTemplate[] = buildCatalog();
-
-export const SECRET_TEMPLATES: CardTemplate[] = [
-	{
-		id: 'atk_secret_judgement',
-		name: 'Juízo Final',
-		description: 'Causa 64 de dano elétrico.',
-		cost: 1,
-		kind: 'attack',
-		element: 'electric',
-		rarity: 'secret',
-		damage: 64
+		block: 10,
+		artCopiaDescarte: 3,
+		price: { money: 90 }
 	},
 	{
-		id: 'buff_secret_prophecy',
-		name: 'Profecia',
-		description: 'Aumenta o próximo ataque em 40.',
+		id: 'rock_fortaleza',
+		name: 'Fortaleza de Silex',
+		description: 'Duplica o escudo atual. [EXHAUST_COMBATE]',
+		cost: 2,
+		kind: 'defense',
+		element: 'rock',
+		rarity: 'epic',
+		exhaust: 'combat',
+		price: { money: 180 }
+	},
+	{
+		id: 'rock_rocha_imovel',
+		name: 'Rocha Imóvel',
+		description: 'Se você tiver escudo no fim deste turno, ganha +1 de energia no próximo turno.',
 		cost: 0,
 		kind: 'buff',
-		element: 'psychic',
-		rarity: 'secret',
-		buffAmount: 40
+		element: 'rock',
+		rarity: 'rare',
+		price: { money: 90 }
+	},
+
+	// ── Pokébolas aprimoradas ─────────────────────────────
+	{
+		id: 'pokeball_great',
+		name: 'Great Ball',
+		description: 'Captura com +15% de chance.',
+		cost: 2,
+		kind: 'capture',
+		element: null,
+		rarity: 'common',
+		captureBonus: 0.15,
+		price: { money: 600 }
 	},
 	{
-		id: 'energy_secret_core',
-		name: 'Núcleo Z',
-		description: 'Recupera 5 de energia neste turno.',
-		cost: 0,
-		kind: 'energy',
-		element: 'dragon',
-		rarity: 'secret',
-		manaGain: 5
+		id: 'pokeball_ultra',
+		name: 'Ultra Ball',
+		description: 'Captura com +30% de chance.',
+		cost: 2,
+		kind: 'capture',
+		element: null,
+		rarity: 'rare',
+		captureBonus: 0.3,
+		price: { money: 1200 }
 	},
 	{
-		id: 'combo_secret_hydra',
-		name: 'Hidra Prime',
-		description: 'Próximo ataque acerta quatro vezes.',
-		cost: 1,
-		kind: 'combo',
-		element: 'water',
-		rarity: 'secret',
-		attackRepeat: 3
-	},
-	{
-		id: 'def_secret_aegis',
-		name: 'Aegis Total',
-		description: 'Ganha 60 de bloqueio.',
-		cost: 1,
-		kind: 'defense',
-		element: 'ghost',
-		rarity: 'secret',
-		block: 60
+		id: 'pokeball_master',
+		name: 'Master Ball',
+		description: 'Captura com +50% de chance.',
+		cost: 2,
+		kind: 'capture',
+		element: null,
+		rarity: 'epic',
+		captureBonus: 0.5,
+		price: { money: 2000 }
 	}
 ];
 
-// Todos os templates (iniciais + compráveis) indexados por id.
+// Tokens gerados em combate — nunca aparecem na loja, mas existem no template index
+export const TOKEN_TEMPLATES: CardTemplate[] = [
+	{
+		id: 'bug_picada_token',
+		name: 'Picada Rápida',
+		description: 'Cause 5 de dano. [EXHAUST_RUN] [PILHA_EXAURIR +1]',
+		cost: 0,
+		kind: 'attack',
+		element: 'bug',
+		rarity: 'common',
+		damage: 5,
+		exhaust: 'run',
+		artPilhaExaurir: 1
+	}
+];
+
+// Todos os templates indexados por id.
 export const CARD_TEMPLATES: Record<string, CardTemplate> = (() => {
 	const map: Record<string, CardTemplate> = {};
-	for (const t of [...STARTER_TEMPLATES, ...CATALOG, ...SECRET_TEMPLATES]) map[t.id] = t;
+	for (const t of [...STARTER_TEMPLATES, ...CATALOG, ...TOKEN_TEMPLATES]) map[t.id] = t;
 	return map;
 })();
 
