@@ -13,11 +13,15 @@ import { CATALOG, getTemplate } from '$lib/data/cards';
 import { savePlayer } from '$lib/db/player';
 import { getRegion, nextRegion, getRegionScaling } from '$lib/data/regions';
 import { fetchPokemon } from '$lib/api/pokeapi';
-import { getElementInteraction } from './type-chart';
+import {
+	applyCardEffect,
+	isPermanentlyConsumed,
+	resolveTypedDamage,
+	resolvePlayerAttackElement,
+	type CardEffectCtx
+} from './card-effects';
 import { pick, randomInt, shuffle, weightedPick } from '$lib/utils/rng';
-import { clamp } from '$lib/utils/math';
 import { now } from '$lib/utils/time';
-import { pushToast } from '$lib/stores/toast.svelte';
 import {
 	activePokemon,
 	addElementPoints,
@@ -25,7 +29,6 @@ import {
 	addToRoster,
 	applyElementalHpBonusToPokemon,
 	game,
-	getElementalDamageLevel,
 	normalizedPokemonHp,
 	recordDefeat,
 	setPokemonCurrentHp,
@@ -66,9 +69,6 @@ export const battle = $state<BattleStore>({
 
 const HAND_SIZE = 5;
 const START_MANA = 3;
-// NGU scaling constants — tune here if balancing is needed.
-const GLOBAL_DAMAGE_PER_LEVEL = 3;
-const DAMAGE_PER_POKEMON_BUFF = 2;
 const ELEMENT_POINTS_PER_MAX_HP = 15; // floor(enemyMaxHp / this) = element points awarded
 const BOSS_HP_MULTIPLIER = 3;
 
@@ -103,13 +103,6 @@ export interface EnemyTurnResult {
 	buffAmount?: number; // next-damage bonus added
 }
 
-interface TypedDamageSummary {
-	damage: number;
-	effectiveness: number;
-	modifierAmount: number;
-	modifierText: string;
-}
-
 // ── Enemy intent ──────────────────────────────────────────────────────────
 
 function rollIntent(enemyHp: number, enemyMaxHp: number, turnNumber: number, scaling: number, enemyElement: Element): EnemyIntent {
@@ -126,13 +119,6 @@ function rollIntent(enemyHp: number, enemyMaxHp: number, turnNumber: number, sca
 }
 
 // ── Card draw ─────────────────────────────────────────────────────────────
-
-function isPermanentlyConsumed(tpl: CardTemplate | null | undefined): boolean {
-	if (!tpl) return false;
-	if (tpl.exhaust === 'run') return true;
-	if (tpl.kind === 'capture' && tpl.rarity !== 'starter') return true;
-	return false;
-}
 
 function dropInvalidCards(cards: Card[]): { validCards: Card[]; removedCount: number } {
 	const validCards: Card[] = [];
@@ -244,7 +230,7 @@ function drawCards(count: number, turnStart = false): void {
 				if (idx < 0) continue;
 				// Auto-play without mana cost
 				s.hand.splice(idx, 1);
-				applyCardEffect(s, autoTpl, autoCard);
+				applyCardEffect(createCtx(s), autoTpl, autoCard);
 				discardOrExhaust(autoCard);
 				s.player.autoJogarUsedThisTurn++;
 			}
@@ -311,6 +297,15 @@ function dealToPlayer(amount: number): number {
 	return Math.min(blockBefore, amount);
 }
 
+function createCtx(s: BattleState): CardEffectCtx {
+	return {
+		s,
+		dealToEnemy: (amount) => dealToEnemy(amount),
+		dealToPlayer: (amount) => dealToPlayer(amount),
+		draw: (count) => drawCards(count)
+	};
+}
+
 // ── Card exhaustion ───────────────────────────────────────────────────────
 
 function shouldExhaust(card: Card): boolean {
@@ -346,48 +341,7 @@ function discardHand(s: BattleState): void {
 	s.hand = [];
 }
 
-// ── Card effect ───────────────────────────────────────────────────────────
-
-function playerAttackBonus(): number {
-	const s = battle.state!;
-	return (
-		getElementalDamageLevel(s.player.pokemon.element) * GLOBAL_DAMAGE_PER_LEVEL +
-		(s.player.pokemon.damageBuffs ?? 0) * DAMAGE_PER_POKEMON_BUFF
-	);
-}
-
-function resolveTypedDamage(
-	baseDamage: number,
-	attackerElement: Element | null | undefined,
-	defenderElement: Element
-): TypedDamageSummary {
-	const neutralDamage = Math.max(0, Math.round(baseDamage));
-	if (!attackerElement) {
-		return {
-			damage: neutralDamage,
-			effectiveness: 1,
-			modifierAmount: 0,
-			modifierText: ''
-		};
-	}
-
-	const interaction = getElementInteraction(attackerElement, defenderElement);
-	const damage = Math.max(0, Math.round(neutralDamage * interaction.multiplier));
-
-	return {
-		damage,
-		effectiveness: interaction.multiplier,
-		modifierAmount: damage - neutralDamage,
-		modifierText: interaction.modifierText
-	};
-}
-
-function resolvePlayerAttackElement(s: BattleState, tpl: CardTemplate): Element | null {
-	let attackElement = tpl.element;
-	if (s.player.dragonize && (!attackElement || attackElement === 'normal')) attackElement = 'dragon';
-	if (s.player.specialize && tpl.rarity === 'starter' && !attackElement) attackElement = s.player.pokemon.element;
-	return attackElement;
-}
+// ── Static shock ──────────────────────────────────────────────────────────
 
 function applyStaticShock(s: BattleState): number {
 	if (s.status !== 'active' || s.player.staticShockDamage <= 0) return 0;
@@ -396,309 +350,6 @@ function applyStaticShock(s: BattleState): number {
 	const enemyHpBefore = s.enemy.hp;
 	dealToEnemy(shockDamage);
 	return Math.max(0, enemyHpBefore - s.enemy.hp);
-}
-
-function countCardCopies(s: BattleState, templateId: string): number {
-	return [...s.deck, ...s.hand, ...s.discard].filter((c) => c.templateId === templateId).length;
-}
-
-function applyCardEffect(s: BattleState, tpl: CardTemplate, card?: Card): void {
-	// ── Kind-specific behavior ─────────────────────────────────────────
-	switch (tpl.kind) {
-		case 'attack': {
-			const attackElement = resolvePlayerAttackElement(s, tpl);
-			let base = s.player.nextDamageBonus + playerAttackBonus();
-
-			// Fúria do Dragão: special damage formula
-			if (tpl.artFuriaDragao) {
-				const dragBase = 10 + s.player.cargaDragao;
-				base += s.player.furiaDragaoDouble ? dragBase * 2 : dragBase;
-			} else {
-				base += tpl.damage ?? 0;
-			}
-
-			// SEQUENCIA (ART-17): bonus for consecutive fighter cards
-			if (s.player.sequenciaActive) {
-				if (attackElement === 'fighting') {
-					base += s.player.sequenciaCount * 2;
-					s.player.sequenciaCount++;
-				} else {
-					s.player.sequenciaCount = 0;
-				}
-			}
-
-			// Assombração Progressiva: bonus for ghost attack cards
-			if (s.player.assombracaoActive && attackElement === 'ghost') {
-				base += s.player.assombracaoBonus;
-			}
-
-			s.player.nextDamageBonus = 0;
-			const berserkMult = s.player.berserk ? 2 : 1;
-			const attackTyped = resolveTypedDamage(base * berserkMult, attackElement, s.enemy.pokemon.element);
-			let finalDamage = attackTyped.damage;
-
-			// ENRAIZADO (ART-06): grass cards deal double
-			if (tpl.artGrassDoubleIfEnraizado && s.enemy.enraizadoTurns > 0) finalDamage *= 2;
-
-			// FRAQUEZA (ART-05): +25% per stack
-			if (s.enemy.fraquezaStacks > 0)
-				finalDamage = Math.floor(finalDamage * (1 + 0.25 * s.enemy.fraquezaStacks));
-
-			// Congelamento Progressivo: track ice cards played
-			if (attackElement === 'ice') s.player.iceCardsPlayedThisCombat++;
-
-			const hits = 1 + s.player.attackRepeat;
-			s.player.attackRepeat = 0;
-			for (let i = 0; i < hits; i++) dealToEnemy(finalDamage);
-
-			// Golpe Aéreo: draw 1 if first attack this turn
-			if (tpl.id === 'flying_golpe_aereo' && s.player.firstAttackThisTurn) drawCards(1);
-			s.player.firstAttackThisTurn = false;
-
-			// Descarga Elétrica: discard hand, deal 2 per card discarded
-			if (tpl.id === 'electric_descarga') {
-				const discardCount = s.hand.length;
-				s.discard.push(...s.hand);
-				s.hand = [];
-				if (discardCount > 0) dealToEnemy(discardCount * 2);
-			}
-
-			// Refluxo Mental: deal back damage received last turn (max 30)
-			if (tpl.id === 'psychic_refluxo') {
-				const refluxo = Math.min(s.player.damageReceivedLastTurn, 30);
-				if (refluxo > 0) dealToEnemy(refluxo);
-			}
-
-			// Enxame Voraz: 2 × PILHA_EXAURIR
-			if (tpl.id === 'bug_enxame' && s.pilhaExaurir > 0) dealToEnemy(2 * s.pilhaExaurir);
-
-			// Corte de Tesoura: exhaust 1 insect card from hand
-			if (tpl.id === 'bug_corte') {
-				const insectIdx = s.hand.findIndex((c) => getTemplate(c.templateId)?.element === 'bug');
-				if (insectIdx >= 0) {
-					const insectCard = s.hand.splice(insectIdx, 1)[0];
-					const insectTpl = getTemplate(insectCard.templateId);
-					s.exhausted.push(insectCard);
-					if (isPermanentlyConsumed(insectTpl)) {
-						void removeFromDeck(insectCard.id);
-						void removeFromInventory(insectCard.id);
-					}
-					if (insectTpl?.artPilhaExaurir) {
-						s.pilhaExaurir += insectTpl.artPilhaExaurir;
-					}
-				}
-			}
-			break;
-		}
-
-		case 'defense': {
-			// Effective block with per-instance modifier (Espinhos artBlockDecrement)
-			const baseBlock = tpl.block ?? 0;
-			const cardModifier = card?.modifier ?? 0;
-			let block = Math.max(0, baseBlock + cardModifier);
-			if (s.player.berserk) block = Math.max(1, Math.floor(block / 2));
-			s.player.block += block;
-
-			// Shield effects
-			if (tpl.id === 'rock_muralha') {
-				s.player.shieldPersists = true;
-			} else if (tpl.shieldEffect) {
-				s.player.shieldEffect = tpl.shieldEffect;
-			}
-
-			// artRevengeShield (Glaciação)
-			if (tpl.artRevengeShield) s.player.revengeShieldDamage = tpl.artRevengeShield;
-
-			// Evasão: +4 block if no damage taken this turn
-			if (tpl.id === 'flying_evasao' && !s.player.damageSufferedThisTurn) s.player.block += 4;
-
-			// Fortaleza de Silex: double current total block
-			if (tpl.id === 'rock_fortaleza') s.player.block *= 2;
-
-			// Rocha Imóvel: mark to check at end of turn
-			if (tpl.id === 'rock_rocha_imovel') s.player.rochaImovelPending = true;
-			break;
-		}
-
-		case 'heal':
-			s.player.hp = Math.min(s.player.pokemon.maxHp, s.player.hp + (tpl.healHp ?? 0));
-			break;
-
-		case 'buff':
-			if (tpl.buffAmount) s.player.nextDamageBonus += tpl.buffAmount;
-			break;
-
-		case 'capture': {
-			if (s.mode === 'boss' && s.bossFirstFightBlockedCapture) {
-				pushToast('Primeira luta contra este boss nao permite captura.', 'error');
-				break;
-			}
-			const ratio = s.enemy.pokemon.maxHp > 0 ? s.enemy.hp / s.enemy.pokemon.maxHp : 0;
-			const chance = clamp(1 - ratio + (tpl.captureBonus ?? 0), 0, 1);
-			if (Math.random() < chance) s.status = 'captured';
-			break;
-		}
-
-		case 'power':
-			// Legacy power cards (saves compatibility)
-			if (tpl.id === 'power_berserk') s.player.berserk = true;
-			if (tpl.id === 'power_dragonize') s.player.dragonize = true;
-			if (tpl.id === 'power_electric_shock') s.player.staticShockDamage += 2;
-			if (tpl.id === 'power_specialize') s.player.specialize = true;
-			// Assombração Progressiva
-			if (tpl.id === 'ghost_assombracao') { s.player.assombracaoActive = true; s.player.assombracaoBonus = 0; }
-			// Congelamento Progressivo: deal 3 × ice cards played
-			if (tpl.artCongelamento) {
-				const congDmg = 3 * s.player.iceCardsPlayedThisCombat;
-				if (congDmg > 0) dealToEnemy(congDmg);
-				// Also track this ice card itself
-				s.player.iceCardsPlayedThisCombat++;
-			}
-			// artEndsTurn (Evasão Total): handled in playCard after applyCardEffect
-			break;
-
-		case 'relic':
-			s.player.ghostForm = true;
-			break;
-
-		case 'energy':
-			// manaGain applied universally below
-			break;
-
-		case 'combo':
-			s.player.attackRepeat = tpl.attackRepeat ?? 1;
-			break;
-
-		case 'debuff':
-			// Legacy intimidate
-			if (tpl.debuffDuration && tpl.debuffAmount) {
-				s.enemy.intimidateTurnsLeft = tpl.debuffDuration;
-				s.enemy.intimidateDamageReduction = tpl.debuffAmount;
-			}
-			break;
-	}
-
-	// ── Universal effects (apply for any kind) ─────────────────────────
-
-	// Mana gain/loss
-	if (tpl.manaGain) {
-		s.player.mana = clamp(s.player.mana + tpl.manaGain, 0, 6);
-	}
-
-	// Draw cards from card effect
-	if ((tpl.drawCount ?? 0) > 0) drawCards(tpl.drawCount ?? 0);
-
-	// Self-damage (Fogo cards)
-	if (tpl.selfDamage) {
-		s.player.hp = Math.max(0, s.player.hp - tpl.selfDamage);
-	}
-
-	// Max HP reduction (Fantasma cards)
-	if (tpl.selfMaxHpReduction) {
-		s.player.pokemon.maxHp = Math.max(1, s.player.pokemon.maxHp - tpl.selfMaxHpReduction);
-		s.player.hp = Math.min(s.player.hp, s.player.pokemon.maxHp);
-	}
-
-	// IMOBILIZADO (ART-04)
-	if (tpl.imobilizadoTurns) s.enemy.imobilizadoTurns += tpl.imobilizadoTurns;
-
-	// FRAQUEZA (ART-05) — stacks added via card
-	if (tpl.fraquezaStacks) s.enemy.fraquezaStacks += tpl.fraquezaStacks;
-
-	// ENRAIZADO (ART-06)
-	if (tpl.enraizadoTurns) s.enemy.enraizadoTurns += tpl.enraizadoTurns;
-
-	// CARGA_DRAGAO (ART-07)
-	if (tpl.cargaDragaoGain) {
-		s.player.cargaDragao += tpl.cargaDragaoGain;
-		const newGrants = Math.floor(s.player.cargaDragao / 4);
-		const grantDiff = newGrants - s.player.cargaDragaoEnergyGranted;
-		if (grantDiff > 0) {
-			s.player.mana = Math.min(s.player.mana + grantDiff * 2, 6);
-			s.player.cargaDragaoEnergyGranted = newGrants;
-		}
-	}
-
-	// REFLEXO (ART-09)
-	if (tpl.artReflexo) s.player.reflexoActive = true;
-
-	// DUPLICAR_CARTA (ART-10): set flag — handled in playCard
-	if (tpl.artDuplicarCarta) s.player.duplicarCartaActive = true;
-
-	// DANO_ELETRICO (ART-11)
-	if (tpl.artDanoEletrico) s.player.danoEletricoBonus += tpl.artDanoEletrico;
-
-	// CANCEL_ESCUDO (ART-12)
-	if (tpl.artCancelEscudo) s.enemy.shieldCancelled = true;
-
-	// REDUZ_SHIELD (ART-13)
-	if (tpl.artReduzShield) s.enemy.shieldReduced = true;
-
-	// REDUZ_BUFF (ART-14)
-	if (tpl.artReduzBuff) s.enemy.buffReduced = true;
-
-	// AMPLIFICA (ART-15): double all active debuffs on enemy
-	if (tpl.artAmplifica) {
-		s.enemy.imobilizadoTurns *= 2;
-		s.enemy.fraquezaStacks *= 2;
-		s.enemy.enraizadoTurns *= 2;
-		s.enemy.intimidateTurnsLeft *= 2;
-	}
-
-	// COPIA_DESCARTE (ART-16)
-	if (tpl.artCopiaDescarte && card) {
-		const copies = countCardCopies(s, tpl.id);
-		if (copies < tpl.artCopiaDescarte) {
-			const modifier = tpl.artBlockDecrement ? (card.modifier ?? 0) - 1 : undefined;
-			const newCard: Card = { id: crypto.randomUUID(), templateId: tpl.id, ...(modifier !== undefined ? { modifier } : {}) };
-			s.discard.push(newCard);
-		}
-	}
-
-	// SEQUENCIA (ART-17): activated by Punho Sincronizado
-	if (tpl.artSequencia) s.player.sequenciaActive = true;
-
-	// AUTO_JOGAR (ART-18): activated by Ritmo Implacável
-	if (tpl.artAutoJogar) s.player.autoJogarActive = true;
-
-	// PILHA_EXAURIR (ART-19)
-	if (tpl.artPilhaExaurir) s.pilhaExaurir += tpl.artPilhaExaurir;
-
-	// BANIDO (ART-20)
-	if (tpl.artBanido) {
-		if (!s.bannedTemplateIds.includes(tpl.id)) s.bannedTemplateIds.push(tpl.id);
-	}
-
-	// Prisão Eterna: double active IMOBILIZADO duration
-	if (tpl.artPrisaoEterna && s.enemy.imobilizadoTurns > 0) s.enemy.imobilizadoTurns *= 2;
-
-	// artBlockDecrement (Espinhos): decrement this card's modifier for next use
-	if (tpl.artBlockDecrement && card) {
-		card.modifier = (card.modifier ?? 0) - 1;
-	}
-
-	// artDuplicarDragao (Poder Canalizado): Fúria do Dragão causes double this fight
-	if (tpl.artDuplicarDragao) s.player.furiaDragaoDouble = true;
-
-	// GHOST_PERM_DEBUFF (Alma Penada): reduce enemy damage permanently, exhaust random hand card
-	if (tpl.artGhostPermDebuff) {
-		s.player.ghostPermDebuff++;
-		if (s.hand.length > 0) {
-			const randIdx = Math.floor(Math.random() * s.hand.length);
-			const exhaust = s.hand.splice(randIdx, 1)[0];
-			s.exhausted.push(exhaust);
-			// EXHAUST_RUN for the random card (consumed permanently)
-			void removeFromDeck(exhaust.id);
-			void removeFromInventory(exhaust.id);
-		}
-	}
-
-	// generatesTokens (Nuvem de Insetos)
-	if (tpl.generatesTokens) {
-		for (let i = 0; i < tpl.generatesTokens.count; i++) {
-			s.hand.push({ id: crypto.randomUUID(), templateId: tpl.generatesTokens.templateId });
-		}
-	}
 }
 
 // ── Persistence ───────────────────────────────────────────────────────────
@@ -944,15 +595,6 @@ export function playCard(cardId: string): PlayCardResult {
 	s.player.mana -= tpl.cost;
 	s.hand.splice(idx, 1);
 	const attackElement = tpl.kind === 'attack' ? resolvePlayerAttackElement(s, tpl) : null;
-	const attackHits = tpl.kind === 'attack' ? 1 + s.player.attackRepeat : 0;
-	const attackDamage =
-		tpl.kind === 'attack'
-			? resolveTypedDamage(
-					((tpl.artFuriaDragao ? (10 + s.player.cargaDragao) * (s.player.furiaDragaoDouble ? 2 : 1) : (tpl.damage ?? 0)) + s.player.nextDamageBonus + playerAttackBonus()) * (s.player.berserk ? 2 : 1),
-					attackElement,
-					s.enemy.pokemon.element
-				)
-			: null;
 
 	// Snapshot pre-effect state for delta logging
 	const enemyHpBefore = s.enemy.hp;
@@ -960,12 +602,13 @@ export function playCard(cardId: string): PlayCardResult {
 	const playerBlockBefore = s.player.block;
 	const duplicarWasActive = s.player.duplicarCartaActive;
 
-	applyCardEffect(s, tpl, card);
+	const ctx = createCtx(s);
+	applyCardEffect(ctx, tpl, card);
 
 	// ART-10 DUPLICAR_CARTA: execute effect again if flag was active before this card
 	if (duplicarWasActive && !tpl.isPower && !tpl.artDuplicarCarta) {
 		s.player.duplicarCartaActive = false;
-		applyCardEffect(s, tpl, card);
+		applyCardEffect(ctx, tpl, card);
 	} else if (duplicarWasActive && tpl.artDuplicarCarta) {
 		// Playing a duplicar card while another is active: consume both but don't double
 		s.player.duplicarCartaActive = false;
@@ -983,13 +626,13 @@ export function playCard(cardId: string): PlayCardResult {
 
 	// Build enriched result
 	const result: PlayCardResult = { played: true, exhausted, kind: tpl.kind };
-	if (tpl.kind === 'attack' && attackDamage) {
+	if (tpl.kind === 'attack' && ctx.lastAttackSummary) {
 		result.element = attackElement;
 		result.damage = Math.max(0, enemyHpBefore - s.enemy.hp);
-		result.effectiveness = attackDamage.effectiveness;
-		if (attackDamage.modifierAmount !== 0) {
-			result.damageModifier = attackDamage.modifierAmount * attackHits;
-			result.damageModifierText = attackDamage.modifierText;
+		result.effectiveness = ctx.lastAttackSummary.effectiveness;
+		if (ctx.lastAttackSummary.modifierAmount !== 0) {
+			result.damageModifier = ctx.lastAttackSummary.modifierAmount * (ctx.lastAttackSummary.hits ?? 1);
+			result.damageModifierText = ctx.lastAttackSummary.modifierText;
 		}
 	} else if (tpl.kind === 'heal') {
 		result.healed = Math.max(0, s.player.hp - playerHpBefore);
@@ -1028,7 +671,7 @@ export function playRelicCard(cardId: string): PlayCardResult {
 	if (!tpl) return { played: false, exhausted: false, kind: 'relic' };
 
 	s.relicSlots.splice(idx, 1);
-	applyCardEffect(s, tpl);
+	applyCardEffect(createCtx(s), tpl);
 	const shockDamage = applyStaticShock(s);
 	void removeFromInventory(card.id);
 	if (s.enemy.hp <= 0 && s.status === 'active') s.status = 'victory';
@@ -1118,6 +761,13 @@ export function endTurn(): EnemyTurnResult | null {
 		turnResult = { kind: 'buff', buffAmount };
 	}
 
+	if (intent.kind === 'attack') {
+		s.player.damageSufferedThisTurn = true;
+	}
+	else{
+		s.player.damageSufferedThisTurn = false;
+	}
+
 	if (s.player.hp <= 0) {
 		s.status = 'defeat';
 		void setPokemonCurrentHp(s.player.pokemon.id, 0);
@@ -1135,11 +785,9 @@ export function endTurn(): EnemyTurnResult | null {
 	s.turnNumber++;
 
 	// ESCUDO_PERSISTE (ART-08): don't clear player block if shieldPersists
-	if (s.player.shieldPersists) {
-		s.player.shieldPersists = false;
-	} else {
+	if (!s.player.shieldPersists) {
 		s.player.block = 0;
-	}
+	} 
 
 	s.player.shieldEffect = 'none';
 	s.player.mana = START_MANA;
