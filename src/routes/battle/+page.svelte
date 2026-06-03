@@ -318,7 +318,7 @@
 				<div class="rounded-xl border border-(--border) bg-(--surface)/85 p-2 shadow-lg backdrop-blur">
 					<div class="mb-1 flex items-center justify-between gap-1">
 						<span class="truncate text-xs font-bold">{s.player.pokemon.name}</span>
-						<ManaCrystal mana={s.player.mana} max={s.player.maxMana} />
+						<ManaCrystal mana={s.player.mana} max={s.player.mana ?? s.player.maxMana} />
 					</div>
 					<HpBar hp={s.player.hp} maxHp={s.player.pokemon.maxHp} block={s.player.block} />
 					{#if s.player.nextDamageBonus > 0 || s.player.berserk || s.player.dragonize || s.player.staticShockDamage > 0 || s.player.ghostForm}
