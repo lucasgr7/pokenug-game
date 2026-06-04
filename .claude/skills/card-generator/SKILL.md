@@ -9,26 +9,31 @@ You are implementing a new card for Pokengu. Follow every step in order.
 
 ## Step 0 — Pick the card kind
 
-**Current kinds (all registered in `src/lib/game/types.ts` → `CardKind`):**
+**Kinds (all registered in `src/lib/game/types.ts` → `CardKind`):**
 
 | Kind | Effect | Exhaustion rule | Key template field |
 |---|---|---|---|
 | `attack` | Deals damage × element effectiveness × berserk | Exhausted if element ≠ player Pokémon's element | `damage` |
 | `defense` | Adds `block` this turn (resets each turn) | Discarded (reusable) | `block` |
-| `heal` | Restores player HP, capped at `maxHp` | Always exhausted (single-use) | `healHp` |
-| `buff` | Adds `buffAmount` to next attack damage (stacks with `nextDamageBonus`) | Discarded (reusable) | `buffAmount` |
+| `heal` | Restores player HP, capped at `maxHp` | Always exhausted — set `exhaust:'combat'` | `healHp` |
+| `buff` | Adds `empowered` status (next attack +N) | Discarded (reusable) | `buffAmount` |
 | `capture` | Capture-chance increase; starter Pokébola is reusable | Non-starter = exhausted after one attempt | `captureBonus` |
-| `power` | Battle-long stat modifier (e.g., attack ×2, defense ÷2) — sets a flag on `BattleState.player` | Never exhausted during play; exhausted on **defeat** via defeat-cleanup in `finalizeBattle()` | custom flag |
-| `relic` | Consumable played from a **separate slot outside the deck** (`relicSlots`), not drawn into hand | Exhausted immediately on play via `playRelicCard()` | custom flag |
+| `power` | Battle-long effect — use `appliesStatuses` or `CARD_HOOKS` | Never exhausted during play; exhausted on **defeat** via `finalizeBattle()` | `isPower:true` |
+| `relic` | Consumable from a separate slot (`relicSlots`), not drawn | Exhausted immediately on play via `playRelicCard()` | custom |
 | `energy` | Restores `manaGain` mana this turn (capped at 6) | Discarded (reusable) | `manaGain` |
-| `combo` | Sets `attackRepeat` on the player — next attack card fires that many extra hits | Discarded (reusable); `attackRepeat` consumed by next attack | `attackRepeat` |
+| `combo` | Next attack fires extra hits via `attack_repeat` status | Discarded (reusable); consumed by next attack | `attackRepeat` |
+| `debuff` | Applies a debuff status to the enemy (`intimidate` by default) | Discarded (reusable) | `debuffDuration`,`debuffAmount` |
 
 **If the new card fits an existing kind, skip Step 1b.** If it needs a new kind, do Step 1b.
 
-**Match-scoped vs. persistent distinction:**
-- Effect lasts one turn → use existing state fields or `buff`/`energy`/`combo`
-- Effect lasts the whole battle → add a `boolean` flag to `BattleState.player` (like `berserk`, `ghostForm`)
-- Card bypasses the deck entirely (played from a side slot) → use `relic` pattern
+**How to choose the right mechanism for a new effect:**
+
+| If you want... | Use... |
+|---|---|
+| A reusable stat bonus/penalty | `appliesStatuses` on the template + a `StatusDefinition` in `status/definitions/*.ts` |
+| A complex one-off effect (unique to 1-2 cards) | `CARD_HOOKS` entry in `game/cards/card-hooks.ts` |
+| A simple resource change (mana, draw, self-damage) | Template fields `manaGain`, `drawCount`, `selfDamage`, `selfMaxHpReduction` |
+| A card that bypasses the deck entirely | `relic` kind |
 
 ---
 
@@ -46,7 +51,7 @@ All fields in `CardTemplate` (`src/lib/game/types.ts`):
   element: Element | null,
   rarity: CardRarity,    // 'starter' | 'common' | 'rare' | 'epic'
   tier?: number,
-  // stat fields — only fill the one(s) relevant to this card:
+  // stat fields — fill only the one(s) relevant to this card:
   damage?: number,
   block?: number,
   healHp?: number,
@@ -55,7 +60,19 @@ All fields in `CardTemplate` (`src/lib/game/types.ts`):
   poisonAmount?: number,
   manaGain?: number,
   attackRepeat?: number,   // extra hits for combo kind (1 = double, 2 = triple)
-  price?: { money: number; element?: { type: Element; amount: number } }
+  drawCount?: number,
+  debuffAmount?: number,   // intimidate reduction (0-1)
+  debuffDuration?: number, // intimidate turns
+  shieldEffect?: 'fire_thorns' | 'ice_reflect' | 'rock_persist',  // unused, reserved
+  price?: { money: number; element?: { type: Element; amount: number } },
+  // GDD fields:
+  exhaust?: 'combat' | 'run',
+  isPower?: boolean,
+  selfDamage?: number,
+  selfMaxHpReduction?: number,
+  endsTurn?: boolean,         // Evasão Total — ends player turn immediately
+  generatesTokens?: { templateId: string; count: number },
+  appliesStatuses?: { id: string; stacks?: number; target?: StatusScope; data?: Record<string, number> }[];
 }
 ```
 
@@ -76,104 +93,51 @@ Starter cards have no `price`. Relic cards can have element costs (e.g., `{ mone
 Do this ONLY if the card cannot map to any existing kind above.
 
 ### 1. Add to `CardKind` in `src/lib/game/types.ts`
-
 ```ts
 export type CardKind = '...' | 'YOUR_KIND';
 ```
 
 ### 2. Add the stat field to `CardTemplate` (if needed)
-
 Add `yourField?: number` to the `CardTemplate` interface in the same file.
 
-### 3. Add the player state flag (if battle-long)
-
-If the card sets a flag that lasts the whole battle, add it to `BattleState.player`:
-
-```ts
-// In BattleState.player:
-yourFlag: boolean;   // or number
-```
-
-**Current `BattleState.player` fields** — always re-read `src/lib/game/types.ts` before adding a new one to get the latest list, then update here:
-```ts
-pokemon: CapturedPokemon
-hp: number
-block: number
-mana: number
-maxMana: 3
-nextDamageBonus: number
-poisonCounter: number
-berserk: boolean       // set by power_berserk — ATK ×2, DEF ÷2
-dragonize: boolean     // set by power_dragonize — normal/null attacks become dragon-typed
-ghostForm: boolean     // set by relic_ghost_form — all incoming damage capped at 1
-attackRepeat: number   // set by combo cards, consumed by next attack
-```
-
-### 4. Initialize in `startBattle()`
-
-Find the `player: { ... }` block inside `startBattle()` in `battle.svelte.ts` and add the initial value:
+### 3. Add the kind handler in `game/cards/kinds.ts`
+Open `src/lib/game/cards/kinds.ts`. Add a function matching the `KindHandler` signature:
 
 ```ts
-yourFlag: false,   // or 0
-```
-
-**Do the same if you add a flag to `enemy` state** — there is a parallel `enemy: { ... }` block.
-
-### 5. Add the effect case in `applyCardEffect()`
-
-The switch is in `battle.svelte.ts`. Add your case **before** the closing `}` of the switch, after the `'combo'` case:
-
-```ts
-case 'YOUR_KIND':
-    s.player.yourFlag = true;
-    break;
-```
-
-### 6. Add exhaustion rule in `shouldExhaust()`
-
-`shouldExhaust()` in `battle.svelte.ts` has fast-exit guards at the top. Add yours there:
-
-```ts
-if (tpl.kind === 'YOUR_KIND') return false;   // reusable
-// or:
-if (tpl.kind === 'YOUR_KIND') return true;    // always exhausted
-```
-
-**Current fast-exit rules in `shouldExhaust()`** (for reference):
-```ts
-if (tpl.kind === 'heal') return true;
-if (tpl.kind === 'power' || tpl.kind === 'relic') return false;
-if (tpl.kind === 'capture' && tpl.rarity !== 'starter') return true;
-if (tpl.element !== null && tpl.element !== s.player.pokemon.element) return true;
-return false;
-```
-
-### 7. For `power` kind: add defeat cleanup in `finalizeBattle()`
-
-Power cards survive victories but exhaust on defeat. Find the defeat branch in `finalizeBattle()` and add:
-
-```ts
-const allCards = [...s.deck, ...s.hand, ...s.discard, ...s.exhausted];
-for (const card of allCards) {
-    if (getTemplate(card.templateId)?.kind === 'YOUR_KIND') {
-        await removeFromInventory(card.id);
-    }
+function handleYourKind(ctx: CardEffectCtx, tpl: CardTemplate): void {
+  const { s } = ctx;
+  // your logic here — use s.player, s.enemy, addStatus, etc.
 }
 ```
 
-### 8. For `relic` kind: use the existing `playRelicCard()` flow
+Then register it in `KIND_EMITTERS`:
+```ts
+export const KIND_EMITTERS: Record<CardKind, KindHandler> = {
+  // ...
+  your: handleYourKind,
+};
+```
 
-Relic cards are loaded from inventory into `state.relicSlots` at battle start (already handled in `startBattle()`). The battle UI shows them in a separate row. The `relic_ghost_form` implementation is the reference — don't duplicate the plumbing, just add a new card template with `kind: 'relic'` and handle its specific effect in `case 'relic'` (or add a new sub-case if needed).
+### 4. Add exhaustion rule
+If your kind needs a special exhaust rule, add it in `shouldExhaust()` at `src/lib/game/battle.svelte.ts:315`:
+```ts
+if (tpl.kind === 'YOUR_KIND') return true;   // always exhausted
+```
+
+Otherwise the default rules apply: `exhaust` field, capture misalignment, element misalignment.
+
+### 5. For `power` kind: defeat cleanup is already handled
+Power cards are removed from inventory on defeat automatically — the `isPower` flag on the template triggers cleanup in `finalizeBattle()`. No extra code needed.
 
 ---
 
 ## Step 2 — Add to the catalog
 
-Open `src/lib/data/cards.ts`. Add inside `buildCatalog()` before `return out`.
+Open `src/lib/data/cards.ts`. Find the `CATALOG` array and push your card:
 
 **One-off card:**
 ```ts
-out.push({
+{
   id: 'YOUR_ID',
   name: 'YOUR NAME',
   description: 'YOUR DESC.',
@@ -183,20 +147,21 @@ out.push({
   rarity: 'common',
   yourField: X,
   price: { money: X }
-});
-```
-
-**Tier-based card (3 rarities):**
-```ts
-const myTiers = [
-  { id: 'my_common', name: '...', value: X, cost: 1, rarity: 'common' as const, money: 120 },
-  { id: 'my_rare',   name: '...', value: Y, cost: 2, rarity: 'rare'   as const, money: 350 },
-  { id: 'my_epic',   name: '...', value: Z, cost: 1, rarity: 'epic'   as const, money: 600 }
-];
-for (const t of myTiers) {
-  out.push({ id: t.id, name: t.name, ..., kind: 'YOUR_KIND', yourField: t.value, price: { money: t.money } });
 }
 ```
+
+**Tier-based card (3 rarities):** push each level separately.
+
+**Card with status effects:** use the `appliesStatuses` field:
+```ts
+appliesStatuses: [
+  { id: 'some_status', stacks: 2 }           // default target: 'player'
+  { id: 'enemy_debuff', stacks: 1, target: 'enemy' },
+  { id: 'status_with_data', stacks: 1, data: { draw: 2, mana: 1 } }
+]
+```
+
+**Card with complex one-off effect:** add a `CARD_HOOKS` entry (see Step 6.3) and reference it by `id`. No extra template field needed.
 
 Cards are auto-indexed into `CARD_TEMPLATES` and auto-eligible for the shop when they have `price` and a non-starter rarity.
 
@@ -267,12 +232,53 @@ Open `src/lib/components/Card.svelte`. Find the footer badge block (look for `tp
 
 ## Step 6 — Battle rules checklist
 
-- [ ] `applyCardEffect()` has a `case 'YOUR_KIND'` that uses the correct stat field.
-- [ ] `shouldExhaust()` has the correct fast-exit rule for this kind.
-- [ ] If a new `BattleState.player` field was added: it's initialized in `startBattle()`.
-- [ ] If a new `BattleState.enemy` field was added: also initialized in the `enemy: { ... }` block of `startBattle()`.
-- [ ] If a battle-long flag was added: it resets at the right time in `endTurn()` (end of enemy attack phase = before `s.turn = 'player'`).
-- [ ] For `power` cards: defeat cleanup in `finalizeBattle()` removes them from inventory.
+### 6.1 Stat-only cards (attack/defense/heal/buff/energy/combo/debuff)
+If your card only uses `damage`, `block`, `healHp`, `buffAmount`, `manaGain`, `attackRepeat`, `drawCount`, `selfDamage`, `selfMaxHpReduction`, or `debuffDuration`/`debuffAmount` — no further wiring needed. The generic kind handlers in `game/cards/kinds.ts` handle everything.
+
+### 6.2 Status cards (appliesStatuses)
+If your card sets `appliesStatuses`, verify:
+- [ ] Each status `id` exists as a `defineStatus()` entry in `src/lib/game/status/definitions/*.ts`
+- [ ] The status definition is imported in `status/definitions/index.ts`
+- [ ] If the status needs an emblem, the definition has a `hooks.emblem()` function
+- [ ] If the status has a `data` object, the hooks read from `self.data`
+
+### 6.3 Complex one-off cards (CARD_HOOKS)
+If your card has behavior that can't be expressed by the kind handler + `appliesStatuses`:
+
+Open `src/lib/game/cards/card-hooks.ts` and add an entry:
+
+```ts
+your_card_id: {
+  // Runs after the kind handler, resources, and appliesStatuses
+  onPlay?: (ctx: CardEffectCtx, tpl: CardTemplate, card?: Card) => void;
+  // Runs inside handleAttack — replaces tpl.damage in the base sum (return 0 if no extra)
+  onBeforeDamage?: (ctx: CardEffectCtx, tpl: CardTemplate) => number;
+  // Runs after the attack resolves (after hits are dealt)
+  onAfterAttack?: (ctx: CardEffectCtx, tpl: CardTemplate) => void;
+}
+```
+
+Available helpers inside hooks:
+- `addStatus(holder, id, stacks?, data?)` — add a status
+- `hasStatus(holder, id)` / `getStatus(holder, id)` — check/read statuses
+- `ctx.s` — the `BattleState` (full mutation access)
+- `ctx.dealToEnemy(n)` / `ctx.dealToPlayer(n)` — deal damage
+- `ctx.draw(n)` — draw cards
+- `logEvent({ kind:'bonus_dmg', source, amount })` — emit battle-log events
+- `isPermanentlyConsumed(tpl)` from `$lib/game/damage`
+- `removeFromDeck` / `removeFromInventory` from `$lib/db/cards`
+- `getTemplate(id)` from `$lib/data/cards`
+
+### 6.4 endsTurn cards (Evasão Total)
+If the card should end the player's turn immediately (like `flying_evasao_total`), set `endsTurn: true` on the template. The `playCard()` function in `battle.svelte.ts` handles it automatically.
+
+### 6.5 Full effect wiring flow (for reference)
+When a card is played, `applyCardEffect` (in `game/cards/apply.ts`) runs in this order:
+1. `KIND_EMITTERS[tpl.kind]` — generic kind handler (attack/defense/etc.)
+2. `applyResourceEffects` — mana, draw, selfDamage, selfMaxHpReduction
+3. `appliesStatuses` loop — declarative status application
+4. `CARD_HOOKS[tpl.id]?.onPlay` — card-specific hook
+5. `applyCardManipulation` — `generatesTokens`
 
 ---
 
@@ -281,8 +287,9 @@ Open `src/lib/components/Card.svelte`. Find the footer badge block (look for `tp
 Run static validation after the change:
 
 ```bash
-export PATH="/Users/lucas.ribeiro.br/.nvm/versions/node/v20.19.1/bin:$PATH"
 yarn run check
 ```
+
+`svelte-check` must report **0 errors, 0 warnings**.
 
 Visual or runtime smoke tests are optional and should be performed only when explicitly requested by the user.

@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pokémon NGU — Explorar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Russo+One&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-0:#0b0b10; --bg-1:#121219; --bg-2:#181821; --bg-3:#20212c;
+  --line:#2b2c38; --txt:#f3f3f7; --txt-dim:#9a9bab; --txt-mute:#6b6c7e;
+  --acc:#3ad6c2; --mana:#a86bff; --cta:#ffc24a; --good:#46c45f; --warn:#ff6b6b;
+  --phone-w:402px; --phone-h:874px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{background:#000;font-family:'Inter',system-ui,sans-serif;color:var(--txt);overflow:hidden;display:flex;align-items:center;justify-content:center;}
+button{cursor:pointer;border:none;outline:none;background:none;font:inherit;color:inherit;}
+
+/* ── STAGE + PHONE ── */
+#stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(120% 80% at 50% -10%,#1a1218 0%,#0a0a0e 55%,#050507 100%);}
+#phone-scale{transform-origin:center center;}
+.phone{width:var(--phone-w);height:var(--phone-h);background:var(--bg-0);border-radius:26px;position:relative;overflow:hidden;box-shadow:0 40px 120px -20px rgba(0,0,0,.9),0 0 0 10px #101015,0 0 0 12px #2a2b33,0 0 0 13px #050506;display:flex;flex-direction:column;}
+
+/* ── STATUS BAR ── */
+.statusbar{height:34px;flex:0 0 34px;display:flex;align-items:center;justify-content:space-between;padding:0 18px 0 22px;font-size:13px;font-weight:700;color:#fff;z-index:40;}
+.sb-r{display:flex;align-items:center;gap:7px;}
+.battery{display:flex;align-items:center;gap:4px;}
+.battery-cell{width:22px;height:11px;border:1.5px solid rgba(255,255,255,.8);border-radius:2px;position:relative;display:flex;align-items:center;padding:1px;}
+.battery-cell::after{content:'';position:absolute;right:-3px;top:3px;width:2px;height:4px;background:rgba(255,255,255,.8);border-radius:0 1px 1px 0;}
+.battery-fill{height:100%;width:80%;background:#fff;border-radius:1px;}
+.signal{display:flex;align-items:flex-end;gap:1.5px;}
+.signal span{background:#fff;border-radius:1px;width:3px;}
+
+/* ── SCROLL ── */
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:44px;}
+.scroll::-webkit-scrollbar{display:none;}
+
+/* ── PLAYER HEADER ── */
+.player-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 6px;}
+.player-name{font-size:17px;font-weight:900;}
+.moon-btn{font-size:20px;padding:2px;}
+.wallet-chips{display:flex;gap:5px;overflow-x:auto;padding:0 12px 8px;scrollbar-width:none;}
+.wallet-chips::-webkit-scrollbar{display:none;}
+.w-chip{display:flex;align-items:center;gap:3px;background:var(--bg-2);border:1px solid var(--line);border-radius:20px;padding:3px 8px 3px 6px;font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0;}
+.divider{height:1px;background:var(--line);}
+
+/* ═══════════════════════════════
+   TAB BAR
+═══════════════════════════════ */
+.tab-bar{display:flex;padding:10px 12px 0;gap:6px;}
+.tab-btn{
+  flex:1;padding:8px 0;font-size:12px;font-weight:800;letter-spacing:.3px;
+  border-radius:9px;border:1px solid var(--line);background:var(--bg-2);color:var(--txt-mute);
+  transition:all .2s;
+}
+.tab-btn.on{background:var(--bg-3);border-color:var(--line);color:var(--txt);}
+.tab-btn[data-tab="challenges"].on{color:var(--warn);border-color:color-mix(in oklch,var(--warn) 28%,transparent);}
+.tab-panel{display:none;}
+.tab-panel.on{display:block;}
+
+/* ═══════════════════════════════
+   ZONE PATH
+═══════════════════════════════ */
+.zone-path{display:flex;align-items:center;padding:12px 14px 4px;overflow-x:auto;scrollbar-width:none;gap:0;}
+.zone-path::-webkit-scrollbar{display:none;}
+.zp-line{height:2px;flex:1;min-width:12px;max-width:24px;flex-shrink:0;margin-bottom:28px;background:var(--line);}
+.zp-line.done{background:color-mix(in oklch,var(--acc) 70%,var(--bg-3));}
+.zp-line.active-to-next{background:linear-gradient(90deg,color-mix(in oklch,var(--acc) 50%,var(--line)),var(--line));border:none;}
+.zp-line.ghost{height:0;border-top:2px dashed color-mix(in oklch,var(--line) 60%,transparent);background:transparent;margin-bottom:30px;opacity:.5;}
+
+.zp-node{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;cursor:pointer;}
+.zp-you{font-size:8px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;color:var(--cta);height:12px;opacity:0;transition:opacity .3s;}
+.zp-node.active .zp-you{opacity:1;}
+.zp-circle{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;border:2px solid var(--line);background:var(--bg-2);transition:all .3s;position:relative;z-index:1;}
+.zp-node.done .zp-circle{background:color-mix(in oklch,var(--zc) 14%,var(--bg-2));border-color:color-mix(in oklch,var(--zc) 50%,transparent);}
+.zp-node.done .zp-circle::after{content:'✓';position:absolute;bottom:-1px;right:-1px;width:14px;height:14px;border-radius:50%;background:var(--good);border:2px solid var(--bg-0);font-size:7px;font-weight:900;color:#fff;display:flex;align-items:center;justify-content:center;line-height:1;}
+.zp-node.active .zp-circle{background:color-mix(in oklch,var(--zc) 20%,var(--bg-2));border-color:var(--zc);animation:zp-pulse 2.5s ease-in-out infinite;}
+@keyframes zp-pulse{0%,100%{box-shadow:0 0 0 3px color-mix(in oklch,var(--zc) 18%,transparent),0 0 16px color-mix(in oklch,var(--zc) 28%,transparent);}50%{box-shadow:0 0 0 6px color-mix(in oklch,var(--zc) 10%,transparent),0 0 24px color-mix(in oklch,var(--zc) 38%,transparent);}}
+.zp-node.next .zp-circle{opacity:.4;filter:grayscale(.7);}
+.zp-node.locked .zp-circle{opacity:.18;filter:grayscale(1);cursor:default;}
+.zp-label{font-size:8.5px;font-weight:700;color:var(--txt-mute);text-align:center;width:50px;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.zp-node.active .zp-label{color:var(--txt-dim);font-weight:800;}
+
+/* ═══════════════════════════════
+   ZONE HERO — edge-to-edge atmospheric section
+═══════════════════════════════ */
+.zone-hero{
+  position:relative;margin:8px 0 0;
+  background:color-mix(in oklch,var(--zc,var(--bg-0)) 6%,var(--bg-0));
+  border-top:1px solid color-mix(in oklch,var(--zc,var(--line)) 14%,var(--line));
+  border-bottom:1px solid color-mix(in oklch,var(--zc,var(--line)) 14%,var(--line));
+  overflow:hidden;
+}
+.zh-atmosphere{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(110% 60% at 90% 0%,color-mix(in oklch,var(--zc) 18%,transparent),transparent 52%),
+  radial-gradient(70% 50% at 5% 100%,color-mix(in oklch,var(--zc) 7%,transparent),transparent 55%);
+}
+.zh-inner{padding:14px 14px 0;position:relative;}
+.zh-toprow{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.zh-badge{display:flex;align-items:center;gap:5px;background:color-mix(in oklch,var(--zc) 10%,var(--bg-2));border:1px solid color-mix(in oklch,var(--zc) 26%,transparent);border-radius:20px;padding:3px 10px 3px 7px;font-size:10px;font-weight:800;color:var(--zc);letter-spacing:.3px;}
+.zh-status{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--acc);}
+.zh-dot{width:6px;height:6px;border-radius:50%;background:var(--acc);box-shadow:0 0 6px var(--acc);}
+.zh-name{font-size:24px;font-weight:900;font-family:'Russo One',sans-serif;line-height:1.05;margin-bottom:4px;}
+.zh-desc{font-size:12px;color:var(--txt-dim);line-height:1.45;margin-bottom:12px;}
+
+/* Pokémon types row */
+.zh-types{display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.zh-types-label{font-size:9px;font-weight:700;color:var(--txt-mute);text-transform:uppercase;letter-spacing:.5px;flex-shrink:0;}
+.type-chip{display:flex;align-items:center;gap:3px;padding:3px 8px 3px 5px;border-radius:20px;font-size:10px;font-weight:800;background:color-mix(in oklch,var(--tc) 10%,var(--bg-2));border:1px solid color-mix(in oklch,var(--tc) 28%,transparent);color:var(--tc);}
+.type-chip.boss-chip{background:color-mix(in oklch,var(--tc) 14%,var(--bg-2));border-color:color-mix(in oklch,var(--tc) 38%,transparent);}
+
+/* Kill tracker */
+.kill-track{background:color-mix(in oklch,var(--bg-2) 70%,var(--bg-1));border-top:1px solid color-mix(in oklch,var(--zc) 10%,var(--line));padding:12px 14px 0;}
+.kt-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.kt-label{font-size:10px;font-weight:700;color:var(--txt-dim);}
+.kt-count{font-size:13px;font-weight:900;color:var(--zc);font-family:'Russo One',sans-serif;}
+.kt-slots{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-bottom:8px;}
+.kt-slot{height:9px;border-radius:3px;background:var(--bg-3);border:1px solid var(--line);transition:background .22s,border-color .22s,box-shadow .22s;overflow:hidden;}
+.kt-slot.filled{background:var(--zc);border-color:var(--zc);box-shadow:0 0 6px color-mix(in oklch,var(--zc) 42%,transparent);}
+@keyframes slot-pop{0%{transform:scale(1)}45%{transform:scale(1.2);box-shadow:0 0 14px color-mix(in oklch,var(--zc) 80%,transparent)}100%{transform:scale(1)}}
+.kt-slot.just-filled{animation:slot-pop .38s cubic-bezier(.2,.9,.2,1) both;}
+.kt-note{font-size:10px;font-weight:600;color:var(--txt-mute);padding-bottom:12px;}
+.kt-note.ready{color:var(--zc);font-weight:800;}
+
+/* Zone actions */
+.zh-actions{display:flex;gap:8px;padding:10px 14px 14px;background:color-mix(in oklch,var(--bg-2) 70%,var(--bg-1));}
+.btn-explore{flex:1;background:var(--bg-3);border:1px solid var(--line);border-radius:9px;padding:11px;font-size:12px;font-weight:800;color:var(--txt);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;}
+.btn-explore:hover{border-color:color-mix(in oklch,var(--zc) 48%,transparent);background:color-mix(in oklch,var(--zc) 8%,var(--bg-3));color:var(--zc);}
+.btn-explore:active{transform:scale(.97);}
+.btn-boss{flex:1;border-radius:9px;padding:11px;font-size:12px;font-weight:800;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;background:color-mix(in oklch,var(--zc) 10%,var(--bg-3));border:1px solid color-mix(in oklch,var(--zc) 22%,transparent);color:var(--zc);}
+.btn-boss:disabled{opacity:.32;cursor:default;}
+.btn-boss:not(:disabled):hover{background:color-mix(in oklch,var(--zc) 20%,var(--bg-3));box-shadow:0 3px 14px color-mix(in oklch,var(--zc) 22%,transparent);}
+.btn-boss:not(:disabled):active{transform:scale(.97);}
+
+/* ═══════════════════════════════
+   BOSS GATE
+═══════════════════════════════ */
+.boss-gate{margin:0 12px;position:relative;}
+
+.bg-locked-wrap{background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:11px 13px;display:flex;align-items:center;gap:12px;transition:border-color .4s,background .4s;}
+.bg-locked-wrap.traces{border-color:color-mix(in oklch,var(--zc) 18%,var(--line));}
+.bg-locked-wrap.approaching{border-color:color-mix(in oklch,var(--zc) 32%,var(--line));background:color-mix(in oklch,var(--zc) 4%,var(--bg-2));}
+.bg-lock-icon{width:40px;height:40px;flex-shrink:0;border-radius:50%;background:var(--bg-3);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:17px;transition:all .4s;}
+.bg-locked-wrap.traces .bg-lock-icon{border-color:color-mix(in oklch,var(--zc) 30%,transparent);}
+.bg-locked-wrap.approaching .bg-lock-icon{border-color:color-mix(in oklch,var(--zc) 55%,transparent);box-shadow:0 0 14px color-mix(in oklch,var(--zc) 28%,transparent);}
+.bg-locked-info{flex:1;min-width:0;}
+.bg-l-title{font-size:11px;font-weight:900;color:var(--txt-dim);margin-bottom:2px;transition:color .4s;}
+.bg-locked-wrap.approaching .bg-l-title{color:var(--zc);}
+.bg-l-sub{font-size:10px;color:var(--txt-mute);margin-bottom:7px;line-height:1.35;transition:color .4s;}
+.bg-mini-bar{height:4px;border-radius:2px;background:var(--bg-3);overflow:hidden;}
+.bg-mini-fill{height:100%;border-radius:2px;background:var(--zc);transition:width .5s cubic-bezier(.4,0,.2,1);}
+
+.bg-revealed{background:linear-gradient(145deg,color-mix(in oklch,var(--zc) 10%,var(--bg-2)),var(--bg-2) 65%);border:1px solid color-mix(in oklch,var(--zc) 36%,transparent);border-radius:12px;padding:14px 13px;position:relative;overflow:hidden;}
+.bg-revealed:hover{border-color:color-mix(in oklch,var(--zc) 55%,transparent);box-shadow:0 4px 22px color-mix(in oklch,var(--zc) 14%,transparent);}
+.bg-rev-glow{position:absolute;inset:0;background:radial-gradient(70% 60% at 90% 10%,color-mix(in oklch,var(--zc) 12%,transparent),transparent 60%);pointer-events:none;}
+.bg-eyebrow{display:flex;align-items:center;gap:7px;margin-bottom:9px;}
+.bg-dot{width:7px;height:7px;border-radius:50%;background:var(--zc);box-shadow:0 0 10px var(--zc);flex-shrink:0;animation:bdot 1.7s ease-in-out infinite;}
+@keyframes bdot{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.5)}}
+.bg-eyebrow-txt{font-size:9px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--zc);}
+.bg-boss-name{font-size:17px;font-weight:900;font-family:'Russo One',sans-serif;margin-bottom:3px;}
+.bg-boss-desc{font-size:11px;color:var(--txt-dim);margin-bottom:12px;line-height:1.4;}
+.bg-fight-btn{width:100%;background:var(--zc);border-radius:8px;padding:11px;font-size:13px;font-weight:900;color:#0b0b10;display:flex;align-items:center;justify-content:center;gap:7px;letter-spacing:.3px;transition:all .2s;}
+.bg-fight-btn:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 6px 18px color-mix(in oklch,var(--zc) 36%,transparent);}
+.bg-fight-btn:active{transform:scale(.97);}
+
+.bg-cooldown-wrap{background:var(--bg-2);border:1px solid color-mix(in oklch,var(--warn) 20%,var(--line));border-radius:12px;padding:11px 13px;display:flex;align-items:center;gap:12px;}
+.bg-cd-icon{width:40px;height:40px;flex-shrink:0;border-radius:50%;background:color-mix(in oklch,var(--warn) 8%,var(--bg-3));border:1px solid color-mix(in oklch,var(--warn) 24%,transparent);display:flex;align-items:center;justify-content:center;font-size:17px;}
+.bg-cd-title{font-size:11px;font-weight:900;color:var(--txt-dim);margin-bottom:2px;}
+.bg-cd-time{font-size:15px;font-weight:900;color:var(--warn);font-family:'Russo One',sans-serif;}
+
+@keyframes gate-reveal{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+.bg-revealed.anim-in{animation:gate-reveal .5s cubic-bezier(.2,.9,.2,1) both;}
+
+/* next teaser */
+.next-teaser{margin:8px 12px 0;padding:10px 13px;background:var(--bg-1);border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;gap:12px;}
+.nt-icon{width:36px;height:36px;flex-shrink:0;border-radius:50%;background:var(--bg-3);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:16px;filter:grayscale(.7);opacity:.45;}
+.nt-info{flex:1;}
+.nt-label{font-size:9px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--txt-mute);margin-bottom:2px;}
+.nt-name{font-size:13px;font-weight:800;color:var(--txt-dim);}
+.nt-lock{font-size:12px;color:var(--txt-mute);margin-left:auto;flex-shrink:0;}
+
+/* ═══════════════════════════════
+   CONQUERED — trophy vitrine
+═══════════════════════════════ */
+.conquered-wrap{padding:14px 12px 16px;}
+.conquered-hd{display:flex;align-items:center;gap:8px;margin-bottom:11px;}
+.conquered-hd-title{font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--txt-mute);}
+.trophy-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.trophy-item{
+  background:var(--bg-1);border:1px solid var(--line);border-radius:12px;
+  padding:11px 8px;display:flex;flex-direction:column;align-items:center;gap:5px;
+  position:relative;overflow:hidden;cursor:pointer;transition:border-color .2s;
+}
+.trophy-item:hover{border-color:color-mix(in oklch,var(--zc) 38%,transparent);}
+.trophy-ambient{position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,color-mix(in oklch,var(--zc) 12%,transparent),transparent 65%);pointer-events:none;}
+.trophy-emoji{font-size:22px;line-height:1;position:relative;}
+.trophy-name{font-size:9px;font-weight:800;text-align:center;line-height:1.3;color:var(--txt-dim);position:relative;}
+.trophy-badge{font-size:8px;font-weight:800;padding:2px 6px;border-radius:20px;position:relative;}
+.trophy-badge.ok{background:color-mix(in oklch,var(--good) 10%,var(--bg-2));border:1px solid color-mix(in oklch,var(--good) 28%,transparent);color:var(--good);}
+.trophy-badge.cd{background:color-mix(in oklch,var(--warn) 10%,var(--bg-2));border:1px solid color-mix(in oklch,var(--warn) 28%,transparent);color:var(--warn);}
+.trophy-seal{position:absolute;top:7px;right:7px;font-size:10px;}
+
+/* ═══════════════════════════════
+   DESAFIOS TAB
+═══════════════════════════════ */
+.ch-intro{padding:10px 14px 6px;}
+.ch-intro-title{font-size:18px;font-weight:900;font-family:'Russo One',sans-serif;margin-bottom:3px;}
+.ch-intro-sub{font-size:11px;color:var(--txt-dim);line-height:1.4;}
+
+.ch-list{display:flex;flex-direction:column;gap:0;padding-bottom:44px;}
+
+/* Challenge card */
+.ch-card{
+  margin:8px 12px 0;border-radius:14px;overflow:hidden;
+  border:1px solid var(--line);background:var(--bg-1);
+  position:relative;transition:border-color .2s;
+}
+.ch-card:hover{border-color:color-mix(in oklch,var(--warn) 25%,var(--line));}
+.ch-card.locked{opacity:.55;}
+.ch-card.locked:hover{border-color:var(--line);}
+
+/* Left accent stripe based on difficulty */
+.ch-stripe{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:14px 0 0 14px;}
+
+.ch-header{display:flex;align-items:flex-start;justify-content:space-between;padding:12px 13px 0;}
+.ch-name{font-size:14px;font-weight:900;line-height:1.2;flex:1;padding-right:8px;}
+.ch-stars{display:flex;gap:2px;padding-top:2px;flex-shrink:0;}
+.ch-star{font-size:9px;}
+
+.ch-desc{font-size:11px;color:var(--txt-dim);padding:4px 13px 11px;line-height:1.4;}
+
+/* Restriction blocks */
+.ch-restrictions{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 13px 11px;}
+.ch-restr{border-radius:9px;padding:9px 10px;display:flex;flex-direction:column;gap:3px;}
+.ch-restr.enemies{background:color-mix(in oklch,var(--warn) 6%,var(--bg-2));border:1px solid color-mix(in oklch,var(--warn) 18%,transparent);}
+.ch-restr.deck{background:color-mix(in oklch,var(--rc) 8%,var(--bg-2));border:1px solid color-mix(in oklch,var(--rc) 20%,transparent);}
+.ch-restr-label{font-size:8px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:var(--txt-mute);margin-bottom:2px;}
+.ch-restr.enemies .ch-restr-label{color:color-mix(in oklch,var(--warn) 70%,var(--txt-mute));}
+.ch-restr.deck .ch-restr-label{color:color-mix(in oklch,var(--rc) 70%,var(--txt-mute));}
+.ch-enemy-chips{display:flex;flex-wrap:wrap;gap:4px;}
+.ch-enemy-chip{display:flex;align-items:center;gap:2px;font-size:10px;font-weight:800;color:var(--ec);}
+.ch-deck-pill{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:900;color:var(--rc);}
+
+.ch-footer{display:flex;align-items:center;justify-content:space-between;padding:0 13px 12px;gap:8px;}
+.ch-reward{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--txt-mute);}
+.ch-reward span{color:var(--cta);font-weight:800;}
+.ch-btn{border-radius:8px;padding:8px 14px;font-size:11px;font-weight:900;letter-spacing:.3px;transition:all .2s;}
+.ch-btn.available{background:color-mix(in oklch,var(--warn) 12%,var(--bg-3));border:1px solid color-mix(in oklch,var(--warn) 30%,transparent);color:var(--warn);}
+.ch-btn.available:hover{background:color-mix(in oklch,var(--warn) 20%,var(--bg-3));box-shadow:0 3px 12px color-mix(in oklch,var(--warn) 20%,transparent);}
+.ch-btn.locked-btn{background:var(--bg-3);border:1px solid var(--line);color:var(--txt-mute);cursor:default;opacity:.7;}
+
+.ch-lock-banner{display:flex;align-items:center;gap:6px;margin:0 13px 12px;padding:8px 10px;background:var(--bg-2);border:1px solid var(--line);border-radius:8px;font-size:10px;color:var(--txt-mute);}
+.ch-lock-banner span{font-weight:700;}
+
+/* ═══════════════════════════════
+   DECK PREVIEW COMPONENT
+═══════════════════════════════ */
+.deck-preview{
+  border-top:1px solid color-mix(in oklch,var(--zc) 10%,var(--line));
+  padding:11px 14px;
+  display:flex;align-items:center;gap:12px;
+  background:color-mix(in oklch,var(--bg-2) 80%,var(--bg-1));
+}
+.dp-avatar{
+  width:52px;height:52px;flex-shrink:0;border-radius:50%;
+  background:color-mix(in oklch,var(--pc) 14%,var(--bg-3));
+  border:2px solid color-mix(in oklch,var(--pc) 38%,transparent);
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;line-height:1;
+  box-shadow:0 0 14px color-mix(in oklch,var(--pc) 22%,transparent);
+  position:relative;
+}
+.dp-avatar::after{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.12),transparent 60%);
+}
+.dp-info{flex:1;min-width:0;}
+.dp-name{font-size:13px;font-weight:900;margin-bottom:3px;}
+.dp-type-chip{
+  display:inline-flex;align-items:center;gap:3px;
+  background:color-mix(in oklch,var(--pc) 10%,var(--bg-2));
+  border:1px solid color-mix(in oklch,var(--pc) 26%,transparent);
+  border-radius:20px;padding:2px 7px 2px 5px;
+  font-size:9px;font-weight:800;color:var(--pc);
+}
+.dp-deck{text-align:right;flex-shrink:0;}
+.dp-deck-count{font-size:20px;font-weight:900;font-family:'Russo One',sans-serif;color:var(--txt);line-height:1;}
+.dp-deck-label{font-size:9px;color:var(--txt-mute);font-weight:700;margin-top:1px;}
+
+/* Flash feedback on hero */
+@keyframes explore-flash{0%{background:color-mix(in oklch,var(--zc) 10%,var(--bg-0))}50%{background:color-mix(in oklch,var(--zc) 14%,var(--bg-0))}100%{background:color-mix(in oklch,var(--zc) 6%,var(--bg-0))}}
+.zone-hero.flash{animation:explore-flash .4s ease both;}
+
+/* spacing util */
+.mt8{margin-top:8px;}
+</style>
+</head>
+<body>
+<div id="stage">
+<div id="phone-scale">
+<div class="phone">
+
+  <div class="statusbar">
+    <span>10:51</span>
+    <div class="sb-r">
+      <div class="signal"><span style="height:4px"></span><span style="height:7px"></span><span style="height:10px"></span><span style="height:13px"></span></div>
+      <div class="battery"><div class="battery-cell"><div class="battery-fill"></div></div><span style="font-size:11px;font-weight:700;">95</span></div>
+    </div>
+  </div>
+
+  <div class="scroll">
+
+    <div class="player-hd">
+      <span class="player-name">Bulba</span>
+      <button class="moon-btn">🌙</button>
+    </div>
+    <div class="wallet-chips">
+      <div class="w-chip">🔥 11.7k</div><div class="w-chip">⭐ 46.7k</div>
+      <div class="w-chip">🍃 10.8k</div><div class="w-chip">🔮 249</div>
+      <div class="w-chip">🦎 121</div><div class="w-chip">💧 100</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- TABS -->
+    <div class="tab-bar">
+      <button class="tab-btn on" data-tab="explore">Explorar</button>
+      <button class="tab-btn" data-tab="challenges">⚠ Desafios</button>
+    </div>
+
+    <!-- ═══ EXPLORE PANEL ═══ -->
+    <div id="tab-explore" class="tab-panel on">
+      <div class="zone-path" id="zonePath"></div>
+      <div class="zone-hero" id="zoneHero"></div>
+      <div style="margin-top:8px;" class="boss-gate" id="bossGate"></div>
+      <div id="nextTeaser"></div>
+      <div class="conquered-wrap">
+        <div class="conquered-hd"><span class="conquered-hd-title">Regiões Conquistadas</span></div>
+        <div class="trophy-grid" id="trophyGrid"></div>
+      </div>
+    </div>
+
+    <!-- ═══ CHALLENGES PANEL ═══ -->
+    <div id="tab-challenges" class="tab-panel">
+      <div class="ch-intro">
+        <div class="ch-intro-title">Desafios</div>
+        <div class="ch-intro-sub">Regiões com restrições de deck e maior dificuldade. Recompensas exclusivas.</div>
+      </div>
+      <div class="ch-list" id="chList"></div>
+    </div>
+
+  </div>
+</div>
+</div>
+</div>
+
+<script>
+/* ─────────────────────────────
+   DATA
+───────────────────────────── */
+const EL = {
+  fogo:    { color:'#ff6b35', emoji:'🔥', label:'Fogo'     },
+  pedra:   { color:'#c9a55a', emoji:'🏔️', label:'Pedra'    },
+  agua:    { color:'#3ad6c2', emoji:'💧', label:'Água'     },
+  eletrico:{ color:'#ffc24a', emoji:'⚡',  label:'Elétrico' },
+  lutador: { color:'#ff4757', emoji:'🥊', label:'Lutador'  },
+  fantasma:{ color:'#a86bff', emoji:'👻', label:'Fantasma' },
+  sombrio: { color:'#c062ff', emoji:'☠️', label:'Sombrio'  },
+  normal:  { color:'#a0a0c0', emoji:'⭐', label:'Normal'   },
+  pedraR:  { color:'#9a8c70', emoji:'🪨', label:'Rocha'    },
+  psiquico:{ color:'#ff5fa8', emoji:'🔮', label:'Psíquico' },
+  dragao:  { color:'#5d70ff', emoji:'🐉', label:'Dragão'   },
+  planta:  { color:'#46c45f', emoji:'🍃', label:'Planta'   },
+};
+
+const PLAYER = {
+  name: 'Bulba',
+  deckSize: 42,
+  pokemon: {
+    name: 'Bulbasaur',
+    emoji: '🌿',
+    color: '#46c45f',
+    typeEmoji: '🍃',
+    typeLabel: 'Planta',
+  },
+};
+
+const ZONES = [
+  {
+    id:'floresta', name:'Floresta Verdejante',
+    desc:'Árvores antigas e pokémons herbívoros.',
+    color:'#46c45f', emoji:'🌿',
+    types:['planta','bug','normal'], bossType:'dragao',
+    bossEmoji:'🌳', bossName:'Venusaur Ancestral',
+    bossDesc:'O guardião secular da floresta. Veneno que corrói e raízes que prendem.',
+    defeated:10, total:10, state:'done', bossState:'cooldown', cooldown:'23h 39m',
+  },
+  {
+    id:'brasas', name:'Caverna das Brasas',
+    desc:'Calor sufocante e criaturas de fogo e rocha.',
+    color:'#ff6b35', emoji:'🔥',
+    types:['fogo','pedra'], bossType:'dragao',
+    bossEmoji:'🐉', bossName:'Charizard das Profundezas',
+    bossDesc:'Chamas que derretem pedra. Um rugido que apaga as tochas.',
+    defeated:8, total:10, state:'active', bossState:'locked',
+  },
+  {
+    id:'cristal', name:'Lago de Cristal',
+    desc:'Águas claras repletas de pokémons aquáticos.',
+    color:'#3ad6c2', emoji:'💧',
+    types:['agua','gelo'], bossType:'agua',
+    bossEmoji:'🐢', bossName:'Blastoise das Marés',
+    bossDesc:'Senhor das correntes. Canhões que disparam a pressão do oceano.',
+    defeated:0, total:10, state:'next', bossState:'locked',
+  },
+  {
+    id:'trovao', name:'Usina Trovão', desc:'Correntes elétricas zunindo entre as máquinas.',
+    color:'#ffc24a', emoji:'⚡', types:['eletrico'], bossType:'eletrico',
+    bossEmoji:'⚡', bossName:'Raichu Overcharge', bossDesc:'Descarga de dez mil volts.',
+    defeated:0, total:10, state:'locked', bossState:'locked',
+  },
+  {
+    id:'rochosa', name:'Cordilheira Rochosa', desc:'Penhascos de pedra e terra batida.',
+    color:'#c9a55a', emoji:'🏔️', types:['pedra','pedraR'], bossType:'pedra',
+    bossEmoji:'🪨', bossName:'Golem Titânico', bossDesc:'Uma montanha que respira.',
+    defeated:0, total:10, state:'locked', bossState:'locked',
+  },
+  {
+    id:'psiquica', name:'Torre Psíquica', desc:'Energia mental e sombras inquietas.',
+    color:'#a86bff', emoji:'🔮', types:['psiquico','fantasma'], bossType:'psiquico',
+    bossEmoji:'🧬', bossName:'Mewtwo Prime', bossDesc:'Poder que transcende a matéria.',
+    defeated:0, total:10, state:'locked', bossState:'locked',
+  },
+];
+
+const CHALLENGES = [
+  {
+    id:'arena-lutador', name:'Arena dos Lutadores',
+    desc:'Pokémons de luta dominam cada corredor. Traga o que os neutraliza.',
+    enemies:['lutador'], deckType:'agua', deckLabel:'Deck de Água', deckEmoji:'💧',
+    difficulty:4, state:'available', reward:'🏔️ Pedra ×200',
+    stripe:'#ff4757',
+  },
+  {
+    id:'maratona-35', name:'Maratona das 35',
+    desc:'Deck limitado a 35 cartas. Cada slot conta. Nada de gordura.',
+    enemies:['normal','pedra'], deckType:'size', deckLabel:'Máx. 35 Cartas', deckEmoji:'🃏',
+    difficulty:3, state:'available', reward:'⚡ XP Duplo',
+    stripe:'#ffc24a',
+  },
+  {
+    id:'purgatório', name:'Purgatório das Chamas',
+    desc:'Apenas pokémons de fogo. Somente água apaga essa fornalha.',
+    enemies:['fogo'], deckType:'agua', deckLabel:'Deck de Água', deckEmoji:'💧',
+    difficulty:5, state:'locked', reward:'🌊 Água ×80',
+    stripe:'#ff6b35', unlockCond:'Complete o Lago de Cristal',
+  },
+  {
+    id:'monotype-psiquico', name:'Mente Contra Matéria',
+    desc:'35 cartas contra puro poder psíquico. Sem margens de erro.',
+    enemies:['psiquico'], deckType:'size', deckLabel:'Máx. 35 Cartas', deckEmoji:'🃏',
+    difficulty:5, state:'locked', reward:'🔮 Psíquico ×50',
+    stripe:'#a86bff', unlockCond:'Complete a Torre Psíquica',
+  },
+];
+
+/* ─────────────────────────────
+   STATE
+───────────────────────────── */
+let activeIdx = 1;
+let zones = ZONES.map(z => ({...z}));
+
+function bossPhase(z) {
+  if (z.bossState === 'cooldown') return 'cooldown';
+  if (z.defeated >= z.total) return 'revealed';
+  const p = z.defeated / z.total;
+  if (p > 0.7) return 'approaching';
+  if (p > 0.4) return 'traces';
+  return 'hidden';
+}
+
+/* ─────────────────────────────
+   RENDER: PATH
+───────────────────────────── */
+function renderPath() {
+  const el = document.getElementById('zonePath');
+  let h = '';
+  zones.forEach((z, i) => {
+    h += `<div class="zp-node ${z.state}" style="--zc:${z.color}" data-zi="${i}">
+      <div class="zp-you">${z.state==='active'?'▲ você':''}</div>
+      <div class="zp-circle">${z.emoji}</div>
+      <div class="zp-label">${z.name}</div>
+    </div>`;
+    if (i < zones.length-1) {
+      const lc = i < activeIdx ? 'done' : i===activeIdx ? 'active-to-next' : 'ghost';
+      h += `<div class="zp-line ${lc}"></div>`;
+    }
+  });
+  el.innerHTML = h;
+  const activeNode = el.querySelectorAll('.zp-node')[activeIdx];
+  if (activeNode) setTimeout(()=>{ activeNode.scrollIntoView({block:'nearest',inline:'center'}); },60);
+}
+
+/* ─────────────────────────────
+   RENDER: HERO
+───────────────────────────── */
+function renderHero() {
+  const z = zones[activeIdx];
+  const hero = document.getElementById('zoneHero');
+  hero.style.cssText = `--zc:${z.color}`;
+
+  const bossReady = z.defeated >= z.total && z.bossState !== 'cooldown';
+  const remaining = z.total - z.defeated;
+  const pk = PLAYER.pokemon;
+
+  // Type chips
+  const typeChips = z.types.map(t => {
+    const e = EL[t]; if (!e) return '';
+    return `<span class="type-chip" style="--tc:${e.color}">${e.emoji} ${e.label}</span>`;
+  }).join('');
+  const bossEl = EL[z.bossType];
+  const bossChip = bossEl
+    ? `<span class="type-chip boss-chip" style="--tc:${bossEl.color}">👑 ${bossEl.emoji} Boss</span>`
+    : '';
+
+  // Kill slots
+  let slots = '';
+  for (let i=0;i<z.total;i++) slots += `<div class="kt-slot${i<z.defeated?' filled':''}" id="slot-${i}"></div>`;
+
+  const noteClass = z.defeated >= z.total ? ' ready' : '';
+  const noteTxt = z.defeated >= z.total
+    ? 'Boss revelado — hora do confronto'
+    : `${remaining} ${remaining===1?'inimigo':'inimigos'} para revelar o boss`;
+
+  hero.innerHTML = `
+    <div class="zh-atmosphere"></div>
+    <div class="zh-inner">
+      <div class="zh-toprow">
+        <div class="zh-badge">${z.emoji} ${z.name.split(' ')[0].toUpperCase()}</div>
+        <div class="zh-status"><div class="zh-dot"></div>Ativa</div>
+      </div>
+      <div class="zh-name">${z.name}</div>
+      <div class="zh-desc">${z.desc}</div>
+      <div class="zh-types">
+        <span class="zh-types-label">Pokémon</span>
+        ${typeChips}${bossChip}
+      </div>
+    </div>
+    <div class="kill-track">
+      <div class="kt-header">
+        <span class="kt-label">Inimigos Derrotados</span>
+        <span class="kt-count" id="ktCount">${z.defeated}/${z.total}</span>
+      </div>
+      <div class="kt-slots">${slots}</div>
+      <div class="kt-note${noteClass}" id="ktNote">${noteTxt}</div>
+    </div>
+    <div class="deck-preview" style="--pc:${pk.color}">
+      <div class="dp-avatar">${pk.emoji}</div>
+      <div class="dp-info">
+        <div class="dp-name">${pk.name}</div>
+        <span class="dp-type-chip">${pk.typeEmoji} ${pk.typeLabel}</span>
+      </div>
+      <div class="dp-deck">
+        <div class="dp-deck-count">${PLAYER.deckSize}</div>
+        <div class="dp-deck-label">cartas</div>
+      </div>
+    </div>
+    <div class="zh-actions">
+      <button class="btn-explore" id="btnExplore">⚔ Batalhar</button>
+      <button class="btn-boss" id="btnBoss" ${bossReady?'':'disabled'}>
+        ${bossReady?'💥 Fight Boss':'🔒 Fight Boss'}
+      </button>
+    </div>`;
+
+  document.getElementById('btnExplore').addEventListener('click', doExplore);
+  document.getElementById('btnBoss').addEventListener('click', doFightBoss);
+}
+
+/* ─────────────────────────────
+   RENDER: BOSS GATE
+───────────────────────────── */
+function renderBossGate(reveal) {
+  const z = zones[activeIdx];
+  const gate = document.getElementById('bossGate');
+  const phase = bossPhase(z);
+  const pct = Math.min(1, z.defeated/z.total);
+
+  if (phase==='cooldown') {
+    gate.innerHTML=`<div class="bg-cooldown-wrap"><div class="bg-cd-icon">⏱</div><div><div class="bg-cd-title">Boss em Cooldown</div><div class="bg-cd-time">${z.cooldown||'23h 59m'}</div></div></div>`;
+    return;
+  }
+  if (phase==='revealed') {
+    gate.innerHTML=`<div class="bg-revealed${reveal?' anim-in':''}" style="--zc:${z.color}"><div class="bg-rev-glow"></div><div class="bg-eyebrow"><div class="bg-dot"></div><span class="bg-eyebrow-txt">Boss Revelado</span></div><div class="bg-boss-name">${z.bossEmoji} ${z.bossName}</div><div class="bg-boss-desc">${z.bossDesc}</div><button class="bg-fight-btn">⚔ Desafiar o Boss</button></div>`;
+    gate.querySelector('.bg-fight-btn').addEventListener('click', doFightBoss);
+    return;
+  }
+  const labels = {
+    hidden:     { title:'Boss Não Detectado',   sub:`Derrote mais inimigos para revelar o boss da região.` },
+    traces:     { title:'Rastros Detectados',    sub:`Algo poderoso habita aqui. Restam ${z.total-z.defeated} inimigos.` },
+    approaching:{ title:'O Boss se Aproxima…',  sub:`Apenas ${z.total-z.defeated} ${z.total-z.defeated===1?'inimigo':'inimigos'} até o confronto.` },
+  };
+  const { title, sub } = labels[phase]||labels.hidden;
+  const phClass = phase==='approaching'?'approaching':phase==='traces'?'traces':'';
+  const icon = phase==='approaching'?'👁':phase==='traces'?'🐾':'🔒';
+  gate.innerHTML=`<div class="bg-locked-wrap ${phClass}" style="--zc:${z.color}"><div class="bg-lock-icon">${icon}</div><div class="bg-locked-info"><div class="bg-l-title">${title}</div><div class="bg-l-sub">${sub}</div><div class="bg-mini-bar"><div class="bg-mini-fill" style="width:${pct*100}%"></div></div></div></div>`;
+}
+
+/* ─────────────────────────────
+   RENDER: NEXT TEASER
+───────────────────────────── */
+function renderNextTeaser() {
+  const wrap = document.getElementById('nextTeaser');
+  const nz = zones[activeIdx+1];
+  if (!nz) { wrap.innerHTML=''; return; }
+  wrap.innerHTML=`<div class="next-teaser"><div class="nt-icon">${nz.emoji}</div><div class="nt-info"><div class="nt-label">Próxima Região</div><div class="nt-name">${nz.name}</div></div><span class="nt-lock">🔒</span></div>`;
+}
+
+/* ─────────────────────────────
+   RENDER: TROPHIES
+───────────────────────────── */
+function renderTrophies() {
+  const grid = document.getElementById('trophyGrid');
+  const done = zones.filter(z => z.state==='done');
+  if (!done.length) { grid.innerHTML='<p style="font-size:10px;color:var(--txt-mute);padding:4px 2px;grid-column:1/-1">Nenhuma conquista ainda.</p>'; return; }
+  grid.innerHTML = done.map(z => {
+    const isCd = z.bossState==='cooldown';
+    const bClass = isCd?'cd':'ok';
+    const bTxt = isCd?`↺ ${z.cooldown}`:'✓';
+    return `<div class="trophy-item" style="--zc:${z.color}">
+      <div class="trophy-ambient"></div>
+      <div class="trophy-seal">★</div>
+      <div class="trophy-emoji">${z.emoji}</div>
+      <div class="trophy-name">${z.name}</div>
+      <div class="trophy-badge ${bClass}">${bTxt}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ─────────────────────────────
+   RENDER: CHALLENGES
+───────────────────────────── */
+function renderChallenges() {
+  const list = document.getElementById('chList');
+  list.innerHTML = CHALLENGES.map(c => {
+    const deckEl = EL[c.deckType];
+    const deckColor = deckEl ? deckEl.color : (c.deckType==='size'?'#ffc24a':'#3ad6c2');
+    const isLocked = c.state==='locked';
+
+    const enemyChips = c.enemies.map(t => {
+      const e = EL[t]; if(!e) return '';
+      return `<span class="ch-enemy-chip" style="--ec:${e.color}">${e.emoji} ${e.label}</span>`;
+    }).join('');
+
+    const stars = Array.from({length:5},(_,i)=>
+      `<span class="ch-star" style="color:${i<c.difficulty?'#ffc24a':'#2b2c38'}">★</span>`
+    ).join('');
+
+    const lockBanner = isLocked
+      ? `<div class="ch-lock-banner">🔒 <span>${c.unlockCond}</span></div>` : '';
+
+    return `<div class="ch-card${isLocked?' locked':''}">
+      <div class="ch-stripe" style="background:${c.stripe}"></div>
+      <div class="ch-header">
+        <div class="ch-name">${c.name}</div>
+        <div class="ch-stars">${stars}</div>
+      </div>
+      <div class="ch-desc">${c.desc}</div>
+      <div class="ch-restrictions">
+        <div class="ch-restr enemies">
+          <div class="ch-restr-label">Enfrenta</div>
+          <div class="ch-enemy-chips">${enemyChips}</div>
+        </div>
+        <div class="ch-restr deck" style="--rc:${deckColor}">
+          <div class="ch-restr-label">Entra com</div>
+          <div class="ch-deck-pill" style="--rc:${deckColor}">${c.deckEmoji} ${c.deckLabel}</div>
+        </div>
+      </div>
+      ${lockBanner}
+      <div class="ch-footer">
+        <div class="ch-reward">Recompensa <span>${c.reward}</span></div>
+        <button class="ch-btn ${isLocked?'locked-btn':'available'}" ${isLocked?'disabled':''}>
+          ${isLocked?'🔒 Bloqueado':'⚔ Entrar'}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ─────────────────────────────
+   INTERACTIONS
+───────────────────────────── */
+function doExplore() {
+  const z = zones[activeIdx];
+  if (z.defeated >= z.total) return;
+  z.defeated++;
+
+  const slot = document.getElementById(`slot-${z.defeated-1}`);
+  if (slot) { slot.classList.add('filled','just-filled'); setTimeout(()=>slot.classList.remove('just-filled'),420); }
+
+  const kc = document.getElementById('ktCount');
+  if (kc) kc.textContent = `${z.defeated}/${z.total}`;
+
+  const note = document.getElementById('ktNote');
+  if (note) {
+    if (z.defeated >= z.total) { note.textContent='Boss revelado — hora do confronto'; note.classList.add('ready'); }
+    else { const r=z.total-z.defeated; note.textContent=`${r} ${r===1?'inimigo':'inimigos'} para revelar o boss`; }
+  }
+  const bb = document.getElementById('btnBoss');
+  if (bb && z.defeated >= z.total) { bb.disabled=false; bb.innerHTML='💥 Fight Boss'; }
+
+  const hero = document.getElementById('zoneHero');
+  hero.classList.add('flash');
+  setTimeout(()=>hero.classList.remove('flash'),420);
+
+  renderBossGate(z.defeated >= z.total);
+}
+
+function doFightBoss() {
+  const z = zones[activeIdx];
+  if (z.defeated < z.total) return;
+  z.bossState='cooldown'; z.cooldown='23h 59m';
+  renderBossGate(false);
+  const bb = document.getElementById('btnBoss');
+  if (bb) { bb.disabled=true; bb.innerHTML='🔒 Fight Boss'; }
+  const note = document.getElementById('ktNote');
+  if (note) { note.textContent='Boss em cooldown'; note.classList.remove('ready'); }
+}
+
+/* ─────────────────────────────
+   TABS
+───────────────────────────── */
+document.querySelector('.tab-bar').addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('tab-'+btn.dataset.tab).classList.add('on');
+});
+
+/* ─────────────────────────────
+   PHONE SCALE
+───────────────────────────── */
+function scalePhone() {
+  const s = Math.min((window.innerWidth-24)/402,(window.innerHeight-24)/874,1.05);
+  document.getElementById('phone-scale').style.transform=`scale(${s})`;
+}
+window.addEventListener('resize',scalePhone);
+scalePhone();
+setTimeout(scalePhone,200);
+
+/* ─────────────────────────────
+   INIT
+───────────────────────────── */
+renderPath();
+renderHero();
+renderBossGate(false);
+renderNextTeaser();
+renderTrophies();
+renderChallenges();
+</script>
+</body>
+</html>
