@@ -24,6 +24,7 @@
 	} from '$lib/game/market.svelte';
 	import { game, getElementPoints } from '$lib/game/state.svelte';
 	import { pushToast } from '$lib/stores/toast.svelte';
+	import { notifyHudTrade } from '$lib/stores/hud.svelte';
 
 	// ---- State ----
 	let selectedCommodity = $state<Element | 'platinum'>('fire');
@@ -80,9 +81,12 @@
 		try {
 			const result = await buyElementPoints(el, tradeQty);
 			if (!result.success) pushToast(result.message, 'error');
-			if (result.success && result.greatDeal) {
-				burstMessage = 'ÓTIMA COMPRA!';
-				burstTrigger++;
+			if (result.success) {
+				notifyHudTrade(el, 'buy');
+				if (result.greatDeal) {
+					burstMessage = 'ÓTIMA COMPRA!';
+					burstTrigger++;
+				}
 			}
 		} finally {
 			busy = false;
@@ -95,9 +99,12 @@
 		try {
 			const result = await sellElementPoints(el, tradeQty);
 			if (!result.success) pushToast(result.message, 'error');
-			if (result.success && result.greatDeal) {
-				burstMessage = 'LUCRO!';
-				burstTrigger++;
+			if (result.success) {
+				notifyHudTrade(el, 'sell');
+				if (result.greatDeal) {
+					burstMessage = 'LUCRO!';
+					burstTrigger++;
+				}
 			}
 		} finally {
 			busy = false;
