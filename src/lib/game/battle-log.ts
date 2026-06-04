@@ -1,5 +1,7 @@
 import { ELEMENT_COLOR, ELEMENT_EMOJI } from './elements';
 import type { EnemyTurnResult, PlayCardResult } from './battle.svelte';
+import type { BattleEvent } from './status/types';
+import { getStatusDef } from './status';
 
 export interface LogPart {
 	text: string;
@@ -9,6 +11,33 @@ export interface LogPart {
 export interface BattleLogEntry {
 	id: string;
 	line: LogPart[];
+}
+
+const EVENT_GLYPH: Record<string, { glyph: string; color: string }> = {
+	static_shock: { glyph: '⚡', color: '#facc15' },
+	dano_eletrico: { glyph: '⚡', color: '#facc15' },
+	reflexo: { glyph: '🛡', color: '#a78bfa' },
+	revenge_shield: { glyph: '🧊', color: '#67e8f9' },
+	shield_fire_thorns: { glyph: '🔥', color: '#ef4444' },
+	shield_ice_reflect: { glyph: '🧊', color: '#67e8f9' },
+	electric_descarga: { glyph: '⚡', color: '#facc15' },
+	psychic_refluxo: { glyph: '🔮', color: '#db2777' },
+	bug_enxame: { glyph: '🐛', color: '#84cc16' },
+	ice_congelamento: { glyph: '❄', color: '#22d3ee' }
+};
+
+export function appendEvents(parts: LogPart[], events?: BattleEvent[]): LogPart[] {
+	if (!events || events.length === 0) return parts;
+	for (const e of events) {
+		if (e.kind === 'bonus_dmg') {
+			const g = EVENT_GLYPH[e.source] ?? { glyph: '⚡', color: '#a8a29e' };
+			parts.push({ text: ` · ${g.glyph}${e.amount}`, color: g.color });
+		} else if (e.kind === 'status_applied') {
+			const g = EVENT_GLYPH[e.id] ?? { glyph: '+', color: '#a8a29e' };
+			parts.push({ text: ` · +${g.glyph}${e.stacks > 1 ? e.stacks : ''}`, color: g.color });
+		}
+	}
+	return parts;
 }
 
 function appendExhausted(parts: LogPart[], exhausted: boolean): LogPart[] {
@@ -34,12 +63,6 @@ function buildAttackPlayLog(result: PlayCardResult, templateName: string): LogPa
 	}
 
 	return parts;
-}
-
-function appendShockDamage(parts: LogPart[], result: PlayCardResult): LogPart[] {
-	return result.shockDamage && result.shockDamage > 0
-		? [...parts, { text: ` · ⚡${result.shockDamage}`, color: '#facc15' }]
-		: parts;
 }
 
 function appendMatchupDamage(parts: LogPart[], modifier?: number): LogPart[] {
@@ -98,11 +121,12 @@ export function buildPlayLog(result: PlayCardResult, templateName: string): LogP
 			parts = [{ text: `🃏 ${templateName}` }];
 	}
 
-	return appendExhausted(appendShockDamage(parts, result), result.exhausted);
+	parts = appendEvents(parts, result.events);
+	return appendExhausted(parts, result.exhausted);
 }
 
 export function buildEndTurnLog(result: EnemyTurnResult): LogPart[] {
-	const parts: LogPart[] = [{ text: '↦ ', color: '#64748b' }];
+	let parts: LogPart[] = [{ text: '↦ ', color: '#64748b' }];
 
 	if (result.kind === 'attack') {
 		if (result.damage && result.damage > 0) {
@@ -110,14 +134,15 @@ export function buildEndTurnLog(result: EnemyTurnResult): LogPart[] {
 		} else {
 			parts.push({ text: '🛡 Ataque bloqueado!', color: '#60a5fa' });
 		}
-		return appendMatchupDamage(parts, result.damageModifier);
+		parts = appendMatchupDamage(parts, result.damageModifier);
+		return appendEvents(parts, result.events);
 	}
 
 	if (result.kind === 'defend') {
 		parts.push({ text: `🛡 Inimigo +${result.enemyBlock} bloqueio`, color: '#60a5fa' });
-		return parts;
+		return appendEvents(parts, result.events);
 	}
 
 	parts.push({ text: '✨ Inimigo se preparou', color: '#a8a29e' });
-	return parts;
+	return appendEvents(parts, result.events);
 }

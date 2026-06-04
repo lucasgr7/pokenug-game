@@ -203,7 +203,7 @@ export const CATALOG: CardTemplate[] = [
 		kind: 'debuff',
 		element: 'grass',
 		rarity: 'rare',
-		enraizadoTurns: 2,
+		appliesStatuses: [{ id: 'enraizado', stacks: 2, target: 'enemy' }],
 		price: { money: 90 }
 	},
 	{
@@ -228,7 +228,6 @@ export const CATALOG: CardTemplate[] = [
 		element: 'grass',
 		rarity: 'common',
 		damage: 6,
-		artGrassDoubleIfEnraizado: true,
 		price: { money: 40 }
 	},
 	{
@@ -240,7 +239,6 @@ export const CATALOG: CardTemplate[] = [
 		element: 'grass',
 		rarity: 'common',
 		block: 12,
-		artBlockDecrement: true,
 		price: { money: 40 }
 	},
 
@@ -253,7 +251,6 @@ export const CATALOG: CardTemplate[] = [
 		kind: 'attack',
 		element: 'dragon',
 		rarity: 'epic',
-		artFuriaDragao: true,
 		price: { money: 180, element: { type: 'dragon', amount: 60 } }
 	},
 	{
@@ -265,7 +262,7 @@ export const CATALOG: CardTemplate[] = [
 		element: 'dragon',
 		rarity: 'common',
 		drawCount: 1,
-		cargaDragaoGain: 8,
+		appliesStatuses: [{ id: 'carga_dragao', stacks: 8 }],
 		price: { money: 40 }
 	},
 	{
@@ -277,7 +274,7 @@ export const CATALOG: CardTemplate[] = [
 		element: 'dragon',
 		rarity: 'common',
 		damage: 6,
-		cargaDragaoGain: 8,
+		appliesStatuses: [{ id: 'carga_dragao', stacks: 8 }],
 		price: { money: 40 }
 	},
 	{
@@ -289,7 +286,7 @@ export const CATALOG: CardTemplate[] = [
 		element: 'dragon',
 		rarity: 'secret',
 		isPower: true,
-		artDuplicarDragao: true,
+		appliesStatuses: [{ id: 'furia_double' }],
 		exhaust: 'combat',
 		price: { money: 300, element: { type: 'dragon', amount: 80 } }
 	},
@@ -314,7 +311,7 @@ export const CATALOG: CardTemplate[] = [
 		element: 'psychic',
 		rarity: 'rare',
 		block: 18,
-		artReflexo: true,
+		appliesStatuses: [{ id: 'reflexo' }],
 		price: { money: 90 }
 	},
 	{
@@ -336,7 +333,6 @@ export const CATALOG: CardTemplate[] = [
 		kind: 'buff',
 		element: 'psychic',
 		rarity: 'epic',
-		artDuplicarCarta: true,
 		exhaust: 'combat',
 		price: { money: 180 }
 	},
@@ -350,7 +346,7 @@ export const CATALOG: CardTemplate[] = [
 		kind: 'debuff',
 		element: 'ground',
 		rarity: 'rare',
-		imobilizadoTurns: 2,
+		appliesStatuses: [{ id: 'imobilizado', stacks: 2, target: 'enemy' }],
 		price: { money: 90 }
 	},
 	{
@@ -374,7 +370,7 @@ export const CATALOG: CardTemplate[] = [
 		element: 'ground',
 		rarity: 'secret',
 		isPower: true,
-		nextTurnBonusMana: 1,
+		appliesStatuses: [{ id: 'next_turn_bonus', stacks: 1, data: { mana: 1 } }],
 		price: { money: 300 }
 	},
 	{
@@ -386,7 +382,6 @@ export const CATALOG: CardTemplate[] = [
 		element: 'ground',
 		rarity: 'rare',
 		damage: 5,
-		artPrisaoEterna: true,
 		price: { money: 90 }
 	},
 
@@ -400,7 +395,6 @@ export const CATALOG: CardTemplate[] = [
 		element: 'fighting',
 		rarity: 'common',
 		damage: 6,
-		artCopiaDescarte: 2,
 		price: { money: 40 }
 	},
 	{
@@ -412,7 +406,7 @@ export const CATALOG: CardTemplate[] = [
 		element: 'fighting',
 		rarity: 'secret',
 		isPower: true,
-		artSequencia: true,
+		appliesStatuses: [{ id: 'sequencia' }],
 		exhaust: 'combat',
 		price: { money: 300, element: { type: 'fighting', amount: 60 } }
 	},
@@ -436,7 +430,7 @@ export const CATALOG: CardTemplate[] = [
 		element: 'fighting',
 		rarity: 'secret',
 		isPower: true,
-		artAutoJogar: true,
+		appliesStatuses: [{ id: 'auto_jogar' }],
 		price: { money: 300, element: { type: 'fighting', amount: 60 } }
 	},
 
@@ -449,9 +443,8 @@ export const CATALOG: CardTemplate[] = [
 		kind: 'power',
 		element: 'flying',
 		rarity: 'epic',
-		artEndsTurn: true,
-		nextTurnBonusDraw: 2,
-		nextTurnBonusMana: 1,
+		endsTurn: true,
+		appliesStatuses: [{ id: 'next_turn_bonus', stacks: 1, data: { draw: 2, mana: 1 } }],
 		price: { money: 180 }
 	},
 	{
@@ -488,7 +481,6 @@ export const CATALOG: CardTemplate[] = [
 		rarity: 'common',
 		damage: 5,
 		exhaust: 'combat',
-		artPilhaExaurir: 1,
 		price: { money: 40 }
 	},
 	{
@@ -500,7 +492,6 @@ export const CATALOG: CardTemplate[] = [
 		element: 'bug',
 		rarity: 'common',
 		damage: 12,
-		artPilhaExaurir: 1,
 		price: { money: 40 }
 	},
 	{
@@ -535,7 +526,7 @@ export const CATALOG: CardTemplate[] = [
 		element: 'poison',
 		rarity: 'common',
 		damage: 5,
-		artReduzShield: true,
+		appliesStatuses: [{ id: 'shield_reduced', target: 'enemy' }],
 		price: { money: 40 }
 	},
 	{
@@ -547,7 +538,7 @@ export const CATALOG: CardTemplate[] = [
 		element: 'poison',
 		rarity: 'rare',
 		damage: 8,
-		artReduzBuff: true,
+		appliesStatuses: [{ id: 'buff_reduced', target: 'enemy' }],
 		price: { money: 90 }
 	},
 	{
@@ -559,7 +550,6 @@ export const CATALOG: CardTemplate[] = [
 		element: 'poison',
 		rarity: 'epic',
 		damage: 16,
-		artAmplifica: true,
 		price: { money: 180, element: { type: 'poison', amount: 50 } }
 	},
 	{
@@ -570,7 +560,7 @@ export const CATALOG: CardTemplate[] = [
 		kind: 'debuff',
 		element: 'poison',
 		rarity: 'epic',
-		fraquezaStacks: 5,
+		appliesStatuses: [{ id: 'fraqueza', stacks: 5, target: 'enemy' }],
 		price: { money: 180 }
 	},
 
@@ -583,7 +573,6 @@ export const CATALOG: CardTemplate[] = [
 		kind: 'debuff',
 		element: 'ghost',
 		rarity: 'rare',
-		artGhostPermDebuff: true,
 		exhaust: 'run',
 		price: { money: 90 }
 	},
@@ -646,7 +635,6 @@ export const CATALOG: CardTemplate[] = [
 		element: 'ice',
 		rarity: 'secret',
 		isPower: true,
-		artCongelamento: true,
 		price: { money: 300, element: { type: 'ice', amount: 60 } }
 	},
 	{
@@ -658,7 +646,6 @@ export const CATALOG: CardTemplate[] = [
 		element: 'ice',
 		rarity: 'rare',
 		damage: 11,
-		artDuplicarCarta: true,
 		price: { money: 90 }
 	},
 	{
@@ -670,7 +657,7 @@ export const CATALOG: CardTemplate[] = [
 		element: 'ice',
 		rarity: 'rare',
 		damage: 14,
-		fraquezaStacks: 1,
+		appliesStatuses: [{ id: 'fraqueza', stacks: 1, target: 'enemy' }],
 		price: { money: 90 }
 	},
 	{
@@ -682,7 +669,7 @@ export const CATALOG: CardTemplate[] = [
 		element: 'ice',
 		rarity: 'epic',
 		block: 20,
-		artRevengeShield: 20,
+		appliesStatuses: [{ id: 'revenge_shield', stacks: 20 }],
 		price: { money: 180 }
 	},
 
@@ -695,7 +682,7 @@ export const CATALOG: CardTemplate[] = [
 		kind: 'power',
 		element: 'electric',
 		rarity: 'epic',
-		artDanoEletrico: 2,
+		appliesStatuses: [{ id: 'dano_eletrico', stacks: 2 }],
 		price: { money: 180, element: { type: 'electric', amount: 50 } }
 	},
 	{
@@ -717,7 +704,7 @@ export const CATALOG: CardTemplate[] = [
 		element: 'electric',
 		rarity: 'rare',
 		block: 8,
-		artCancelEscudo: true,
+		appliesStatuses: [{ id: 'shield_cancelled', target: 'enemy' }],
 		price: { money: 90 }
 	},
 
@@ -742,7 +729,6 @@ export const CATALOG: CardTemplate[] = [
 		element: 'rock',
 		rarity: 'rare',
 		block: 10,
-		artCopiaDescarte: 3,
 		price: { money: 90 }
 	},
 	{
@@ -759,7 +745,7 @@ export const CATALOG: CardTemplate[] = [
 	{
 		id: 'rock_rocha_imovel',
 		name: 'Rocha Imóvel',
-		description: 'Se você tiver escudo no fim deste turno, ganha +1 de energia no próximo turno.',
+		description: 'Se você tiver escudo no início do próximo turno, ganha +1 de energia no próximo turno.',
 		cost: 0,
 		kind: 'buff',
 		element: 'rock',
@@ -814,8 +800,7 @@ export const TOKEN_TEMPLATES: CardTemplate[] = [
 		element: 'bug',
 		rarity: 'common',
 		damage: 5,
-		exhaust: 'run',
-		artPilhaExaurir: 1
+		exhaust: 'run'
 	}
 ];
 

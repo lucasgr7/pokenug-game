@@ -1,0 +1,10 @@
+import './powers';
+import './dragon';
+import './ghost';
+import './ice';
+import './fighting';
+import './electric';
+import './rock';
+import './grass';
+import './enemy-debuffs';
+import './generic';

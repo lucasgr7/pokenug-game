@@ -22,6 +22,7 @@
 		finalizeBattle,
 		endBattleCleanup
 	} from '$lib/game/battle.svelte';
+	import { collectEmblems } from '$lib/game/status/pipeline';
 	import { buildEndTurnLog, buildPlayLog, type BattleLogEntry, type LogPart } from '$lib/game/battle-log';
 	import { getTemplate } from '$lib/data/cards';
 	import { ELEMENT_LABEL, ELEMENT_EMOJI } from '$lib/game/elements';
@@ -268,9 +269,13 @@
 						<span class="rounded bg-(--danger)/15 px-1.5 py-0.5">Intenção {intentText()}</span>
 					</div>
 					<TypeAdvantageAlert attacker={s.enemy.pokemon.element} defender={s.player.pokemon.element} />
-					{#if s.enemy.intimidateTurnsLeft > 0}
-						<div class="mt-1 flex items-center gap-1 text-[11px] font-bold text-red-400">
-							<span class="rounded bg-red-400/15 px-1.5 py-0.5">👤 Intimidado {s.enemy.intimidateTurnsLeft}t</span>
+					<!-- Enemy active debuffs -->
+					{#if collectEmblems(s.enemy, s).length > 0}
+						<div class="mt-1.5 flex flex-wrap gap-1">
+							{#each collectEmblems(s.enemy, s) as e}
+								<span class="rounded-full px-1.5 py-0.5 text-[9px] font-black"
+									style="color:{e.color};background:{e.bg}" title={e.title}>{e.icon} {e.label}</span>
+							{/each}
 						</div>
 					{/if}
 				</div>
@@ -321,23 +326,13 @@
 						<ManaCrystal mana={s.player.mana} max={s.player.mana ?? s.player.maxMana} />
 					</div>
 					<HpBar hp={s.player.hp} maxHp={s.player.pokemon.maxHp} block={s.player.block} />
-					{#if s.player.nextDamageBonus > 0 || s.player.berserk || s.player.dragonize || s.player.staticShockDamage > 0 || s.player.ghostForm}
+					<!-- Player active emblems (statuses) -->
+					{#if collectEmblems(s.player, s).length > 0}
 						<div class="mt-1.5 flex flex-wrap gap-1">
-							{#if s.player.berserk}
-								<span class="rounded-full px-1.5 py-0.5 text-[9px] font-black" style="color:#ef4444;background:rgba(239,68,68,0.15)" title="ATQ×2, DEF÷2 — toda a batalha">⚡ Fúria</span>
-							{/if}
-							{#if s.player.dragonize}
-								<span class="rounded-full px-1.5 py-0.5 text-[9px] font-black" style="color:#818cf8;background:rgba(79,70,229,0.15)" title="Ataques comuns → tipo Dragão — toda a batalha">🐉 Dragão</span>
-							{/if}
-							{#if s.player.staticShockDamage > 0}
-								<span class="rounded-full px-1.5 py-0.5 text-[9px] font-black" style="color:#facc15;background:rgba(250,204,21,0.16)" title="Cada carta jogada causa dano elétrico extra">⚡ Choque +{s.player.staticShockDamage}</span>
-							{/if}
-							{#if s.player.ghostForm}
-								<span class="rounded-full px-1.5 py-0.5 text-[9px] font-black" style="color:#a78bfa;background:rgba(167,139,250,0.15)" title="Dano máximo 1 neste turno">👻 Fantasma</span>
-							{/if}
-							{#if s.player.nextDamageBonus > 0}
-								<span class="rounded-full px-1.5 py-0.5 text-[9px] font-black" style="color:#c084fc;background:rgba(192,132,252,0.15)" title="Próximo ataque +{s.player.nextDamageBonus}">✨ +{s.player.nextDamageBonus}</span>
-							{/if}
+							{#each collectEmblems(s.player, s) as e}
+								<span class="rounded-full px-1.5 py-0.5 text-[9px] font-black"
+									style="color:{e.color};background:{e.bg}" title={e.title}>{e.icon} {e.label}</span>
+							{/each}
 						</div>
 					{/if}
 				</div>
