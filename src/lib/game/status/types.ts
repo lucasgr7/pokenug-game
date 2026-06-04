@@ -10,6 +10,10 @@ export type StatusScope = 'player' | 'enemy';
 
 export type StatusDecay = 'permanent' | 'turnStart' | 'turnEnd';
 
+export type BattleEvent =
+  | { kind: 'bonus_dmg'; source: string; amount: number }
+  | { kind: 'status_applied'; id: string; target: StatusScope; stacks: number };
+
 export interface Emblem {
   icon: string; label: string; title: string; color: string; bg: string;
 }
@@ -20,6 +24,7 @@ export interface StatusCtx {
   dealToEnemy(amount: number): void;
   dealToPlayer(amount: number): number;
   draw(count: number): void;
+  log(e: BattleEvent): void;
 }
 
 export interface DamageCtx extends StatusCtx {
