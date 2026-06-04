@@ -7,7 +7,7 @@ export const STARTER_TEMPLATES: CardTemplate[] = [
 		id: 'neu_atk_preciso',
 		name: 'Ataque Preciso',
 		description: 'Cause 4 de dano.',
-		cost: 0,
+		cost: 1,
 		kind: 'attack',
 		element: null,
 		rarity: 'starter',
@@ -38,7 +38,7 @@ export const STARTER_TEMPLATES: CardTemplate[] = [
 		id: 'neu_def_bloqueio',
 		name: 'Bloqueio',
 		description: 'Ganha 6 de escudo.',
-		cost: 0,
+		cost: 1,
 		kind: 'defense',
 		element: null,
 		rarity: 'starter',
@@ -63,38 +63,6 @@ export const STARTER_TEMPLATES: CardTemplate[] = [
 		element: null,
 		rarity: 'starter',
 		block: 20
-	},
-	// Suporte neutro
-	{
-		id: 'neu_sup_respiro',
-		name: 'Respiro',
-		description: 'Ganha +1 de energia neste turno.',
-		cost: 0,
-		kind: 'energy',
-		element: null,
-		rarity: 'starter',
-		manaGain: 1
-	},
-	{
-		id: 'neu_sup_concentracao',
-		name: 'Concentração',
-		description: 'Compre 1 carta.',
-		cost: 1,
-		kind: 'buff',
-		element: null,
-		rarity: 'starter',
-		drawCount: 1
-	},
-	{
-		id: 'neu_sup_reserva',
-		name: 'Reserva',
-		description: 'Compre 1 carta. Ganha 4 de escudo.',
-		cost: 1,
-		kind: 'defense',
-		element: null,
-		rarity: 'starter',
-		drawCount: 1,
-		block: 4
 	},
 	// Pokébola inicial
 	{
@@ -240,6 +208,17 @@ export const CATALOG: CardTemplate[] = [
 		rarity: 'common',
 		block: 12,
 		price: { money: 40 }
+	},
+	{
+		id: 'grass_chicote_verde',
+		name: 'Chicote Verde',
+		description: '10 de dano. 3x contra inimigo ENRAIZADO.',
+		cost: 1,
+		kind: 'attack',
+		element: 'grass',
+		rarity: 'rare',
+		damage: 10,
+		price: { money: 500 }
 	},
 
 	// ── Dragão ────────────────────────────────────────────

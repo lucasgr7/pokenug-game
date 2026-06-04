@@ -86,7 +86,7 @@
 		<p class="text-sm text-[var(--text-muted)]">Carregando…</p>
 	{:else}
 		<!-- Platinum shop - only shows if user has platinum currency -->
-		 {#if game.player?.platinum > 0}
+		 {#if (game.player?.platinum ?? 0) > 0}
 		<div class="mt-6 mb-6">
 			<h2 class="mb-2 text-base font-bold">🜲 Loja Platinum</h2>
 			<div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">

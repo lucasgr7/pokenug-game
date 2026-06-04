@@ -73,6 +73,12 @@ export const CARD_HOOKS: Record<string, CardHook> = {
 		}
 	},
 
+	grass_chicote_verde: {
+		onBeforeDamage: (ctx) => {
+			return hasStatus(ctx.s.enemy, 'enraizado') ? 30 : 10;
+		}
+	},
+
 	bug_corte: {
 		onPlay: (ctx) => {
 			ctx.s.pilhaExaurir += 1;
