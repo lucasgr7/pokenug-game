@@ -63,7 +63,8 @@ export async function createPlayer(name: string, starter: StarterDef): Promise<v
 		},
 		pilhaExaurir: 0,
 		bannedTemplateIds: [],
-		ghostPermDebuff: 0
+		ghostPermDebuff: 0,
+		platinum: 0
 	};
 	await savePlayer(player);
 

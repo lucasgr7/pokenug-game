@@ -24,6 +24,9 @@ function ensureNgu(player: Player): void {
 	player.pilhaExaurir ??= 0;
 	player.bannedTemplateIds ??= [];
 	player.ghostPermDebuff ??= 0;
+
+	// Market gamification — migração para saves antigos
+	player.platinum ??= 0;
 }
 
 export async function getPlayer(): Promise<Player | undefined> {

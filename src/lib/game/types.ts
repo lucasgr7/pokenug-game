@@ -42,16 +42,33 @@ export interface MarketPriceEntry {
 	price: number; // money per 100 element points
 }
 
+export interface MarketCandle {
+	t: number; // window start timestamp
+	o: number; // open
+	h: number; // high
+	l: number; // low
+	c: number; // close
+}
+
 export interface ElementMarketData {
 	currentPrice: number;
 	lastRandomizedAt: number;
 	lastDriftAt: number; // when hourly drift was last applied
 	lastSnapshotAt: number;
 	history: MarketPriceEntry[]; // max 17 entries (~4h of 15-min snapshots)
+	candles?: MarketCandle[]; // chart source (max 24)
+	event?: { kind: 'surge' | 'crash'; startsAt: number; endsAt: number };
+	oracle?: 'up' | 'down' | 'neutral';
+	buyStreak?: number;
+	sellStreak?: number;
+	lastTradeAt?: number;
+	lastTradeSide?: 'buy' | 'sell';
+	crashedAt?: number; // when price hit 0; market frozen until next reset
 }
 
 export interface MarketState {
 	elements: Record<Element, ElementMarketData>;
+	platinum?: { price: number; candles: MarketCandle[] };
 	lastUpdatedAt: number;
 }
 
@@ -82,6 +99,7 @@ export interface Player {
 	pilhaExaurir: number;          // ART-19 — contador de cartas Inseto exauridas nesta run
 	bannedTemplateIds: string[];   // ART-20 — templateIds banidos nesta run
 	ghostPermDebuff: number;       // Alma Penada — redução permanente acumulada de dano inimigo
+	platinum: number;              // premium currency, market-only
 }
 
 export interface CapturedPokemon {

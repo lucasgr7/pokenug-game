@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { game, setTheme } from '$lib/game/state.svelte';
+	import { game, setTheme, getPlatinum } from '$lib/game/state.svelte';
 	import { formatNumber } from '$lib/utils/math';
 	import type { Element } from '$lib/game/types';
 
@@ -27,6 +27,7 @@
 			.filter(([, v]) => (v ?? 0) >= 1)
 			.sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))
 	);
+	let platinum = $derived(getPlatinum());
 
 	function toggleTheme() {
 		setTheme(game.player?.theme === 'dark' ? 'light' : 'dark');
@@ -61,6 +62,7 @@
 		<div class="truncate text-sm font-bold">{game.player?.name ?? '—'}</div>
 		<div class="flex flex-wrap items-center gap-1.5 text-xs">
 			<span class="hud-money font-semibold">💰 {formatNumber(game.player?.money ?? 0)}</span>
+			<span class="hud-chip hud-platinum">⬡ {formatNumber(platinum)}</span>
 			{#each elementChips as [el, v] (el)}
 				<span class="hud-chip">
 					{elementEmoji[el as Element] ?? ''} {formatNumber(v ?? 0)}
@@ -101,5 +103,10 @@
 		border: 1px solid var(--line, #2b2c38);
 		padding: 2px 8px;
 		color: var(--txt-dim, #9a9bab);
+	}
+	.hud-platinum {
+		color: #a78bfa;
+		border-color: #a78bfa44;
+		background: #a78bfa11;
 	}
 </style>

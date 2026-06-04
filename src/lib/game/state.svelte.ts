@@ -76,6 +76,26 @@ export function getElementPoints(element: Element): number {
 	return game.player?.elementPoints[element] ?? 0;
 }
 
+// ---- Platinum (premium market currency) ----
+
+export function addPlatinum(n: number): void {
+	const p = requirePlayer();
+	p.platinum = Math.max(0, p.platinum + n);
+	schedulePersist();
+}
+
+export function spendPlatinum(n: number): boolean {
+	const p = requirePlayer();
+	if (p.platinum < n) return false;
+	p.platinum -= n;
+	schedulePersist();
+	return true;
+}
+
+export function getPlatinum(): number {
+	return game.player?.platinum ?? 0;
+}
+
 export function getElementalDamageLevel(element: Element | null | undefined): number {
 	if (!element) return 0;
 	return game.player?.ngu.elementalDamageLevels[element] ?? 0;

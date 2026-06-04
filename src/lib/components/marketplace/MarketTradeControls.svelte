@@ -2,23 +2,39 @@
 	import type { Element } from '$lib/game/types';
 	import { ELEMENT_COLOR, ELEMENT_EMOJI, ELEMENT_LABEL } from '$lib/game/elements';
 	import { formatNumber } from '$lib/utils/math';
-	import { MARKET_UNIT } from '$lib/game/market.svelte';
+	import { MARKET_UNIT, QUANTITY_STEPS, estimateBuyCost, estimateSellGain } from '$lib/game/market.svelte';
 
 	interface Props {
 		element: Element;
 		currentPrice: number;
 		epBalance: number;
 		playerMoney: number;
+		quantity: number;
+		onquantitychange: (q: number) => void;
 		onbuy: () => void;
 		onsell: () => void;
 		busy: boolean;
 	}
 
-	let { element, currentPrice, epBalance, playerMoney, onbuy, onsell, busy }: Props = $props();
+	let {
+		element,
+		currentPrice,
+		epBalance,
+		playerMoney,
+		quantity,
+		onquantitychange,
+		onbuy,
+		onsell,
+		busy
+	}: Props = $props();
 
 	let color = $derived(ELEMENT_COLOR[element]);
-	let canBuy = $derived(!busy && playerMoney >= currentPrice);
-	let canSell = $derived(!busy && epBalance >= MARKET_UNIT);
+	let units = $derived(quantity / MARKET_UNIT);
+	let buyCost = $derived(estimateBuyCost(element, units));
+	let sellGain = $derived(estimateSellGain(element, units));
+	let canBuy = $derived(!busy && playerMoney >= buyCost);
+	let canSell = $derived(!busy && epBalance >= quantity);
+	let impactPct = $derived((units * 2.5).toFixed(0));
 </script>
 
 <div class="flex flex-col gap-4">
@@ -34,8 +50,23 @@
 			💰 {currentPrice.toLocaleString('pt-BR')}
 		</p>
 		<p class="text-xs text-[var(--text-muted)] mt-1">
-			±1% por transação · +1% por hora · reset a cada 4h
+			±2.5%+ por transação (escala com sequência) · reset a cada 2h · taxa 1%
 		</p>
+	</div>
+
+	<!-- Quantity selector pills -->
+	<div class="overflow-x-auto flex gap-1.5 pb-1 scrollbar-hide">
+		{#each QUANTITY_STEPS as step (step)}
+			<button
+				onclick={() => onquantitychange(step)}
+				class="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-black border-2 transition-all duration-150"
+				style={step === quantity
+					? `background: ${color}33; border-color: ${color}88; color: ${color};`
+					: `background: transparent; border-color: var(--border); color: var(--text-muted);`}
+			>
+				{step >= 1000 ? `${step / 1000}k` : step}
+			</button>
+		{/each}
 	</div>
 
 	<!-- Player balances -->
@@ -66,8 +97,8 @@
 				<span class="animate-pulse">⏳</span>
 			{:else}
 				<span class="text-xl">📈</span>
-				<span>Comprar {MARKET_UNIT}</span>
-				<span class="text-xs font-medium opacity-80">💰 {currentPrice.toLocaleString('pt-BR')}</span>
+				<span>Comprar {formatNumber(quantity)}</span>
+				<span class="text-xs font-medium opacity-80">💰 {formatNumber(buyCost)}</span>
 			{/if}
 		</button>
 
@@ -83,15 +114,20 @@
 				<span class="animate-pulse">⏳</span>
 			{:else}
 				<span class="text-xl">📉</span>
-				<span>Vender {MARKET_UNIT}</span>
-				<span class="text-xs font-medium opacity-80">+💰 {currentPrice.toLocaleString('pt-BR')}</span>
+				<span>Vender {formatNumber(quantity)}</span>
+				<span class="text-xs font-medium opacity-80">+💰 {formatNumber(sellGain)}</span>
 			{/if}
 		</button>
 	</div>
 
-	{#if !canBuy && !busy}
+	<!-- Impact estimate -->
+	<p class="text-[10px] text-[var(--text-muted)] text-center">
+		Impacto estimado: ~{impactPct}% no preço
+	</p>
+
+	{#if !canBuy && !busy && playerMoney < buyCost}
 		<p class="text-xs text-[var(--text-muted)] text-center">
-			Faltam 💰 {formatNumber(currentPrice - playerMoney)} para comprar
+			Faltam 💰 {formatNumber(buyCost - playerMoney)} para comprar
 		</p>
 	{/if}
 </div>

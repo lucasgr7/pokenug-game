@@ -22,6 +22,7 @@
 	import { ELEMENT_EMOJI, ELEMENT_LABEL } from '$lib/game/elements';
 	import { formatNumber } from '$lib/utils/math';
 	import { pushToast } from '$lib/stores/toast.svelte';
+	import PlatinumShop from '$lib/components/marketplace/PlatinumShop.svelte';
 
 	let refreshing = $state(false);
 	let inspectingCard: string | null = $state(null);
@@ -84,6 +85,16 @@
 	{#if !shop.loaded}
 		<p class="text-sm text-[var(--text-muted)]">Carregando…</p>
 	{:else}
+		<!-- Platinum shop - only shows if user has platinum currency -->
+		 {#if game.player?.platinum > 0}
+		<div class="mt-6 mb-6">
+			<h2 class="mb-2 text-base font-bold">🜲 Loja Platinum</h2>
+			<div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+				<PlatinumShop />
+			</div>
+		</div>
+		{/if}
+
 		<div class="grid grid-cols-3 gap-1.5">
 			{#each shop.slots as slot, i (i)}
 				<div class="shop-card-wrapper relative">
@@ -219,6 +230,7 @@
 				{/each}
 			</div>
 		</div>
+
 	{/if}
 </main>
 

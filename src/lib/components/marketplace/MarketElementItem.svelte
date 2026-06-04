@@ -8,9 +8,11 @@
 		prevPrice: number | undefined;
 		selected: boolean;
 		onclick: () => void;
+		event?: { kind: 'surge' | 'crash' } | null;
+		crashed?: boolean;
 	}
 
-	let { element, price, prevPrice, selected, onclick }: Props = $props();
+	let { element, price, prevPrice, selected, onclick, event = null, crashed = false }: Props = $props();
 
 	let trend = $derived<'up' | 'down' | 'flat'>(
 		prevPrice === undefined || price === prevPrice
@@ -38,4 +40,18 @@
 		class:bg-red-400={trend === 'down'}
 		class:hidden={trend === 'flat'}
 	></span>
+	<!-- Crash badge -->
+	{#if crashed}
+		<span class="absolute bottom-0.5 right-0.5 text-[8px] leading-none animate-pulse drop-shadow-[0_0_4px_#ef4444]">
+			🚫
+		</span>
+	{:else if event}
+		<span
+			class="absolute bottom-0.5 right-0.5 text-[8px] leading-none animate-pulse"
+			class:drop-shadow-[0_0_4px_#eab308]={event.kind === 'surge'}
+			class:drop-shadow-[0_0_4px_#ef4444]={event.kind === 'crash'}
+		>
+			{event.kind === 'surge' ? '🔥' : '💀'}
+		</span>
+	{/if}
 </button>
