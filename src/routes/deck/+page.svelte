@@ -36,9 +36,6 @@
 	let loaded = $state(false);
 
 	let inspectingTemplateId = $state<string | null>(null);
-	let isInspectingInDeck = $state(false);
-	
-	let inspectedGroup = $derived(inspectingTemplateId ? groupCards(inventory).find(g => g.templateId === inspectingTemplateId) : null);
 	let inspectedTemplate = $derived(inspectingTemplateId ? getTemplate(inspectingTemplateId) : null);
 
 	// Filtros
@@ -121,44 +118,11 @@
 		if (!id) return;
 		removeFromDeck(id).then(() => {
 			deckIds = deckIds.filter((x) => x !== id);
-			if (inspectedGroup && inspectedGroup.inDeck <= 1) {
-			    inspectingTemplateId = null;
-			}
 		});
 	}
 
-	function inspectCard(templateId: string, fromDeck: boolean) {
+	function inspectCard(templateId: string) {
 		inspectingTemplateId = templateId;
-		isInspectingInDeck = fromDeck;
-	}
-
-	let inspectActionLabel = $derived.by(() => {
-		if (!inspectedGroup) return 'Adicionar ao deck';
-		if (isInspectingInDeck) return 'Remover do deck';
-		return 'Adicionar ao deck';
-	});
-
-	let inspectActionPlayable = $derived.by(() => {
-		if (!inspectedGroup) return false;
-		if (isInspectingInDeck) return inspectedGroup.inDeck > 0;
-		const available = inspectedGroup.total - inspectedGroup.inDeck;
-		return available > 0 && deckIds.length < MAX_DECK;
-	});
-
-	let inspectActionDisabledLabel = $derived.by(() => {
-		if (!inspectedGroup) return 'Acao indisponivel';
-		if (isInspectingInDeck) return 'Sem carta no deck';
-		if (deckIds.length >= MAX_DECK) return `Deck cheio (${MAX_DECK})`;
-		return 'Sem copias livres';
-	});
-
-	async function handleInspectAction() {
-		if (!inspectingTemplateId || !inspectedGroup) return;
-		if (isInspectingInDeck) {
-			removeOne(inspectingTemplateId);
-			return;
-		}
-		await addOne(inspectingTemplateId);
 	}
 </script>
 
@@ -211,7 +175,7 @@
 	{/if}
 
 	<div class="mb-6 text-sm font-medium text-[var(--text-muted)] bg-[var(--surface)] p-3 rounded-xl border border-white/5 shadow-sm">
-		💡 Toque em uma carta para <strong class="text-[var(--text)]">inspecionar detalhes</strong> e adicioná-la ou removê-la.
+		💡 <strong class="text-[var(--text)]">Toque</strong> para adicionar/remover • <strong class="text-[var(--text)]">Segure</strong> para inspecionar
 	</div>
 
 	{#if deckGroups.length === 0}
@@ -222,7 +186,7 @@
 	{:else}
 		<div class="mb-10 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
 			{#each deckGroups as g (g.templateId)}
-				<Card templateId={g.templateId} count={g.inDeck} badge="no deck" compact={true} onclick={() => inspectCard(g.templateId, true)} />
+				<Card templateId={g.templateId} count={g.inDeck} badge="no deck" compact={true} onclick={() => removeOne(g.templateId)} onlongpress={() => inspectCard(g.templateId)} />
 			{/each}
 		</div>
 	{/if}
@@ -282,7 +246,8 @@
 					dimmed={available === 0}
 					badge={available > 0 ? `+${available}` : 'no deck'}
 					compact={true}
-					onclick={() => inspectCard(g.templateId, false)}
+					onclick={() => addOne(g.templateId)}
+					onlongpress={() => inspectCard(g.templateId)}
 				/>
 			{/each}
 		</div>
@@ -337,10 +302,6 @@
 	templateId={inspectingTemplateId}
 	open={!!inspectingTemplateId}
 	onclose={() => { inspectingTemplateId = null; }}
-	onplay={handleInspectAction}
-	playable={inspectActionPlayable}
-	actionLabel={inspectActionLabel}
-	disabledLabel={inspectActionDisabledLabel}
 	/>
 
 

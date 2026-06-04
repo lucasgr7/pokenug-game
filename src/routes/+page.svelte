@@ -4,7 +4,6 @@
 	import Hud from '$lib/components/Hud.svelte';
 	import Sprite from '$lib/components/Sprite.svelte';
 	import { REGIONS, getRegion } from '$lib/data/regions';
-	import { REGION_DISPLAY, type RegionDisplayInfo } from '$lib/data/region-display';
 	import { CHALLENGES } from '$lib/data/challenges';
 	import { canFightBoss, getBossCooldownRemainingMs, getRegionProgress } from '$lib/db/regions';
 	import { game, activePokemon, normalizedPokemonHp } from '$lib/game/state.svelte';
@@ -26,8 +25,6 @@
 	let progressByRegion = $state<Record<string, RegionProgress>>({});
 	let deckSize = $state(0);
 	let selectedZoneIdx = $state(0);
-
-	const displayInfo = $derived.by<Record<string, RegionDisplayInfo>>(() => REGION_DISPLAY);
 
 	const activeZoneIdx = $derived.by(() => {
 		for (let i = 0; i < REGIONS.length; i++) {
@@ -114,10 +111,6 @@
 
 	function activeRegion() {
 		return REGIONS[viewZoneIdx];
-	}
-
-	function activeDisplay(): RegionDisplayInfo | undefined {
-		return displayInfo[activeRegion()?.id];
 	}
 
 	function challengeIsLocked(c: { unlockRegionId: string | null }): boolean {
@@ -214,7 +207,6 @@
 		<div class="zone-path">
 			{#each REGIONS as region, i (region.id)}
 				{@const zs = zoneState(i)}
-				{@const di = displayInfo[region.id]}
 				<button
 					class="zp-node"
 					class:done={zs === 'done'}
@@ -222,19 +214,19 @@
 					class:next={zs === 'next'}
 					class:locked={zs === 'locked'}
 					class:selected={i === selectedZoneIdx}
-					style="--zc: {di?.color ?? 'var(--line)'}"
+					style="--zc: {region.color}"
 					disabled={zs === 'locked' || zs === 'next'}
 					onclick={() => { selectedZoneIdx = i; }}
 				>
 					<div class="zp-you">{zs === 'active' ? '▲ você' : ''}</div>
-					<div class="zp-circle">{di?.emoji ?? '?'}</div>
+					<div class="zp-circle">{region.emoji}</div>
 					<div class="zp-label">{region.name}</div>
 				</button>
 				{#if i < REGIONS.length - 1}
 					{@const lineClass = i < activeZoneIdx ? 'done' : i === activeZoneIdx ? 'active-to-next' : 'ghost'}
 					<div
 						class="zp-line {lineClass}"
-						style="--zc: {di?.color ?? 'var(--line)'}"
+						style="--zc: {region.color}"
 					></div>
 				{/if}
 			{/each}
@@ -242,8 +234,7 @@
 
 		<!-- Zone Hero -->
 		{@const ar = activeRegion()}
-		{@const ad = activeDisplay()}
-		{#if ar && ad}
+		{#if ar}
 			{@const defs = defeats(ar.id)}
 			{@const req = ar.requiredDefeats}
 			{@const bp = bossPhase(ar.id)}
@@ -253,12 +244,12 @@
 
 			<div
 				class="zone-hero"
-				style="--zc: {ad.color}"
+				style="--zc: {ar.color}"
 			>
 				<div class="zh-atmosphere"></div>
 				<div class="zh-inner">
 					<div class="zh-toprow">
-						<div class="zh-badge">{ad.emoji} {ar.name.split(' ')[0].toUpperCase()}</div>
+						<div class="zh-badge">{ar.emoji} {ar.name.split(' ')[0].toUpperCase()}</div>
 						<div class="zh-status">
 							<div class="zh-dot"></div>
 							Ativa
@@ -268,13 +259,13 @@
 					<div class="zh-desc">{ar.description}</div>
 					<div class="zh-types">
 						<span class="zh-types-label">Pokémon</span>
-						{#each ad.types as t}
+						{#each ar.types as t}
 							<span class="type-chip" style="--tc: {ELEMENT_COLOR[t]}">
 								{ELEMENT_EMOJI[t]} {ELEMENT_LABEL[t]}
 							</span>
 						{/each}
-						<span class="type-chip boss-chip" style="--tc: {ELEMENT_COLOR[ad.bossType]}">
-							👑 {ELEMENT_EMOJI[ad.bossType]} Boss
+						<span class="type-chip boss-chip" style="--tc: {ELEMENT_COLOR[ar.bossType]}">
+							👑 {ELEMENT_EMOJI[ar.bossType]} Boss
 						</span>
 					</div>
 				</div>
@@ -289,7 +280,7 @@
 							<div
 								class="kt-slot"
 								class:filled={i < defs}
-								style="--zc: {ad.color}"
+								style="--zc: {ar.color}"
 							></div>
 						{/each}
 					</div>
@@ -347,7 +338,7 @@
 			</div>
 
 			<!-- Boss Gate -->
-			<div class="boss-gate" style="--zc: {ad.color}">
+			<div class="boss-gate" style="--zc: {ar.color}">
 				{#if bp === 'cooldown'}
 					<div class="bg-cooldown-wrap">
 						<div class="bg-cd-icon">⏱</div>
@@ -363,8 +354,8 @@
 							<div class="bg-dot"></div>
 							<span class="bg-eyebrow-txt">Boss Revelado</span>
 						</div>
-						<div class="bg-boss-name">{ad.emoji} {ad.bossName}</div>
-						<div class="bg-boss-desc">{ad.bossDesc}</div>
+						<div class="bg-boss-name">{ar.emoji} {ar.bossName}</div>
+						<div class="bg-boss-desc">{ar.bossDesc}</div>
 					</div>
 				{:else}
 					{@const pct = req > 0 ? Math.min(1, defs / req) : 0}
@@ -390,9 +381,8 @@
 			<!-- Next Teaser -->
 			{@const nextReg = REGIONS[activeZoneIdx + 1]}
 			{#if nextReg}
-				{@const nextDi = displayInfo[nextReg.id]}
 				<div class="next-teaser">
-					<div class="nt-icon">{nextDi?.emoji ?? '?'}</div>
+					<div class="nt-icon">{nextReg.emoji}</div>
 					<div class="nt-info">
 						<div class="nt-label">Próxima Região</div>
 						<div class="nt-name">{nextReg.name}</div>
@@ -407,17 +397,15 @@
 					<span class="conquered-hd-title">Regiões Conquistadas</span>
 				</div>
 				{#each REGIONS as region (region.id)}
-					{@const di = displayInfo[region.id]}
 					{@const zs = zoneState(REGIONS.indexOf(region))}
 					{#if zs === 'done'}
-						{@const p = progress(region.id)}
 						{@const ph = bossPhase(region.id)}
 						{@const isCd = ph === 'cooldown'}
 						<div class="trophy-item-wrapper">
-							<div class="trophy-item" style="--zc: {di?.color ?? 'var(--line)'}">
+							<div class="trophy-item" style="--zc: {region.color}">
 								<div class="trophy-ambient"></div>
 								<div class="trophy-seal">★</div>
-								<div class="trophy-emoji">{di?.emoji ?? '?'}</div>
+								<div class="trophy-emoji">{region.emoji}</div>
 								<div class="trophy-name">{region.name}</div>
 								<div class="trophy-badge" class:ok={!isCd} class:cd={isCd}>
 									{isCd ? `↺ ${formatDuration(bossCooldownMs(region.id))}` : '✓'}

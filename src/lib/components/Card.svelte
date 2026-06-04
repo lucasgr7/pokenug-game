@@ -18,7 +18,8 @@
 		compact = false,
 		iconOnlyBadge = false,
 		description = '',
-		onclick
+		onclick,
+		onlongpress
 	}: {
 		templateId: string;
 		playable?: boolean;
@@ -33,7 +34,42 @@
 		iconOnlyBadge?: boolean;
 		description?: string;
 		onclick?: () => void;
+		onlongpress?: () => void;
 	} = $props();
+
+	let wasLongPress = $state(false);
+	let pressTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function handlePointerDown() {
+		if (!onlongpress) return;
+		pressTimer = setTimeout(() => {
+			wasLongPress = true;
+			onlongpress();
+			pressTimer = null;
+		}, 300);
+	}
+
+	function handlePointerUp() {
+		if (pressTimer) {
+			clearTimeout(pressTimer);
+			pressTimer = null;
+		}
+	}
+
+	function handleClick() {
+		if (wasLongPress) {
+			wasLongPress = false;
+			return;
+		}
+		onclick?.();
+	}
+
+	function handleContextMenu(e: Event) {
+		if (onlongpress) {
+			e.preventDefault();
+			onlongpress();
+		}
+	}
 
 	let tpl = $derived(getTemplate(templateId));
 
@@ -76,7 +112,11 @@
 {#if tpl}
 	<button
 		type="button"
-		{onclick}
+		onclick={handleClick}
+		onpointerdown={handlePointerDown}
+		onpointerup={handlePointerUp}
+		onpointercancel={handlePointerUp}
+		oncontextmenu={handleContextMenu}
 		disabled={!playable}
 		class="card-root {rarityClass}"
 		class:selected

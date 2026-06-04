@@ -164,6 +164,14 @@ export interface Region {
 	bossPool: [number, number, number]; // apenas evolucoes finais da regiao
 	requiredDefeats: number; // default 10
 	unlockAfter: RegionId | null;
+
+	// Display metadata
+	color: string;
+	emoji: string;
+	types: Element[];
+	bossType: Element;
+	bossName: string;
+	bossDesc: string;
 }
 
 export type BattleMode = 'normal' | 'boss';
