@@ -13,6 +13,7 @@ function ensureAudio(): HTMLAudioElement {
 		audio = new Audio();
 		audio.loop = true;
 		audio.onerror = () => console.warn('[music] Failed to load audio');
+		setupVisibilityHandler();
 	}
 	return audio!;
 }
@@ -40,6 +41,18 @@ function startFadeIn(duration = 600): void {
 		}
 	}
 	step();
+}
+
+function setupVisibilityHandler(): void {
+	if (typeof document === 'undefined') return;
+	document.addEventListener('visibilitychange', () => {
+		if (!audio || !currentCategory) return;
+		if (document.hidden) {
+			audio.pause();
+		} else if (!audio.muted) {
+			audio.play().then(() => startFadeIn(300)).catch(() => {});
+		}
+	});
 }
 
 function registerUnlock(): void {

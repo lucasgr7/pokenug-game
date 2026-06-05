@@ -54,7 +54,7 @@
 			hpReveal = false;
 			introKey++;
 			setTimeout(() => { hpReveal = true; }, 250);
-			setTimeout(() => { showIntro = false; }, 2000);
+			setTimeout(() => { showIntro = false; }, 5000);
 		}
 	});
 
@@ -601,7 +601,7 @@
 		text-shadow:
 			0 4px 16px rgba(58, 214, 194, 0.7),
 			0 0 32px rgba(168, 107, 255, 0.5);
-		animation: intro-flash 1.6s ease forwards;
+		animation: intro-flash 5s ease forwards;
 		opacity: 0;
 	}
 	.intro-banner-text.banner-boss {
@@ -612,10 +612,11 @@
 	}
 	@keyframes intro-flash {
 		0%   { opacity: 0; transform: scale(0.6); }
-		15%  { opacity: 1; transform: scale(1.08); }
-		30%  { transform: scale(0.95); }
-		45%  { transform: scale(1.04); }
-		65%  { opacity: 1; }
+		6%   { opacity: 1; transform: scale(1.08); }
+		12%  { transform: scale(0.95); }
+		18%  { transform: scale(1.04); }
+		25%  { opacity: 1; transform: scale(1); }
+		85%  { opacity: 1; transform: scale(1); }
 		100% { opacity: 0; transform: scale(1.1); }
 	}
 
