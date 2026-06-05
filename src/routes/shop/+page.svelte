@@ -2,18 +2,12 @@
 	import { onMount } from 'svelte';
 	import Hud from '$lib/components/Hud.svelte';
 	import Card from '$lib/components/Card.svelte';
+	import CardUpgradePanel from '$lib/components/CardUpgradePanel.svelte';
 	import CardDetailsModal from '$lib/components/CardDetailsModal.svelte';
 	import {
 		BOOSTER_PACKS,
-		shop,
-		ensureShopLoaded,
-		paidRefresh,
-		paidRefreshCost,
-		buySlot,
 		buyBoosterPack,
 		hasPurchasedBoosterToday,
-		canAfford,
-		buyElementalDamage,
 		buyIncomeMultiplier,
 		buyElementalVitamins,
 		NGU_COSTS
@@ -28,7 +22,6 @@
 	import { pushToast } from '$lib/stores/toast.svelte';
 	import PlatinumShop from '$lib/components/marketplace/PlatinumShop.svelte';
 
-	let refreshing = $state(false);
 	let inspectingCard: string | null = $state(null);
 
 	async function handleUnlockNature(pokemonId: string, index: number) {
@@ -42,28 +35,10 @@
 		}
 	}
 
-	onMount(async () => {
-		await ensureShopLoaded();
-	});
-
-	async function buy(i: number) {
-		const slot = shop.slots[i];
-		const ok = await buySlot(i);
-		if (ok) pushToast(`Comprou ${slot.name}!`, 'success');
-		else pushToast('Recursos insuficientes.', 'error');
-	}
-
 	async function performNguBuy(action: () => Promise<boolean>, name: string) {
 		const ok = await action();
 		if (ok) pushToast(`Aprimoramento ${name} comprado!`, 'success');
 		else pushToast('Recursos insuficientes.', 'error');
-	}
-
-	async function refresh() {
-		refreshing = true;
-		const ok = await paidRefresh();
-		if (!ok) pushToast('Dinheiro insuficiente para atualizar.', 'error');
-		refreshing = false;
 	}
 
 	async function buyPack(packId: (typeof BOOSTER_PACKS)[number]['id']) {
@@ -85,60 +60,21 @@
 <Hud />
 
 <main class="px-2 py-3">
-	<div class="mb-2 flex items-center justify-between">
+	<div class="mb-2 flex items-center">
 		<h1 class="text-lg font-bold">Loja</h1>
-		<button
-			class="rounded-lg bg-[var(--accent)] px-2.5 py-1 text-[11px] font-bold text-white disabled:opacity-40"
-			disabled={refreshing}
-			onclick={refresh}
-		>
-			🔄 💰{formatNumber(paidRefreshCost())}
-		</button>
 	</div>
-	<p class="mb-2 text-[10px] text-[var(--text-muted)]">Renovam todo dia automaticamente.</p>
 
-	{#if !shop.loaded}
-		<p class="text-sm text-[var(--text-muted)]">Carregando…</p>
-	{:else}
-		<!-- Platinum shop - only shows if user has platinum currency -->
-		 {#if (game.player?.platinum ?? 0) > 0}
-		<div class="mt-6 mb-6">
-			<h2 class="mb-2 text-base font-bold">🜲 Loja Platinum</h2>
-			<div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
-				<PlatinumShop />
-			</div>
+	<!-- Platinum shop - only shows if user has platinum currency -->
+	 {#if (game.player?.platinum ?? 0) > 0}
+	<div class="mt-6 mb-6">
+		<h2 class="mb-2 text-base font-bold">🜲 Loja Platinum</h2>
+		<div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+			<PlatinumShop />
 		</div>
-		{/if}
-
-		<div class="grid grid-cols-3 gap-1.5">
-			{#each shop.slots as slot, i (i)}
-				<div class="shop-card-wrapper relative">
-					<Card 
-						templateId={slot.id} 
-						playable={!slot.sold} 
-						dimmed={slot.sold} 
-						compact 
-						iconOnlyBadge 
-						onclick={() => inspectingCard = slot.id}
-					/>
-					{#if slot.sold}
-						<div class="absolute inset-x-0 bottom-0 rounded-b-lg bg-black/85 py-1 text-center text-[10px] font-bold text-gray-400">
-							✓ Comprado
-						</div>
-					{:else}
-						<button
-							class="absolute inset-x-0 bottom-0 rounded-b-lg py-1.5 text-[10px] font-bold text-white disabled:opacity-40"
-							style="background: linear-gradient(to top, rgba(0,0,0,0.92), rgba(0,0,0,0.82)); backdrop-filter: blur(4px);"
-							disabled={!canAfford(slot)}
-							onclick={() => buy(i)}
-						>
-							💰{formatNumber(slot.price?.money ?? 0)}{#if slot.price?.element}<span class="text-[9px]">·{ELEMENT_EMOJI[slot.price.element.type]}{formatNumber(slot.price.element.amount)}</span>{/if}
-						</button>
-					{/if}
-				</div>
-			{/each}
-		</div>
+	</div>
 	{/if}
+
+	<CardUpgradePanel />
 
 	{#if game.player}
 		<div class="mt-6">
@@ -160,31 +96,6 @@
 					>
 						💰{formatNumber(NGU_COSTS.incomeMultiplier(game.player.ngu.moneyMultiplierLevel))}
 					</button>
-				</div>
-
-				<!-- Elemental Damage -->
-				<div class="flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2.5">
-					<div class="flex-1">
-						<h3 class="text-sm font-bold">{activePkm ? `Dano ${ELEMENT_LABEL[activePkm.element]}` : 'Dano Elemental'}</h3>
-						<p class="text-[10px] text-[var(--text-muted)]">+3 dano/nível tipo ativo</p>
-						{#if activePkm}
-							<p class="mt-1 text-xs font-bold text-[var(--accent)]">Nv. {formatNumber(getElementalDamageLevel(activePkm.element))} · {ELEMENT_EMOJI[activePkm.element]}{formatNumber(getElementPoints(activePkm.element))}</p>
-						{/if}
-					</div>
-					{#if activePkm}
-					<button
-						class="rounded-lg py-1.5 text-xs font-bold text-white disabled:opacity-40"
-						style="background: var(--accent);"
-						disabled={getElementPoints(activePkm.element) < NGU_COSTS.elementalDamage(getElementalDamageLevel(activePkm.element))}
-						onclick={() => performNguBuy(buyElementalDamage, `Dano ${ELEMENT_LABEL[activePkm.element]}`)}
-					>
-						{ELEMENT_EMOJI[activePkm.element]}{formatNumber(NGU_COSTS.elementalDamage(getElementalDamageLevel(activePkm.element)))}
-					</button>
-					{:else}
-						<button disabled class="rounded-lg bg-gray-600/50 py-1.5 text-xs font-bold text-white opacity-40">
-							Selecione um Pokémon
-						</button>
-					{/if}
 				</div>
 
 				<!-- Vitamins (HP per element) -->
@@ -295,49 +206,5 @@
 	{/if}
 </main>
 
-<CardDetailsModal templateId={inspectingCard} open={!!inspectingCard} hidePrice={false} onclose={() => inspectingCard = null} />
-
 <style>
-	.shop-card-wrapper {
-		position: relative;
-		isolation: isolate;
-	}
-	
-	.shop-card-wrapper :global(.card-root) {
-		border-width: 2px;
-	}
-	
-	.shop-card-wrapper :global(.card-root .card-cost) {
-		width: 18px;
-		height: 18px;
-		font-size: 11px;
-	}
-	
-	.shop-card-wrapper :global(.icon-wrap) {
-		padding: 2px;
-		transform: scale(0.8);
-	}
-	
-	.shop-card-wrapper :global(.card-root .px-2) {
-		padding-left: 0.375rem;
-		padding-right: 0.375rem;
-	}
-	
-	.shop-card-wrapper :global(.card-root .pb-2) {
-		padding-bottom: 0.375rem;
-	}
-	
-	@media (max-width: 640px) {
-		.shop-card-wrapper :global(.card-root) {
-			font-size: 10px;
-		}
-		
-		.shop-card-wrapper :global(.card-root .truncate) {
-			font-size: 10px;
-		}
-		
-		.shop-card-wrapper :global(.icon-wrap) {
-			transform: scale(0.7);
-		}
-	}
 </style>

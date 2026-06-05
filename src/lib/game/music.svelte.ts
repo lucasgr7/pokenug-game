@@ -19,9 +19,9 @@ function ensureAudio(): HTMLAudioElement {
 }
 
 function chooseSrc(cat: MusicCategory): string {
-	if (cat === 'menu') return '/mp3/menu-1.mp3';
-	if (cat === 'boss') return '/mp3/boss.mp3';
-	return pick(['/mp3/battle-1.mp3', '/mp3/battle-2.mp3']);
+	if (cat === 'menu') return pick(['/mp3/menu-1.mp3', '/mp3/menu-2.mp3']);
+	if (cat === 'boss') return pick(['/mp3/boss.mp3', '/mp3/boss-2.mp3']);
+	return pick(['/mp3/battle-1.mp3', '/mp3/battle-2.mp3', '/mp3/battle-3.mp3']);
 }
 
 function startFadeIn(duration = 600): void {
@@ -99,4 +99,21 @@ export function toggleMusicMute(): void {
 
 export function isMusicMuted(): boolean {
 	return game.player?.musicMuted ?? false;
+}
+
+const RESULT_SFX = {
+	win: '/mp3/battle-victory.mp3',
+	boss: '/mp3/battle-boss-win.mp3',
+	capture: '/mp3/battle-capture.mp3',
+	defeat: '/mp3/battle-lost.mp3'
+} as const;
+
+export type ResultVariant = keyof typeof RESULT_SFX;
+
+export function playResultSfx(variant: ResultVariant): void {
+	if (typeof Audio === 'undefined') return;
+	if (game.player?.musicMuted) return;
+	const sfx = new Audio(RESULT_SFX[variant]);
+	sfx.volume = 1;
+	sfx.play().catch(() => {});
 }

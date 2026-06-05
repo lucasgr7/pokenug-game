@@ -173,7 +173,8 @@ export interface CardTemplate {
 export interface Card {
 	id: string;
 	templateId: string;
-	modifier?: number; // ajuste permanente aplicado ao card (ex: Espinhos reduz block -1/uso)
+	modifier?: number;   // transient battle adjustment (e.g. Espinhos -1 block/use). NOT persisted.
+	upgrades?: number;    // persisted permanent upgrade count (+N to damage/block). Default 0.
 }
 
 export type JobType = 'money' | Element;
@@ -222,7 +223,7 @@ export interface BattleReward {
 	elementPoints: { type: Element; amount: number };
 	captured: CapturedPokemon | null;
 	unlockedRegionName: string | null;
-	bossCardReward: BossCardReward | null;
+	cardReward: BossCardReward | null;
 }
 
 export interface SavedBattle {

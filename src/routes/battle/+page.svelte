@@ -6,7 +6,7 @@
 	import Card from '$lib/components/Card.svelte';
 	import BattleHandControls from '$lib/components/BattleHandControls.svelte';
 	import BattleLogs from '$lib/components/BattleLogs.svelte';
-	import Modal from '$lib/components/Modal.svelte';
+	import BattleResultModal from '$lib/components/BattleResultModal.svelte';
 	import EnemyHud from '$lib/components/battle/EnemyHud.svelte';
 	import PlayerHud from '$lib/components/battle/PlayerHud.svelte';
 	import {
@@ -24,8 +24,7 @@
 	} from '$lib/game/battle.svelte';
 	import { buildEndTurnLog, buildPlayLog, type BattleLogEntry, type LogPart } from '$lib/game/battle-log';
 	import { getTemplate } from '$lib/data/cards';
-	import { ELEMENT_LABEL, ELEMENT_EMOJI } from '$lib/game/elements';
-	import { toggleMusicMute, isMusicMuted } from '$lib/game/music.svelte';
+	import { toggleMusicMute, isMusicMuted, stopMusic } from '$lib/game/music.svelte';
 	import { interactionLabel } from '$lib/game/type-chart';
 	import type { BattleMode } from '$lib/game/types';
 
@@ -107,6 +106,7 @@
 	$effect(() => {
 		const st = battle.state?.status;
 		if (st && st !== 'active' && !battle.settled) {
+			stopMusic();
 			void finalizeBattle();
 		}
 	});
@@ -119,6 +119,12 @@
 
 	let s = $derived(battle.state);
 	let ended = $derived(!!s && s.status !== 'active');
+	let resultVariant = $derived<'win' | 'boss' | 'capture' | 'defeat' | null>(
+		!s || s.status === 'active' ? null
+		: s.status === 'defeat' ? 'defeat'
+		: s.status === 'captured' ? 'capture'
+		: s.mode === 'boss' ? 'boss' : 'win'
+	);
 	let isBossBattle = $derived(s?.mode === 'boss');
 
 	function canPlay(card: { templateId: string }): boolean {
@@ -342,51 +348,17 @@
 	</div>
 
 	<!-- FIM DE BATALHA -->
-	<Modal
-		open={ended}
-		closable={false}
-		title={s.status === 'defeat' ? 'Derrota…' : s.status === 'captured' ? 'Capturado!' : 'Vitória!'}
-	>
-		{#if s.status === 'defeat'}
-			<p class="text-sm text-(--text-muted)">
-				Seu pokémon foi derrotado. Seu deck ativo foi redefinido para as cartas iniciais — mas seu
-				inventário e pokémons continuam com você.
-			</p>
-		{:else}
-			<div class="space-y-2 text-sm">
-				{#if s.status === 'captured'}
-					<p class="font-semibold">Você capturou {s.enemy.pokemon.name}! 🎉</p>
-				{/if}
-				{#if battle.reward}
-					<p>💰 Recompensa: <strong>{battle.reward.money}</strong></p>
-					<p>
-						{ELEMENT_EMOJI[battle.reward.elementPoints.type]}
-						+{battle.reward.elementPoints.amount}
-						{ELEMENT_LABEL[battle.reward.elementPoints.type]}
-					</p>
-					{#if battle.reward.unlockedRegionName}
-						<p class="font-semibold text-(--success)">
-							🗺️ Nova região desbloqueada: {battle.reward.unlockedRegionName}!
-						</p>
-					{/if}
-					{#if battle.reward.bossCardReward}
-						<p class="font-semibold text-amber-300">
-							🃏 Recompensa do boss: {battle.reward.bossCardReward.name}
-							({battle.reward.bossCardReward.rarity})
-						</p>
-					{/if}
-				{:else}
-					<p class="text-(--text-muted)">Calculando recompensa…</p>
-				{/if}
-			</div>
-		{/if}
-		<button
-			class="mt-4 w-full rounded-xl bg-(--accent) py-2.5 font-semibold text-white"
-			onclick={leave}
-		>
-			Voltar ao mapa
-		</button>
-	</Modal>
+	{#if resultVariant}
+		{#key resultVariant}
+			<BattleResultModal
+				variant={resultVariant}
+				reward={battle.reward}
+				captured={battle.reward?.captured ?? null}
+				enemyName={s!.enemy.pokemon.name}
+				onDismiss={leave}
+			/>
+		{/key}
+	{/if}
 {/if}
 
 <style>

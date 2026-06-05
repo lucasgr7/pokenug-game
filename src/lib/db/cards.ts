@@ -4,7 +4,9 @@ import type { Card } from '$lib/game/types';
 
 // Garante um objeto simples e clonável (IndexedDB não clona proxies do Svelte).
 function plain(card: Card): Card {
-	return { id: card.id, templateId: card.templateId };
+	const out: Card = { id: card.id, templateId: card.templateId };
+	if (card.upgrades) out.upgrades = card.upgrades;
+	return out;
 }
 
 // ---- Inventário ----
@@ -62,4 +64,12 @@ export async function resetDeckToStarters(): Promise<void> {
 	const deck = await getActiveDeck();
 	const kept = deck.filter((c) => getTemplate(c.templateId)?.rarity === 'starter');
 	await setActiveDeck(kept);
+}
+
+/** Atualiza uma carta no inventário E no deck ativo (compartilham o mesmo id). */
+export async function updateCardEverywhere(card: Card): Promise<void> {
+	const db = await getDb();
+	await db.put('cardInventory', plain(card), card.id);
+	const inDeck = await db.get('activeDeck', card.id);
+	if (inDeck) await db.put('activeDeck', plain(card), card.id);
 }

@@ -20,6 +20,7 @@
 		iconOnlyBadge = false,
 		description = '',
 		costOverride = null,
+		upgradeLevel = 0,
 		onclick,
 		onlongpress
 	}: {
@@ -37,6 +38,7 @@
 		iconOnlyBadge?: boolean;
 		description?: string;
 		costOverride?: number | null;
+		upgradeLevel?: number;
 		onclick?: () => void;
 		onlongpress?: () => void;
 	} = $props();
@@ -94,9 +96,11 @@
 		: tpl?.kind === 'defense' || tpl?.block ? 'def'
 		: 'util'
 	);
+	let upgradedDamage = $derived((tpl?.damage ?? 0) + upgradeLevel);
+	let upgradedBlock = $derived((tpl?.block ?? 0) + upgradeLevel);
 	let statValue = $derived(
 		tpl?.damage
-			? tpl.damage + (tpl.kind === 'attack' ? getElementalDamageLevel(activePkm?.element) * 3 + ((activePkm?.damageBuffs ?? 0) * 2) : 0)
+			? upgradedDamage + (tpl.kind === 'attack' ? getElementalDamageLevel(activePkm?.element) * 3 + ((activePkm?.damageBuffs ?? 0) * 2) : 0)
 			: tpl?.block ?? tpl?.healHp ?? tpl?.buffAmount ?? tpl?.manaGain ?? tpl?.captureBonus
 				? Math.round((tpl.captureBonus ?? 0) * 100) || tpl?.manaGain || tpl?.drawCount || 1
 				: null
@@ -166,10 +170,10 @@
 						<div class="stat-badge {statKind}">
 							{#if statKind === 'atk'}
 								<svg width="{compact ? 11 : 22}" height="{compact ? 11 : 22}" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 6-9 12-9-12z"/></svg>
-								<span class="stat-val">{tpl.damage}</span>
+								<span class="stat-val">{upgradedDamage}</span>
 							{:else if statKind === 'def'}
 								<svg width="{compact ? 11 : 22}" height="{compact ? 11 : 22}" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/></svg>
-								<span class="stat-val">{tpl.block}</span>
+								<span class="stat-val">{upgradedBlock}</span>
 							{:else}
 								<svg width="{compact ? 11 : 22}" height="{compact ? 11 : 22}" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg>
 								<span class="stat-val">{tpl.manaGain}</span>
@@ -247,6 +251,9 @@
 		{/if}
 		{#if badge}
 			<span class="card-badge">{badge}</span>
+		{/if}
+		{#if upgradeLevel > 0}
+			<span class="upg-badge">+{upgradeLevel}</span>
 		{/if}
 	</button>
 {/if}
@@ -551,6 +558,20 @@
 		font-size: 9px;
 		font-weight: 700;
 		color: #fff;
+	}
+	.upg-badge {
+		position: absolute;
+		top: 4px;
+		right: 4px;
+		font-size: 9px;
+		font-weight: 900;
+		line-height: 1;
+		padding: 1px 4px;
+		border-radius: 6px;
+		color: #0c0a14;
+		background: linear-gradient(180deg, #ffe9ab, #f0a91a);
+		box-shadow: 0 1px 3px rgba(0,0,0,.5);
+		z-index: 10;
 	}
 	.shield-shine {
 		position: absolute;

@@ -70,6 +70,7 @@ import type {
 	EnemyIntent,
 	SavedBattle
 } from './types';
+import { ELEMENTS } from './types';
 
 interface BattleStore {
 	state: BattleState | null;
@@ -431,13 +432,6 @@ export function repairActiveBattleState(): void {
 
 // ── Battle lifecycle ──────────────────────────────────────────────────────
 
-function rollBossRewardBucket(): BossRewardBucket {
-	const roll = Math.random();
-	if (roll <= 0.6) return 'common';
-	if (roll <= 0.9) return 'rare';
-	return 'epicPlus';
-}
-
 function cardMatchesBossBucket(rarity: CardRarity, bucket: BossRewardBucket): boolean {
 	if (rarity === 'starter') return false;
 	if (bucket === 'common') return rarity === 'common';
@@ -445,21 +439,52 @@ function cardMatchesBossBucket(rarity: CardRarity, bucket: BossRewardBucket): bo
 	return rarity === 'epic' || rarity === 'secret';
 }
 
-function pickBossRewardCard(element: Element): BossCardReward | null {
-	const bucket = rollBossRewardBucket();
-	let pool = CATALOG.filter((c) => c.element === element && cardMatchesBossBucket(c.rarity, bucket));
-	if (pool.length === 0) pool = CATALOG.filter((c) => c.element === element && c.rarity !== 'starter');
-	if (pool.length === 0) pool = CATALOG.filter((c) => cardMatchesBossBucket(c.rarity, bucket));
-	if (pool.length === 0) pool = CATALOG.filter((c) => c.rarity !== 'starter');
-	if (pool.length === 0) return null;
+function rollWildRewardBucket(): BossRewardBucket {
+	const roll = Math.random();
+	if (roll <= 0.6) return 'common';
+	if (roll <= 0.9) return 'rare';
+	return 'epicPlus';
+}
 
-	const chosen = pick(pool);
+function toCardReward(c: CardTemplate): BossCardReward {
 	return {
-		templateId: chosen.id,
-		rarity: chosen.rarity as Exclude<CardRarity, 'starter'>,
-		element: chosen.element,
-		name: chosen.name
+		templateId: c.id,
+		rarity: c.rarity as Exclude<CardRarity, 'starter'>,
+		element: c.element,
+		name: c.name
 	};
+}
+
+/**
+ * Victory card reward. 75% chance the card matches the defeated Pokémon's element,
+ * 25% a different element. Bosses ALWAYS drop epic rarity or higher (epic/secret);
+ * wild victories use the 60/30/10 rarity roll.
+ */
+function pickVictoryRewardCard(defeatedElement: Element, isBoss: boolean): BossCardReward | null {
+	const sameType = Math.random() < 0.75;
+	let element: Element = defeatedElement;
+	if (!sameType) {
+		const others = ELEMENTS.filter((e) => e !== defeatedElement);
+		element = others.length ? pick(others) : defeatedElement;
+	}
+	const banned = game.player?.bannedTemplateIds ?? [];
+	const ok = (c: CardTemplate) => !banned.includes(c.id);
+
+	if (isBoss) {
+		const epicPlus = (c: CardTemplate) => (c.rarity === 'epic' || c.rarity === 'secret') && ok(c);
+		let pool = CATALOG.filter((c) => c.element === element && epicPlus(c));
+		if (pool.length === 0) pool = CATALOG.filter(epicPlus);
+		if (pool.length === 0) return null;
+		return toCardReward(pick(pool));
+	}
+
+	const bucket = rollWildRewardBucket();
+	let pool = CATALOG.filter((c) => c.element === element && cardMatchesBossBucket(c.rarity, bucket) && ok(c));
+	if (pool.length === 0) pool = CATALOG.filter((c) => c.element === element && c.rarity !== 'starter' && ok(c));
+	if (pool.length === 0) pool = CATALOG.filter((c) => cardMatchesBossBucket(c.rarity, bucket) && ok(c));
+	if (pool.length === 0) pool = CATALOG.filter((c) => c.rarity !== 'starter' && ok(c));
+	if (pool.length === 0) return null;
+	return toCardReward(pick(pool));
 }
 
 export async function startBattle(regionId: string, mode: BattleMode = 'normal'): Promise<void> {
@@ -563,7 +588,7 @@ export async function enterBattle(regionId: string, mode: BattleMode = 'normal')
 			(count) => drawCards(count)
 		);
 		setBattleState(battle.state);
-		battle.reward = saved.reward ? { ...saved.reward, bossCardReward: saved.reward.bossCardReward ?? null } : null;
+		battle.reward = saved.reward ? { ...saved.reward, cardReward: saved.reward.cardReward ?? null } : null;
 		battle.settled = saved.settled;
 		battle.enemyHurt = 0;
 		battle.playerHurt = 0;
@@ -835,9 +860,10 @@ export async function finalizeBattle(): Promise<void> {
 	if (s.status === 'defeat') {
 		await setPokemonCurrentHp(s.player.pokemon.id, 0);
 		setActivePokemon(null);
-		// On defeat: permanently delete all non-starter cards from deck and inventory.
-		const allInventory = await getInventory();
-		for (const card of allInventory) {
+		// Lose ONLY the non-starter cards that were equipped in the active deck.
+		// Inventory cards that were not in the deck are kept.
+		const deck = await getActiveDeck();
+		for (const card of deck) {
 			if (getTemplate(card.templateId)?.rarity !== 'starter') {
 				await removeFromInventory(card.id);
 			}
@@ -877,8 +903,8 @@ export async function finalizeBattle(): Promise<void> {
 	}
 
 	let bossCardReward: BossCardReward | null = null;
-	if (isBossFight) {
-		bossCardReward = pickBossRewardCard(s.enemy.pokemon.element);
+	if (s.status === 'victory') {
+		bossCardReward = pickVictoryRewardCard(s.enemy.pokemon.element, isBossFight);
 		if (bossCardReward) {
 			await addToInventory({ id: crypto.randomUUID(), templateId: bossCardReward.templateId });
 		}
@@ -901,6 +927,6 @@ export async function finalizeBattle(): Promise<void> {
 		elementPoints: { type: s.enemy.pokemon.element, amount: elementAmount },
 		captured,
 		unlockedRegionName,
-		bossCardReward
+		cardReward: bossCardReward
 	};
 }

@@ -1,9 +1,12 @@
 const AUDIO_CACHE = 'pokengu-audio-v1';
 const MP3_FILES = [
 	'/mp3/menu-1.mp3',
+	'/mp3/menu-2.mp3',
 	'/mp3/battle-1.mp3',
 	'/mp3/battle-2.mp3',
-	'/mp3/boss.mp3'
+	'/mp3/battle-3.mp3',
+	'/mp3/boss.mp3',
+	'/mp3/boss-2.mp3'
 ];
 
 self.addEventListener('install', (e) => {

@@ -163,7 +163,7 @@
 				onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleCardTap(card.id, card.templateId); }}
 				aria-label={autoConfirm ? 'Jogar carta' : 'Inspecionar carta'}
 			>
-				<Card templateId={card.templateId} compact={true} flip playable={playable} costOverride={effectiveCardCost(battleState, card)} dealDelay={i * 55} />
+				<Card templateId={card.templateId} compact={true} flip playable={playable} upgradeLevel={card.upgrades ?? 0} costOverride={effectiveCardCost(battleState, card)} dealDelay={i * 55} />
 			</div>
 		{/each}
 	</div>

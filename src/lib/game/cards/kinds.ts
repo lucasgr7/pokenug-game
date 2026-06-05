@@ -17,7 +17,7 @@ import { CARD_HOOKS } from './card-hooks';
 
 type KindHandler = (ctx: CardEffectCtx, tpl: CardTemplate, card?: Card) => void;
 
-function handleAttack(ctx: CardEffectCtx, tpl: CardTemplate): void {
+function handleAttack(ctx: CardEffectCtx, tpl: CardTemplate, card?: Card): void {
 	const { s } = ctx;
 	const attackElement = resolveAttackElement(s, (() => {
 		let el = tpl.element;
@@ -33,6 +33,7 @@ function handleAttack(ctx: CardEffectCtx, tpl: CardTemplate): void {
 	} else {
 		base += tpl.damage ?? 0;
 	}
+	base += card?.upgrades ?? 0;   // +1 per upgrade to raw damage
 
 	const withBaseMods = runAttackBase(s, base, tpl, attackElement);
 	const attackTyped = resolveTypedDamage(withBaseMods, attackElement, s.enemy.pokemon.element);
@@ -57,7 +58,8 @@ function handleDefense(ctx: CardEffectCtx, tpl: CardTemplate, card?: Card): void
 	const { s } = ctx;
 	const baseBlock = tpl.block ?? 0;
 	const cardModifier = card?.modifier ?? 0;
-	const rawBlock = Math.max(0, baseBlock + cardModifier);
+	const upgrades = card?.upgrades ?? 0;
+	const rawBlock = Math.max(0, baseBlock + cardModifier + upgrades);
 	const block = runOutgoingBlock(s, rawBlock);
 	s.player.block += block;
 
