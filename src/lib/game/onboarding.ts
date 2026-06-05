@@ -6,6 +6,7 @@ import { STARTER_DECK } from '$lib/data/cards';
 import { REGIONS } from '$lib/data/regions';
 import type { StarterDef } from '$lib/data/starters';
 import { now } from '$lib/utils/time';
+import { ensurePokemonNatures } from '$lib/data/natures';
 import { applyElementalHpBonusToPokemon, applyThemeToDom, game } from './state.svelte';
 import type { Card, CapturedPokemon, Player } from './types';
 
@@ -40,6 +41,7 @@ export async function createPlayer(name: string, starter: StarterDef): Promise<v
 		capturedAt: now()
 	};
 	applyElementalHpBonusToPokemon(pokemon);
+	ensurePokemonNatures(pokemon);
 	await addPokemon(pokemon);
 
 	const player: Player = {
@@ -64,7 +66,8 @@ export async function createPlayer(name: string, starter: StarterDef): Promise<v
 		pilhaExaurir: 0,
 		bannedTemplateIds: [],
 		ghostPermDebuff: 0,
-		platinum: 0
+		platinum: 0,
+		musicMuted: false
 	};
 	await savePlayer(player);
 

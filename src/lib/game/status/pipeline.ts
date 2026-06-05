@@ -245,6 +245,78 @@ export function decayStatuses(s: BattleState, when: StatusDecay): void {
   }
 }
 
+export function dispatchOnBattleStart(s: BattleState): void {
+	const entries = collectStatuses(s, 'player').sort((a, b) => (a.def.priority ?? 0) - (b.def.priority ?? 0));
+	for (const { def, st } of entries) {
+		const hook = def.hooks.onBattleStart;
+		if (hook) {
+			const ctx = makeCtx(st);
+			hook(ctx);
+		}
+	}
+}
+
+export function dispatchOnBattleStartAfterDraw(s: BattleState): void {
+	const entries = collectStatuses(s, 'player').sort((a, b) => (a.def.priority ?? 0) - (b.def.priority ?? 0));
+	for (const { def, st } of entries) {
+		const hook = def.hooks.onBattleStartAfterDraw;
+		if (hook) {
+			const ctx = makeCtx(st);
+			hook(ctx);
+		}
+	}
+}
+
+export function runCardCost(s: BattleState, cost: number, tpl: CardTemplate, card: Card): number {
+	let v = cost;
+	const entries = collectStatuses(s, 'player').sort((a, b) => (a.def.priority ?? 0) - (b.def.priority ?? 0));
+	for (const { def, st } of entries) {
+		const hook = def.hooks.modifyCardCost;
+		if (hook) {
+			const ctx = makeCtx(st);
+			v = hook(v, tpl, card, ctx);
+		}
+	}
+	return v;
+}
+
+export function runModifyHandSize(s: BattleState, size: number): number {
+	let v = size;
+	const entries = collectStatuses(s, 'player').sort((a, b) => (a.def.priority ?? 0) - (b.def.priority ?? 0));
+	for (const { def, st } of entries) {
+		const hook = def.hooks.modifyHandSize;
+		if (hook) {
+			const ctx = makeCtx(st);
+			v = hook(v, ctx);
+		}
+	}
+	return v;
+}
+
+export function runShouldExhaust(s: BattleState, card: Card, tpl: CardTemplate, current: boolean): boolean {
+	let v = current;
+	const entries = collectStatuses(s, 'player').sort((a, b) => (a.def.priority ?? 0) - (b.def.priority ?? 0));
+	for (const { def, st } of entries) {
+		const hook = def.hooks.shouldExhaust;
+		if (hook) {
+			const ctx = makeCtx(st);
+			v = hook(card, tpl, v, ctx);
+		}
+	}
+	return v;
+}
+
+export function dispatchOnCardExhausted(s: BattleState, card: Card, tpl: CardTemplate): void {
+	const entries = collectStatuses(s, 'player').sort((a, b) => (a.def.priority ?? 0) - (b.def.priority ?? 0));
+	for (const { def, st } of entries) {
+		const hook = def.hooks.onCardExhausted;
+		if (hook) {
+			const ctx = makeCtx(st);
+			hook(ctx, card, tpl);
+		}
+	}
+}
+
 export function collectEmblems(holder: { statuses: ActiveStatus[] }, s: BattleState): Emblem[] {
   const emblems: Emblem[] = [];
   for (const st of holder.statuses) {

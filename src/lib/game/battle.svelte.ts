@@ -13,6 +13,7 @@ import { CATALOG, getTemplate } from '$lib/data/cards';
 import { savePlayer } from '$lib/db/player';
 import { getRegion, nextRegion, getRegionScaling } from '$lib/data/regions';
 import { fetchPokemon } from '$lib/api/pokeapi';
+import { ensurePokemonNatures } from '$lib/data/natures';
 import { applyCardEffect } from './cards/apply';
 import { isPermanentlyConsumed, resolveTypedDamage } from './damage';
 import type { CardEffectCtx } from './cards/types';
@@ -28,6 +29,12 @@ import {
 	dispatchOnCardPlayed,
 	dispatchOnTurnStart,
 	dispatchOnTurnEnd,
+	dispatchOnBattleStart,
+	dispatchOnBattleStartAfterDraw,
+	runCardCost,
+	runModifyHandSize,
+	runShouldExhaust,
+	dispatchOnCardExhausted,
 	decayStatuses,
 	logEvent,
 	drainEvents
@@ -71,6 +78,7 @@ interface BattleStore {
 	// Toggled each hit to drive Svelte #key animations in the battle UI.
 	enemyHurt: number;
 	playerHurt: number;
+	introPending: boolean; // sinaliza batalha nova (não retomada) para tocar intro
 }
 
 export const battle = $state<BattleStore>({
@@ -78,7 +86,8 @@ export const battle = $state<BattleStore>({
 	reward: null,
 	settled: false,
 	enemyHurt: 0,
-	playerHurt: 0
+	playerHurt: 0,
+	introPending: false
 });
 
 const HAND_SIZE = 5;
@@ -219,7 +228,8 @@ function drawCards(count: number, turnStart = false): void {
 	}
 
 	const { removedFromHand } = sanitizeBattleStateCards(s);
-	const targetHandSize = Math.min(HAND_SIZE, s.hand.length + Math.max(0, count) + removedFromHand);
+	const maxHand = runModifyHandSize(s, HAND_SIZE);
+	const targetHandSize = Math.min(maxHand, s.hand.length + Math.max(0, count) + removedFromHand);
 	while (s.hand.length < targetHandSize) {
 		if (s.deck.length === 0) {
 			const recycledDiscard = reshuffleDiscardIntoDeck(s);
@@ -310,6 +320,24 @@ function createCtx(s: BattleState): CardEffectCtx {
 	};
 }
 
+// ── Nature statuses ──────────────────────────────────────────────────────
+
+function applyNatureStatuses(s: BattleState): void {
+	const natures = s.player.pokemon.natures;
+	if (!natures) return;
+	for (let i = 0; i < 3; i++) {
+		if (natures.unlocked[i]) {
+			s.player.statuses.push({ defId: 'nature_' + natures.assigned[i], stacks: 1, data: {} });
+		}
+	}
+}
+
+export function effectiveCardCost(s: BattleState, card: { templateId: string }): number {
+	const tpl = getTemplate(card.templateId);
+	if (!tpl) return 0;
+	return Math.max(0, runCardCost(s, tpl.cost, tpl, card as Card));
+}
+
 // ── Card exhaustion ───────────────────────────────────────────────────────
 
 function shouldExhaust(card: Card): boolean {
@@ -321,15 +349,17 @@ function shouldExhaust(card: Card): boolean {
 	// Non-starter pokéballs are single-use
 	if (tpl.kind === 'capture' && tpl.rarity !== 'starter') return true;
 	// Misalignment: off-element → EXHAUST_COMBATE (returns next combat, no permanent deletion)
-	if (tpl.element !== null && tpl.element !== s.player.pokemon.element) return true;
-	return false;
+	let result = tpl.element !== null && tpl.element !== s.player.pokemon.element;
+	return runShouldExhaust(s, card, tpl, result);
 }
 
 function discardOrExhaust(card: Card): boolean {
 	const s = battle.state!;
 	if (shouldExhaust(card)) {
 		s.exhausted.push(card);
-		if (isPermanentlyConsumed(getTemplate(card.templateId))) {
+		const tpl = getTemplate(card.templateId);
+		if (tpl) dispatchOnCardExhausted(s, card, tpl);
+		if (isPermanentlyConsumed(tpl)) {
 			void removeFromDeck(card.id);
 			void removeFromInventory(card.id);
 		}
@@ -472,7 +502,6 @@ export async function startBattle(regionId: string, mode: BattleMode = 'normal')
 		(amount) => dealToPlayer(amount),
 		(count) => drawCards(count)
 	);
-	setBattleState(battle.state!);
 	battle.state = {
 		regionId,
 		mode,
@@ -509,12 +538,18 @@ export async function startBattle(regionId: string, mode: BattleMode = 'normal')
 		bannedTemplateIds: [...(game.player?.bannedTemplateIds ?? [])],
 		pilhaExaurir: game.player?.pilhaExaurir ?? 0
 	};
+	setBattleState(battle.state);
 	battle.reward = null;
 	battle.settled = false;
 	battle.enemyHurt = 0;
 	battle.playerHurt = 0;
 
+	applyNatureStatuses(battle.state);
+	dispatchOnBattleStart(battle.state);
+
 	drawCards(HAND_SIZE);
+	dispatchOnBattleStartAfterDraw(battle.state);
+	battle.introPending = true;
 	void persistBattle();
 }
 
@@ -548,6 +583,7 @@ export async function endBattleCleanup(): Promise<void> {
 	battle.state = null;
 	battle.reward = null;
 	battle.settled = false;
+	battle.introPending = false;
 	await clearSavedBattle();
 }
 
@@ -563,7 +599,9 @@ export function playCard(cardId: string): PlayCardResult {
 
 	const card = s.hand[idx];
 	const tpl = getTemplate(card.templateId);
-	if (!tpl || s.player.mana < tpl.cost) return { played: false, exhausted: false, kind: 'attack' };
+	if (!tpl) return { played: false, exhausted: false, kind: 'attack' };
+	const cost = effectiveCardCost(s, card);
+	if (s.player.mana < cost) return { played: false, exhausted: false, kind: 'attack' };
 
 	// ART-03 POWER: can only be played once per combat
 	if (tpl.isPower) {
@@ -571,7 +609,7 @@ export function playCard(cardId: string): PlayCardResult {
 		s.usedPowerIds.push(tpl.id);
 	}
 
-	s.player.mana -= tpl.cost;
+	s.player.mana -= cost;
 	s.hand.splice(idx, 1);
 	const attackElement = tpl.kind === 'attack' ? (() => {
 		let el = tpl.element;
@@ -826,6 +864,7 @@ export async function finalizeBattle(): Promise<void> {
 			currentHp: s.enemy.pokemon.maxHp
 		};
 		applyElementalHpBonusToPokemon(captured);
+		ensurePokemonNatures(captured);
 		await addPokemon(captured);
 		addToRoster(captured);
 	}

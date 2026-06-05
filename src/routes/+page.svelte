@@ -21,7 +21,6 @@
 	type ZoneState = 'done' | 'active' | 'next' | 'locked';
 
 	let tab = $state<'explore' | 'challenges'>('explore');
-	let battleInProgress = $state(false);
 	let progressByRegion = $state<Record<string, RegionProgress>>({});
 	let deckSize = $state(0);
 	let selectedZoneIdx = $state(0);
@@ -43,7 +42,10 @@
 	});
 
 	onMount(async () => {
-		battleInProgress = await hasSavedBattle();
+		if (await hasSavedBattle()) {
+			await goto('/battle');
+			return;
+		}
 		const entries = await Promise.all(
 			REGIONS.map(async (r) => [r.id, await getRegionProgress(r.id)] as const)
 		);
@@ -174,16 +176,6 @@
 <Hud />
 
 <main class="px-4 py-4">
-	{#if battleInProgress}
-		<button
-			class="mb-3 flex w-full items-center justify-between rounded-2xl border border-(--acc) bg-(--acc)/10 px-4 py-3 text-left"
-			onclick={() => goto('/battle')}
-		>
-			<span class="font-bold">⚔️ Batalha em andamento</span>
-			<span class="text-sm font-semibold" style="color: var(--acc)">Continuar →</span>
-		</button>
-	{/if}
-
 	<!-- Tabs -->
 	<div class="tab-bar">
 		<button

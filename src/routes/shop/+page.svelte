@@ -18,6 +18,10 @@
 		buyElementalVitamins,
 		NGU_COSTS
 	} from '$lib/game/shop.svelte';
+	import Sprite from '$lib/components/Sprite.svelte';
+	import NatureIcon from '$lib/components/NatureIcon.svelte';
+	import { NATURES, NATURE_UNLOCK_COST } from '$lib/data/natures';
+	import { canUnlockNature, natureAffordable, unlockNature } from '$lib/game/natures.svelte';
 	import { activePokemon, game, getElementPoints, getElementalDamageLevel, getElementalHpLevel } from '$lib/game/state.svelte';
 	import { ELEMENT_EMOJI, ELEMENT_LABEL } from '$lib/game/elements';
 	import { formatNumber } from '$lib/utils/math';
@@ -26,6 +30,17 @@
 
 	let refreshing = $state(false);
 	let inspectingCard: string | null = $state(null);
+
+	async function handleUnlockNature(pokemonId: string, index: number) {
+		const ok = await unlockNature(pokemonId, index);
+		if (ok) {
+			const p = game.roster.find((x) => x.id === pokemonId);
+			const name = p?.natures?.assigned[index] ? NATURES[p.natures.assigned[index]].namePt : '';
+			pushToast(`Natureza ${name} desbloqueada!`, 'success');
+		} else {
+			pushToast('Não foi possível desbloquear.', 'error');
+		}
+	}
 
 	onMount(async () => {
 		await ensureShopLoaded();
@@ -231,6 +246,52 @@
 			</div>
 		</div>
 
+		{#if activePokemon()}
+			{@const p = activePokemon()!}
+			<div class="mt-6">
+				<h2 class="mb-2 text-base font-bold">Naturezas — {p.name}</h2>
+				<p class="mb-2 text-[10px] text-(--text-muted)">Desbloqueie em sequência por {formatNumber(NATURE_UNLOCK_COST)} de pontos de {ELEMENT_LABEL[p.element]}.</p>
+				<div class="rounded-xl border border-(--border) bg-(--surface) p-4">
+					<div class="mb-3 flex items-center gap-2">
+						<Sprite speciesId={p.speciesId} size={48} alt={p.name} />
+						<div>
+							<p class="text-sm font-bold">{p.name}</p>
+							<p class="text-[10px] text-(--text-muted)">{ELEMENT_EMOJI[p.element]} {ELEMENT_LABEL[p.element]}</p>
+						</div>
+					</div>
+					{#if p.natures}
+						<div class="space-y-2">
+							{#each [0, 1, 2] as i}
+								{@const id = p.natures.assigned[i]}
+								{@const unlocked = p.natures.unlocked[i]}
+								{@const meta = NATURES[id]}
+								{@const canBuy = canUnlockNature(p, i)}
+								<div class="flex items-center gap-3 rounded-lg border border-(--border)/50 p-2.5">
+									<NatureIcon {id} locked={!unlocked} size={32} />
+									<div class="min-w-0 flex-1">
+										<p class="text-sm font-bold">{meta.namePt}</p>
+										<p class="text-xs text-(--text-muted)">{meta.description}</p>
+									</div>
+									{#if unlocked}
+										<span class="shrink-0 rounded-full bg-(--success)/20 px-2.5 py-0.5 text-[10px] font-bold text-(--success)">✓ Ativa</span>
+									{:else if canBuy}
+										<button
+											class="shrink-0 rounded-lg bg-(--accent) px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-40"
+											disabled={!natureAffordable(p)}
+											onclick={() => handleUnlockNature(p.id, i)}
+										>
+											{ELEMENT_EMOJI[p.element]}{formatNumber(NATURE_UNLOCK_COST)}
+										</button>
+									{:else}
+										<span class="shrink-0 text-[11px] text-(--text-muted)">🔒 Bloqueada</span>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			</div>
+		{/if}
 	{/if}
 </main>
 

@@ -2,6 +2,7 @@
 	import Card from '$lib/components/Card.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import CardDetailsModal from '$lib/components/CardDetailsModal.svelte';
+	import { effectiveCardCost } from '$lib/game/battle.svelte';
 	import type { Card as BattleCard, BattleState } from '$lib/game/types';
 
 	let {
@@ -18,7 +19,7 @@
 		state: BattleState;
 		ended?: boolean;
 		autoConfirm?: boolean;
-		canPlay: (templateId: string) => boolean;
+		canPlay: (card: BattleCard) => boolean;
 		onCardTap: (cardId: string, templateId: string) => void;
 		onPlayCard: (cardId: string, templateId: string) => void;
 		onPlayRelic: (cardId: string, templateId: string) => void;
@@ -50,7 +51,8 @@
 
 	// Single tap: in auto-confirm mode play immediately; otherwise open inspector.
 	function handleCardTap(cardId: string, templateId: string) {
-		if (autoConfirm && canPlay(templateId)) {
+		const handCard = battleState.hand.find((c) => c.id === cardId);
+		if (autoConfirm && handCard && canPlay(handCard)) {
 			onCardTap(cardId, templateId);
 		} else {
 			inspecting = { templateId, cardId };
@@ -66,7 +68,8 @@
 
 	let inspectPlayable = $derived.by(() => {
 		if (ended || !inspecting || !inspecting.cardId) return false;
-		return canPlay(inspecting.templateId);
+		const handCard = battleState.hand.find((c) => c.id === inspecting!.cardId);
+		return handCard ? canPlay(handCard) : false;
 	});
 </script>
 
@@ -149,7 +152,7 @@
 			{@const spread = n > 1 ? Math.min(68, 240 / (n - 1)) : 0}
 			{@const angle = offset * Math.min(7, 24 / Math.max(n, 1))}
 			{@const xPos = offset * spread}
-			{@const playable = canPlay(card.templateId)}
+			{@const playable = canPlay(card)}
 			<div
 				role="button"
 				tabindex="0"
@@ -160,7 +163,7 @@
 				onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleCardTap(card.id, card.templateId); }}
 				aria-label={autoConfirm ? 'Jogar carta' : 'Inspecionar carta'}
 			>
-				<Card templateId={card.templateId} compact={true} flip playable={playable} />
+				<Card templateId={card.templateId} compact={true} flip playable={playable} costOverride={effectiveCardCost(battleState, card)} dealDelay={i * 55} />
 			</div>
 		{/each}
 	</div>

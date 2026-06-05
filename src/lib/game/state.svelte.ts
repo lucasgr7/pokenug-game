@@ -1,5 +1,6 @@
 import { getPlayer, savePlayer } from '$lib/db/player';
 import { addPokemon, getAllPokemon } from '$lib/db/pokemon';
+import { ensurePokemonNatures } from '$lib/data/natures';
 import { clamp } from '$lib/utils/math';
 import type { CapturedPokemon, Element, Player, Theme } from './types';
 
@@ -145,6 +146,11 @@ export function setTheme(theme: Theme): void {
 	schedulePersist();
 }
 
+export function setMusicMuted(muted: boolean): void {
+	requirePlayer().musicMuted = muted;
+	schedulePersist();
+}
+
 export function applyThemeToDom(theme: Theme): void {
 	if (typeof document === 'undefined') return;
 	document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -284,6 +290,15 @@ async function doInit(): Promise<InitResult> {
 	if (rosterNeedsFix) {
 		await Promise.all(game.roster.map((p) => addPokemon($state.snapshot(p))));
 	}
+
+	let naturesChanged = false;
+	for (const p of game.roster) {
+		if (ensurePokemonNatures(p)) naturesChanged = true;
+	}
+	if (naturesChanged) {
+		await Promise.all(game.roster.map((p) => addPokemon($state.snapshot(p))));
+	}
+
 	applyThemeToDom(player.theme);
 
 	// Progresso offline é calculado no módulo de jobs (carregado dinamicamente

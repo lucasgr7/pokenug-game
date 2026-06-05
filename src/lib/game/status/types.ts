@@ -33,17 +33,23 @@ export interface DamageCtx extends StatusCtx {
 }
 
 export interface StatusHooks {
-  onApply?(ctx: StatusCtx): void;
-  resolveAttackElement?(el: Element | null, ctx: DamageCtx): Element | null;
-  modifyAttackBase?(value: number, ctx: DamageCtx): number;
-  modifyAttackFinal?(value: number, ctx: DamageCtx): number;
-  modifyOutgoingBlock?(value: number, ctx: StatusCtx): number;
-  modifyIncomingDamage?(value: number, ctx: StatusCtx): number;
-  onCardPlayed?(ctx: StatusCtx, tpl: CardTemplate, card: Card): void;
-  onAfterAttack?(ctx: DamageCtx): void;
-  onTurnStart?(ctx: StatusCtx): void;
-  onTurnEnd?(ctx: StatusCtx): void;
-  emblem?(self: ActiveStatus, s: BattleState): Emblem | null;
+	onApply?(ctx: StatusCtx): void;
+	resolveAttackElement?(el: Element | null, ctx: DamageCtx): Element | null;
+	modifyAttackBase?(value: number, ctx: DamageCtx): number;
+	modifyAttackFinal?(value: number, ctx: DamageCtx): number;
+	modifyOutgoingBlock?(value: number, ctx: StatusCtx): number;
+	modifyIncomingDamage?(value: number, ctx: StatusCtx): number;
+	onCardPlayed?(ctx: StatusCtx, tpl: CardTemplate, card: Card): void;
+	onAfterAttack?(ctx: DamageCtx): void;
+	onTurnStart?(ctx: StatusCtx): void;
+	onTurnEnd?(ctx: StatusCtx): void;
+	onBattleStart?(ctx: StatusCtx): void;
+	onBattleStartAfterDraw?(ctx: StatusCtx): void;
+	modifyCardCost?(cost: number, tpl: CardTemplate, card: Card, ctx: StatusCtx): number;
+	modifyHandSize?(size: number, ctx: StatusCtx): number;
+	shouldExhaust?(card: Card, tpl: CardTemplate, current: boolean, ctx: StatusCtx): boolean;
+	onCardExhausted?(ctx: StatusCtx, card: Card, tpl: CardTemplate): void;
+	emblem?(self: ActiveStatus, s: BattleState): Emblem | null;
 }
 
 export interface StatusDefinition {

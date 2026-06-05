@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { game, setTheme, getPlatinum } from '$lib/game/state.svelte';
+	import { toggleMusicMute, isMusicMuted } from '$lib/game/music.svelte';
 	import { formatNumber } from '$lib/utils/math';
 	import { hudTrades, type HudTradeEvent } from '$lib/stores/hud.svelte';
 	import type { Element } from '$lib/game/types';
@@ -89,6 +90,13 @@
 					📲
 				</button>
 			{/if}
+			<button
+				class="rounded-md px-1.5 py-0.5 text-sm hover:opacity-75"
+				onclick={toggleMusicMute}
+				aria-label={isMusicMuted() ? 'Ativar som' : 'Silenciar'}
+			>
+				{isMusicMuted() ? '🔇' : '🔊'}
+			</button>
 			<button
 				class="rounded-md px-1.5 py-0.5 text-sm hover:opacity-75"
 				onclick={toggleTheme}

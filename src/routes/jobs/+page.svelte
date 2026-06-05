@@ -3,6 +3,8 @@
 	import Sprite from '$lib/components/Sprite.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import Modal from '$lib/components/Modal.svelte';
+	import NatureIcon from '$lib/components/NatureIcon.svelte';
+	import { NATURES } from '$lib/data/natures';
 	import { game, normalizedPokemonHp, setActivePokemon } from '$lib/game/state.svelte';
 	import {
 		assignJob,
@@ -19,6 +21,7 @@
 	import { onMount } from 'svelte';
 
 	let selected = $state<CapturedPokemon | null>(null);
+	let expandedNature = $state<number | null>(null);
 
 	// Smooth progress animation via requestAnimationFrame
 	let smooth = $state<Record<string, number>>({});
@@ -204,6 +207,41 @@
 <Modal open={!!selected} title={selected?.name ?? ''} onclose={() => (selected = null)}>
 	{#if selected}
 		{@const isMain = game.player?.activePokemonId === selected.id}
+		<!-- Nature panel -->
+		<div class="mb-3 flex items-center gap-2">
+			<Sprite speciesId={selected.speciesId} size={48} alt={selected.name} />
+			<div>
+				<p class="font-bold">{selected.name}</p>
+				<p class="text-[10px] text-(--text-muted)">{Math.ceil(normalizedPokemonHp(selected))}/{selected.maxHp} HP</p>
+			</div>
+		</div>
+		{#if selected.natures}
+			<div class="mb-3 flex flex-wrap gap-1.5">
+				{#each [0, 1, 2] as i}
+					{@const id = selected.natures.assigned[i]}
+					{@const unlocked = selected.natures.unlocked[i]}
+					{@const expanded = expandedNature === i}
+					<div>
+						<button
+							class="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold"
+							class:border-(--border)={!unlocked}
+							class:border-(--success)={unlocked}
+							class:opacity-50={!unlocked}
+							onclick={() => (expandedNature = expanded ? null : i)}
+							title={NATURES[id].description}
+						>
+							<NatureIcon {id} locked={!unlocked} size={16} />
+							{NATURES[id].namePt}
+						</button>
+						{#if expanded}
+							<div class="mt-0.5 max-w-48 rounded-md bg-(--surface-2) px-2 py-1 text-[10px] text-(--text-muted)">
+								{NATURES[id].description}
+							</div>
+						{/if}
+					</div>
+				{/each}
+			</div>
+		{/if}
 		<div class="space-y-2">
 			<button
 				class="w-full rounded-xl border border-(--accent) bg-(--accent)/10 px-4 py-3 text-left font-semibold text-(--accent) disabled:opacity-50"

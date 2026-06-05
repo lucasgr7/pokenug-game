@@ -4,12 +4,11 @@
 	import { page } from '$app/state';
 	import Sprite from '$lib/components/Sprite.svelte';
 	import Card from '$lib/components/Card.svelte';
-	import HpBar from '$lib/components/HpBar.svelte';
 	import BattleHandControls from '$lib/components/BattleHandControls.svelte';
 	import BattleLogs from '$lib/components/BattleLogs.svelte';
-	import ManaCrystal from '$lib/components/ManaCrystal.svelte';
 	import Modal from '$lib/components/Modal.svelte';
-	import TypeAdvantageAlert from '$lib/components/TypeAdvantageAlert.svelte';
+	import EnemyHud from '$lib/components/battle/EnemyHud.svelte';
+	import PlayerHud from '$lib/components/battle/PlayerHud.svelte';
 	import {
 		battle,
 		enterBattle,
@@ -17,16 +16,17 @@
 		playCard,
 		playRelicCard,
 		repairActiveBattleState,
+		effectiveCardCost,
 		type PlayCardResult,
 		endTurn,
 		finalizeBattle,
 		endBattleCleanup
 	} from '$lib/game/battle.svelte';
-	import { collectEmblems } from '$lib/game/status/pipeline';
 	import { buildEndTurnLog, buildPlayLog, type BattleLogEntry, type LogPart } from '$lib/game/battle-log';
 	import { getTemplate } from '$lib/data/cards';
 	import { ELEMENT_LABEL, ELEMENT_EMOJI } from '$lib/game/elements';
-	import { getElementInteraction, interactionLabel } from '$lib/game/type-chart';
+	import { toggleMusicMute, isMusicMuted } from '$lib/game/music.svelte';
+	import { interactionLabel } from '$lib/game/type-chart';
 	import type { BattleMode } from '$lib/game/types';
 
 	let loading = $state(true);
@@ -41,6 +41,22 @@
 
 	let playedFx = $state<PlayedFx | null>(null);
 	let autoConfirm = $state(false);
+
+	// ── Battle intro ─────────────────────────────────────────────────────
+	let showIntro = $state(false);
+	let hpReveal = $state(true);
+	let introKey = $state(0);
+
+	$effect(() => {
+		if (battle.introPending) {
+			battle.introPending = false;
+			showIntro = true;
+			hpReveal = false;
+			introKey++;
+			setTimeout(() => { hpReveal = true; }, 250);
+			setTimeout(() => { showIntro = false; }, 2000);
+		}
+	});
 
 	// ── Damage / block floats ─────────────────────────────────────────────
 	let enemyDmgFloat = $state<{ id: string; amount: number; block?: boolean } | null>(null);
@@ -105,23 +121,9 @@
 	let ended = $derived(!!s && s.status !== 'active');
 	let isBossBattle = $derived(s?.mode === 'boss');
 
-	function intentText(): string {
-		if (!s) return '';
-		const it = s.enemy.intent;
-		if (it.kind === 'attack') {
-			const attackElement = it.element ?? s.enemy.pokemon.element;
-			const interaction = getElementInteraction(attackElement, s.player.pokemon.element);
-			const projectedDamage = Math.max(0, Math.round((it.damage + s.enemy.nextDamageBonus) * interaction.multiplier));
-			return `${ELEMENT_EMOJI[attackElement]} ⚔️ ${projectedDamage}`;
-		}
-		if (it.kind === 'defend') return `🛡️ ${it.block}`;
-		return `✨ +${it.nextDamage}`;
-	}
-
-	function canPlay(templateId: string): boolean {
+	function canPlay(card: { templateId: string }): boolean {
 		if (!s || s.turn !== 'player' || s.status !== 'active') return false;
-		const tpl = getTemplate(templateId);
-		return !!tpl && s.player.mana >= tpl.cost;
+		return s.player.mana >= effectiveCardCost(s, card);
 	}
 
 	function matchupHint(): string {
@@ -160,7 +162,8 @@
 	}
 
 	function onCardTap(cardId: string, templateId: string) {
-		if (!canPlay(templateId)) return;
+		const handCard = s?.hand.find((c) => c.id === cardId);
+		if (!handCard || !canPlay(handCard)) return;
 		onPlay(cardId, templateId);
 	}
 
@@ -248,6 +251,15 @@
 				{#if matchupHint()}<span class="ml-1 text-amber-300">· {matchupHint()}</span>{/if}
 			</div>
 
+			<!-- mute toggle -->
+			<button
+				class="absolute right-2 top-2 z-40 rounded-full bg-black/40 px-2 py-1 text-sm backdrop-blur hover:opacity-75"
+				onclick={toggleMusicMute}
+				aria-label={isMusicMuted() ? 'Ativar som' : 'Silenciar'}
+			>
+				{isMusicMuted() ? '🔇' : '🔊'}
+			</button>
+
 			<!-- SEU TURNO flash -->
 			{#if showTurnFlash}
 				<div class="turn-flash" aria-hidden="true">
@@ -255,39 +267,26 @@
 				</div>
 			{/if}
 
-			<!-- INFO INIMIGO (canto superior esquerdo) -->
-			<div class="absolute left-2 top-2 z-10 w-[58%] max-w-65">
-				<div class="rounded-xl border border-(--border) bg-(--surface)/85 p-2 shadow-lg backdrop-blur">
-					<div class="mb-1 flex items-center justify-between gap-1">
-						<span class="truncate text-xs font-bold">{s.enemy.pokemon.name}</span>
-						<span class="shrink-0 text-[10px] text-(--text-muted)"
-							>{ELEMENT_EMOJI[s.enemy.pokemon.element]}</span
-						>
-					</div>
-					<HpBar hp={s.enemy.hp} maxHp={s.enemy.pokemon.maxHp} block={s.enemy.block} />
-					<div class="mt-1 flex items-center gap-1 text-[11px] font-bold text-(--danger)">
-						<span class="rounded bg-(--danger)/15 px-1.5 py-0.5">Intenção {intentText()}</span>
-					</div>
-					<TypeAdvantageAlert attacker={s.enemy.pokemon.element} defender={s.player.pokemon.element} />
-					<!-- Enemy active debuffs -->
-					{#if collectEmblems(s.enemy, s).length > 0}
-						<div class="mt-1.5 flex flex-wrap gap-1">
-							{#each collectEmblems(s.enemy, s) as e}
-								<span class="rounded-full px-1.5 py-0.5 text-[9px] font-black"
-									style="color:{e.color};background:{e.bg}" title={e.title}>{e.icon} {e.label}</span>
-							{/each}
-						</div>
-					{/if}
+			<!-- BATALHA! intro banner -->
+			{#if showIntro}
+				<div class="intro-banner" aria-hidden="true">
+					<span class="intro-banner-text" class:banner-boss={isBossBattle}>
+						{isBossBattle ? 'BOSS!' : 'BATALHA!'}
+					</span>
 				</div>
-			</div>
+			{/if}
+
+			<EnemyHud {s} hpReveal={hpReveal} />
 
 			<!-- SPRITE INIMIGO (canto superior direito) -->
 			<div class="absolute right-1 top-12 z-0">
-				<div class="platform"></div>
-				{#key battle.enemyHurt}
-					<div class="shake-host hit-host">
-						<Sprite speciesId={s.enemy.pokemon.speciesId} size={120} alt={s.enemy.pokemon.name} />
-					</div>
+				{#key introKey}
+					<div class="platform"></div>
+					{#key battle.enemyHurt}
+						<div class="shake-host hit-host" class:sprite-intro={showIntro}>
+							<Sprite speciesId={s.enemy.pokemon.speciesId} size={120} alt={s.enemy.pokemon.name} />
+						</div>
+					{/key}
 				{/key}
 				{#if enemyDmgFloat}
 					{#key enemyDmgFloat.id}
@@ -300,11 +299,13 @@
 
 			<!-- SPRITE JOGADOR (canto inferior esquerdo) -->
 			<div class="absolute bottom-1 left-1 z-0">
-				<div class="platform"></div>
-				{#key battle.playerHurt}
-					<div class="shake-host hit-host">
-						<Sprite speciesId={s.player.pokemon.speciesId} size={120} alt={s.player.pokemon.name} />
-					</div>
+				{#key introKey}
+					<div class="platform"></div>
+					{#key battle.playerHurt}
+						<div class="shake-host hit-host" class:sprite-intro={showIntro}>
+							<Sprite speciesId={s.player.pokemon.speciesId} size={120} alt={s.player.pokemon.name} />
+						</div>
+					{/key}
 				{/key}
 				{#if playerDmgFloat}
 					{#key playerDmgFloat.id}
@@ -318,25 +319,7 @@
 				{/if}
 			</div>
 
-			<!-- INFO JOGADOR (canto inferior direito) -->
-			<div class="absolute bottom-2 right-2 z-10 w-[58%] max-w-65">
-				<div class="rounded-xl border border-(--border) bg-(--surface)/85 p-2 shadow-lg backdrop-blur">
-					<div class="mb-1 flex items-center justify-between gap-1">
-						<span class="truncate text-xs font-bold">{s.player.pokemon.name}</span>
-						<ManaCrystal mana={s.player.mana} max={s.player.mana ?? s.player.maxMana} />
-					</div>
-					<HpBar hp={s.player.hp} maxHp={s.player.pokemon.maxHp} block={s.player.block} />
-					<!-- Player active emblems (statuses) -->
-					{#if collectEmblems(s.player, s).length > 0}
-						<div class="mt-1.5 flex flex-wrap gap-1">
-							{#each collectEmblems(s.player, s) as e}
-								<span class="rounded-full px-1.5 py-0.5 text-[9px] font-black"
-									style="color:{e.color};background:{e.bg}" title={e.title}>{e.icon} {e.label}</span>
-							{/each}
-						</div>
-					{/if}
-				</div>
-			</div>
+			<PlayerHud {s} hpReveal={hpReveal} />
 
 		</section>
 
@@ -598,5 +581,51 @@
 			opacity: 0;
 			transform: translateX(-50%) translateY(-10px);
 		}
+	}
+
+	/* ── Intro banner ───────────────────────────────────────────────────── */
+	.intro-banner {
+		position: absolute;
+		inset: 0;
+		z-index: 60;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		pointer-events: none;
+	}
+	.intro-banner-text {
+		font-family: 'Russo One', sans-serif;
+		font-size: 42px;
+		letter-spacing: 3px;
+		color: #fff;
+		text-shadow:
+			0 4px 16px rgba(58, 214, 194, 0.7),
+			0 0 32px rgba(168, 107, 255, 0.5);
+		animation: intro-flash 1.6s ease forwards;
+		opacity: 0;
+	}
+	.intro-banner-text.banner-boss {
+		color: #fbbf24;
+		text-shadow:
+			0 4px 16px rgba(251, 191, 36, 0.7),
+			0 0 32px rgba(251, 191, 36, 0.4);
+	}
+	@keyframes intro-flash {
+		0%   { opacity: 0; transform: scale(0.6); }
+		15%  { opacity: 1; transform: scale(1.08); }
+		30%  { transform: scale(0.95); }
+		45%  { transform: scale(1.04); }
+		65%  { opacity: 1; }
+		100% { opacity: 0; transform: scale(1.1); }
+	}
+
+	/* ── Sprite pop-in (intro) ──────────────────────────────────────────── */
+	.sprite-intro :global(img) {
+		animation: sprite-pop-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+	}
+	@keyframes sprite-pop-in {
+		0%   { transform: scale(0.4) rotate(-8deg); opacity: 0; }
+		70%  { transform: scale(1.12) rotate(2deg);  opacity: 1; }
+		100% { transform: scale(1) rotate(0);        opacity: 1; }
 	}
 </style>

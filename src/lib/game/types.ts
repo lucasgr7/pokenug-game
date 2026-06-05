@@ -100,6 +100,16 @@ export interface Player {
 	bannedTemplateIds: string[];   // ART-20 — templateIds banidos nesta run
 	ghostPermDebuff: number;       // Alma Penada — redução permanente acumulada de dano inimigo
 	platinum: number;              // premium currency, market-only
+	musicMuted?: boolean;          // persistência do mute de música
+}
+
+export type NatureId =
+	| 'hardy' | 'lonely' | 'brave' | 'adamant' | 'naughty' | 'bold' | 'docile'
+	| 'relaxed' | 'lax' | 'timid' | 'serious' | 'hasty' | 'quirky' | 'sassy' | 'modest';
+
+export interface PokemonNatures {
+	assigned: [NatureId, NatureId, NatureId];
+	unlocked: [boolean, boolean, boolean];
 }
 
 export interface CapturedPokemon {
@@ -112,6 +122,7 @@ export interface CapturedPokemon {
 	capturedAt: number;
 	hpBuffs?: number;
 	damageBuffs?: number;
+	natures?: PokemonNatures;
 }
 
 export interface ActiveStatus {

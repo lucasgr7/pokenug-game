@@ -11,6 +11,7 @@
 		selected = false,
 		dimmed = false,
 		flip = false,
+		dealDelay = 0,
 		count = 0,
 		badge = '',
 		shiny = false,
@@ -18,6 +19,7 @@
 		compact = false,
 		iconOnlyBadge = false,
 		description = '',
+		costOverride = null,
 		onclick,
 		onlongpress
 	}: {
@@ -26,6 +28,7 @@
 		selected?: boolean;
 		dimmed?: boolean;
 		flip?: boolean;
+		dealDelay?: number;
 		count?: number;
 		badge?: string;
 		shiny?: boolean;
@@ -33,6 +36,7 @@
 		compact?: boolean;
 		iconOnlyBadge?: boolean;
 		description?: string;
+		costOverride?: number | null;
 		onclick?: () => void;
 		onlongpress?: () => void;
 	} = $props();
@@ -125,15 +129,15 @@
 		class:showcase
 		class:compact
 		class:power-card={tpl.kind === 'power'}
-		style="--elem-color: {elementColor}; --metal: {metalColor};"
+		style="--elem-color: {elementColor}; --metal: {metalColor};{dealDelay ? `animation-delay:${dealDelay}ms;` : ''}"
 	>
 		<div class="frame">
 			<div class="inner" style="border-color: {elementColor};">
 
 				<!-- HEAD: cost gem + rarity stars -->
 				<div class="c-head">
-					<div class="cost-gem">
-						<span class="cost-num">{tpl.cost}</span>
+					<div class="cost-gem" class:cost-modified={costOverride != null && costOverride !== tpl.cost} class:cost-cheaper={costOverride != null && costOverride < tpl.cost} class:cost-pricier={costOverride != null && costOverride > tpl.cost}>
+						<span class="cost-num">{costOverride ?? tpl.cost}</span>
 					</div>
 					<div class="rarity-stars">
 						{#if starCount === 0}
@@ -278,7 +282,7 @@
 		transform: scale(0.97);
 	}
 	.card-root.flip {
-		animation: card-flip 300ms ease-out backwards;
+		animation: card-deal-in 360ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
 	}
 
 	/* ── Frame (rarity-driven metallic gradient) ────────────────────────── */
@@ -354,6 +358,17 @@
 		clip-path: polygon(50% 0, 100% 27%, 100% 73%, 50% 100%, 0 73%, 0 27%);
 		background: linear-gradient(160deg, #f3e7ff 0%, #c9a3ff 32%, #8b5cf6 65%, #5926c4 100%);
 		filter: drop-shadow(0 2px 4px rgba(40, 10, 90, 0.55)) drop-shadow(0 0 6px rgba(168, 107, 255, 0.35));
+	}
+	.cost-gem.cost-cheaper {
+		background: linear-gradient(160deg, #fef3c7 0%, #fbbf24 32%, #d97706 65%, #92400e 100%);
+		filter: drop-shadow(0 2px 4px rgba(180, 80, 0, 0.55)) drop-shadow(0 0 6px rgba(251, 191, 36, 0.35));
+	}
+	.cost-gem.cost-pricier {
+		background: linear-gradient(160deg, #fecaca 0%, #f87171 32%, #dc2626 65%, #7f1d1d 100%);
+		filter: drop-shadow(0 2px 4px rgba(180, 0, 0, 0.55)) drop-shadow(0 0 6px rgba(248, 113, 113, 0.35));
+	}
+	.cost-gem.cost-modified .cost-num {
+		font-weight: 900;
 	}
 	.cost-gem::before {
 		content: '';
@@ -613,9 +628,10 @@
 	}
 
 	/* ── Animations ─────────────────────────────────────────────────────── */
-	@keyframes card-flip {
-		from { transform: perspective(600px) rotateY(80deg); opacity: 0; }
-		to   { transform: perspective(600px) rotateY(0);    opacity: 1; }
+	@keyframes card-deal-in {
+		0%   { transform: translate(-42%, 64%) rotate(-22deg) scale(0.6); opacity: 0; }
+		60%  { opacity: 1; }
+		100% { transform: translate(0, 0) rotate(0) scale(1); opacity: 1; }
 	}
 	@keyframes shield-shine {
 		0%   { left: -40%; opacity: 0; }

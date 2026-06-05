@@ -27,6 +27,7 @@ function ensureNgu(player: Player): void {
 
 	// Market gamification — migração para saves antigos
 	player.platinum ??= 0;
+	player.musicMuted ??= false;
 }
 
 export async function getPlayer(): Promise<Player | undefined> {
