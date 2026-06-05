@@ -12,11 +12,25 @@
 
 	let cards = $state<CardT[]>([]);
 	let selected = $state<CardT | null>(null);
+	let page = $state(0);
+	const PAGE_SIZE = 9;
 
 	async function reload() {
-		cards = (await getInventory()).filter((c) => isUpgradeable(getTemplate(c.templateId)));
+		const raw = (await getInventory()).filter((c) => isUpgradeable(getTemplate(c.templateId)));
+		raw.sort((a, b) => {
+			const ta = getTemplate(a.templateId);
+			const tb = getTemplate(b.templateId);
+			const ea = ta?.element ? 0 : 1;
+			const eb = tb?.element ? 0 : 1;
+			return ea - eb;
+		});
+		cards = raw;
+		page = 0;
 	}
 	onMount(reload);
+
+	let pageCount = $derived(Math.max(1, Math.ceil(cards.length / PAGE_SIZE)));
+	let paged = $derived(cards.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE));
 
 	let selTpl = $derived(selected ? getTemplate(selected.templateId) : null);
 	let selLevel = $derived(selected?.upgrades ?? 0);
@@ -46,12 +60,19 @@
 		<p class="text-sm text-[var(--text-muted)]">Nenhuma carta de ataque/defesa no inventário.</p>
 	{:else}
 		<div class="grid grid-cols-3 gap-1.5">
-			{#each cards as c (c.id)}
+			{#each paged as c (c.id)}
 				<button class="relative upgrade-card-btn" onclick={() => (selected = c)}>
 					<Card templateId={c.templateId} compact iconOnlyBadge upgradeLevel={c.upgrades ?? 0} playable />
 				</button>
 			{/each}
 		</div>
+		{#if pageCount > 1}
+			<div class="mt-2 flex items-center justify-center gap-3">
+				<button class="pag-btn" disabled={page === 0} onclick={() => page--}>←</button>
+				<span class="text-[11px] font-bold text-[var(--text-muted)]">{page + 1} / {pageCount}</span>
+				<button class="pag-btn" disabled={page >= pageCount - 1} onclick={() => page++}>→</button>
+			</div>
+		{/if}
 	{/if}
 </section>
 
@@ -77,5 +98,20 @@
 		border: none;
 		padding: 0;
 		cursor: pointer;
+	}
+	.pag-btn {
+		background: var(--surface-2, #292524);
+		border: 1px solid var(--border, #3f3f46);
+		border-radius: 8px;
+		padding: 4px 12px;
+		font-size: 14px;
+		font-weight: 700;
+		color: var(--text, #f5f5f4);
+		cursor: pointer;
+		transition: opacity 0.15s;
+	}
+	.pag-btn:disabled {
+		opacity: 0.3;
+		cursor: default;
 	}
 </style>
