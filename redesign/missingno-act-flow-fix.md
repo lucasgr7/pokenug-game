@@ -254,3 +254,66 @@ auto-advances after 5 s.
 - After 5 s it shatters, final-boss music starts, and the ally bubbles play (click-driven).
 - Optional polish: pass a `descOverride`/`hideActions` prop if the default defeat copy
   ("Seu deck ativo foi perdido…") or the "Voltar ao mapa" button feels off in this context.
+
+---
+
+# Follow-up 2: intro song won't stop at Act 2 (no silence)
+
+## Symptom
+When the Act 2 defeat screen appears, `final-boss-intro.mp3` keeps playing — there is no
+silence — and it then overlaps `final-boss-battle.mp3`.
+
+## Root cause
+`playMissingNoIntro()` creates a **detached `Audio` object** that is never stored in the
+module's shared `audio` variable
+([music.svelte.ts:121-127](src/lib/game/music.svelte.ts#L121)):
+```ts
+const el = new Audio('/mp3/final-boss-intro.mp3');  // not tracked
+el.play();
+```
+`stopMusic()` only pauses the shared `audio` element
+([music.svelte.ts:82-87](src/lib/game/music.svelte.ts#L82)), so it can never stop the intro.
+(`playMissingNoBattle()` already uses the shared element via `ensureAudio()`, which is why the
+battle track behaves correctly.)
+
+## Fix
+
+**1. `src/lib/game/music.svelte.ts`** — route the intro through the shared element, mirroring
+`playMissingNoBattle`:
+```ts
+export function playMissingNoIntro(): void {
+  const el = ensureAudio();
+  if (!el) return;
+  currentCategory = 'boss';
+  el.src = '/mp3/final-boss-intro.mp3';
+  el.muted = game.player?.musicMuted ?? false;
+  el.currentTime = 0;
+  el.play().then(() => startFadeIn()).catch(registerUnlock);
+}
+```
+Now `stopMusic()` in `runAct2()` actually silences the intro → real silence during the 5 s
+defeat screen.
+
+**2. `src/lib/game/missingno.svelte.ts`** — start the battle track the moment the timer ends
+(not after the shatter), so it matches "after the timer ends the song starts". Move
+`playMissingNoBattle()` into the `'shatter'` step and remove it from the `'bubbles'` step:
+```ts
+setTimeout(() => {
+  mn.act2Phase = 'shatter';
+  playMissingNoBattle();                 // ← timer ended → final-boss-battle.mp3 starts
+  setTimeout(() => {
+    mn.act2Phase = 'bubbles';            // (no playMissingNoBattle() here anymore)
+    const allies = mn.party.slice(0, 5);
+    queue([
+      speech('...4IND4 NÃO 4C4B0U.', '', false),
+      ...allies.map((a) => speech(`${a.name}: É a minha vez.`, a.name, true)),
+      action(() => enterCycle()),
+    ]);
+  }, 700);
+}, ACT2_DEFEAT_HOLD_MS);
+```
+
+## Acceptance
+- Defeat screen appears → intro stops immediately → **silence** for the full 5 s hold.
+- When the 5 s timer ends → `final-boss-battle.mp3` starts (single track, no overlap) and the
+  ally bubbles follow.
