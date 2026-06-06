@@ -200,6 +200,30 @@ export function activePokemon(): CapturedPokemon | undefined {
 	return game.roster.find((p) => p.id === game.player!.activePokemonId);
 }
 
+export function removeFromRosterMemory(id: string): void {
+	const idx = game.roster.findIndex((p) => p.id === id);
+	if (idx < 0) return;
+	game.roster.splice(idx, 1);
+	// Cancel active job if any — lazy import to avoid circular deps
+	void (async () => {
+		const { getJob, removeJob } = await import('$lib/db/jobs');
+		if (await getJob(id)) await removeJob(id);
+		const { loadJobs } = await import('./jobs.svelte');
+		await loadJobs();
+	})();
+}
+
+export async function restorePokemon(snapshot: CapturedPokemon): Promise<void> {
+	snapshot.corrupted = true;
+	game.roster.push(snapshot);
+	await addPokemon($state.snapshot(snapshot));
+}
+
+export async function purgePokemon(id: string): Promise<void> {
+	const { removePokemon } = await import('$lib/db/pokemon');
+	await removePokemon(id);
+}
+
 async function migrateLegacyNguProgress(player: Player): Promise<void> {
 	let playerChanged = false;
 	let rosterChanged = false;

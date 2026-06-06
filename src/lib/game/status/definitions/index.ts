@@ -9,3 +9,4 @@ import './grass';
 import './enemy-debuffs';
 import './generic';
 import './natures';
+import './corrompido';

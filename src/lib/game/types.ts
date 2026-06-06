@@ -123,6 +123,7 @@ export interface CapturedPokemon {
 	hpBuffs?: number;
 	damageBuffs?: number;
 	natures?: PokemonNatures;
+	corrupted?: boolean;
 }
 
 export interface ActiveStatus {
@@ -204,7 +205,7 @@ export interface Region {
 	bossDesc: string;
 }
 
-export type BattleMode = 'normal' | 'boss';
+export type BattleMode = 'normal' | 'boss' | 'missingno';
 
 export interface BossCardReward {
 	templateId: string;

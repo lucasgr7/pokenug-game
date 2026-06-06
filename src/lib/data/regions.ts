@@ -1,4 +1,5 @@
 import type { Region } from '$lib/game/types';
+import { MISSINGNO_REGION } from './missingno';
 
 export const REGIONS: Region[] = [
 	{
@@ -94,6 +95,7 @@ export const REGIONS: Region[] = [
 ];
 
 export function getRegion(id: string): Region | undefined {
+	if (id === 'missingno') return MISSINGNO_REGION;
 	return REGIONS.find((r) => r.id === id);
 }
 

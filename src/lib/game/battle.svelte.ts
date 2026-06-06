@@ -71,6 +71,13 @@ import type {
 	SavedBattle
 } from './types';
 import { ELEMENTS } from './types';
+import { MISSINGNO_MAX_HP, MISSINGNO_ACT1_DAMAGE, MISSINGNO_TURN_DAMAGE } from '$lib/data/missingno';
+
+// Callback hook for MissingNo mode — called when player HP hits 0 instead of defeat.
+let onPlayerDefeatedInMissingNo: (() => void) | null = null;
+export function setOnMissingNoDefeat(fn: () => void): void {
+	onPlayerDefeatedInMissingNo = fn;
+}
 
 interface BattleStore {
 	state: BattleState | null;
@@ -331,6 +338,9 @@ function applyNatureStatuses(s: BattleState): void {
 			s.player.statuses.push({ defId: 'nature_' + natures.assigned[i], stacks: 1, data: {} });
 		}
 	}
+	if (s.player.pokemon.corrupted) {
+		s.player.statuses.push({ defId: 'nature_corrompido', stacks: 1, data: {} });
+	}
 }
 
 export function effectiveCardCost(s: BattleState, card: { templateId: string }): number {
@@ -343,6 +353,7 @@ export function effectiveCardCost(s: BattleState, card: { templateId: string }):
 
 function shouldExhaust(card: Card): boolean {
 	const s = battle.state!;
+	if (s.player.pokemon.corrupted) return false;
 	const tpl = getTemplate(card.templateId);
 	if (!tpl) return false;
 	// Explicit exhaust tag on card
@@ -380,6 +391,7 @@ function discardHand(s: BattleState): void {
 
 async function persistBattle(): Promise<void> {
 	if (!battle.state) return;
+	if (battle.state.mode === 'missingno') return; // never persist MissingNo
 	const snapshot = $state.snapshot({
 		state: battle.state,
 		reward: battle.reward,
@@ -575,6 +587,108 @@ export async function startBattle(regionId: string, mode: BattleMode = 'normal')
 	drawCards(HAND_SIZE);
 	dispatchOnBattleStartAfterDraw(battle.state);
 	battle.introPending = true;
+	void persistBattle();
+}
+
+export async function startMissingNoBattle(initialPkm: CapturedPokemon): Promise<void> {
+	const enemy: CapturedPokemon = {
+		id: 'missingno',
+		speciesId: 0,
+		name: 'MissingNo.',
+		element: 'normal',
+		maxHp: MISSINGNO_MAX_HP,
+		currentHp: MISSINGNO_MAX_HP,
+		capturedAt: 0
+	};
+
+	setMutationApi(
+		(amount) => dealToEnemy(amount),
+		(amount) => dealToPlayer(amount),
+		(count) => drawCards(count)
+	);
+	battle.state = {
+		regionId: 'missingno',
+		mode: 'missingno',
+		bossFirstFightBlockedCapture: false,
+		player: {
+			pokemon: { ...initialPkm },
+			hp: initialPkm.maxHp,
+			block: 0,
+			mana: START_MANA,
+			maxMana: 3,
+			poisonCounter: 0,
+			ghostPermDebuff: 0,
+			statuses: [],
+			turnFlags: { firstAttackThisTurn: true, damageSufferedThisTurn: false, damageReceivedLastTurn: 0 }
+		},
+		enemy: {
+			pokemon: enemy,
+			hp: enemy.maxHp,
+			block: 0,
+			intent: { kind: 'attack', damage: MISSINGNO_ACT1_DAMAGE },
+			nextDamageBonus: 0,
+			poisonCounter: 0,
+			statuses: []
+		},
+		deck: shuffle(await getActiveDeck()),
+		hand: [],
+		discard: [],
+		exhausted: [],
+		relicSlots: (await getInventory()).filter((c) => getTemplate(c.templateId)?.kind === 'relic'),
+		turn: 'player',
+		turnNumber: 1,
+		status: 'active',
+		usedPowerIds: [],
+		bannedTemplateIds: [...(game.player?.bannedTemplateIds ?? [])],
+		pilhaExaurir: game.player?.pilhaExaurir ?? 0
+	};
+	setBattleState(battle.state);
+	battle.reward = null;
+	battle.settled = false;
+	battle.enemyHurt = 0;
+	battle.playerHurt = 0;
+
+	applyNatureStatuses(battle.state);
+	dispatchOnBattleStart(battle.state);
+
+	drawCards(HAND_SIZE);
+	dispatchOnBattleStartAfterDraw(battle.state);
+}
+
+export async function swapActiveFighter(pkm: CapturedPokemon): Promise<void> {
+	const s = battle.state;
+	if (!s) return;
+
+	s.player.pokemon = { ...pkm };
+	s.player.hp = pkm.maxHp;
+	s.player.block = 0;
+	s.player.mana = START_MANA;
+	s.player.poisonCounter = 0;
+	s.player.ghostPermDebuff = 0;
+	s.player.statuses = [];
+	s.player.turnFlags = { firstAttackThisTurn: true, damageSufferedThisTurn: false, damageReceivedLastTurn: 0 };
+
+	s.deck = shuffle(await getActiveDeck());
+	s.hand = [];
+	s.discard = [];
+	s.exhausted = [];
+
+	applyNatureStatuses(s);
+	dispatchOnBattleStart(s);
+
+	drawCards(HAND_SIZE);
+	dispatchOnBattleStartAfterDraw(s);
+
+	s.enemy.block = 0;
+	s.enemy.nextDamageBonus = 0;
+	s.enemy.poisonCounter = 0;
+	s.enemy.statuses = [];
+	s.enemy.intent = { kind: 'attack', damage: MISSINGNO_TURN_DAMAGE };
+
+	s.turn = 'player';
+	s.turnNumber = 1;
+
+	setBattleState(s);
 	void persistBattle();
 }
 
@@ -809,6 +923,11 @@ export function endTurn(): EnemyTurnResult | null {
 	turnResult.events = drainEvents();
 
 	if (s.player.hp <= 0) {
+		if (s.mode === 'missingno' && onPlayerDefeatedInMissingNo) {
+			onPlayerDefeatedInMissingNo();
+			void persistBattle();
+			return turnResult;
+		}
 		s.status = 'defeat';
 		void setPokemonCurrentHp(s.player.pokemon.id, 0);
 		void persistBattle();
@@ -818,8 +937,12 @@ export function endTurn(): EnemyTurnResult | null {
 	// Decay turnEnd statuses (imobilizado, intimidate, ghost_form, shield_fire_thorns, etc.)
 	decayStatuses(s, 'turnEnd');
 
-	const scaling = getRegionScaling(s.regionId);
-	s.enemy.intent = rollIntent(s.enemy.hp, s.enemy.pokemon.maxHp, s.turnNumber, scaling, s.enemy.pokemon.element);
+	if (s.mode === 'missingno') {
+		s.enemy.intent = { kind: 'attack', damage: MISSINGNO_TURN_DAMAGE };
+	} else {
+		const scaling = getRegionScaling(s.regionId);
+		s.enemy.intent = rollIntent(s.enemy.hp, s.enemy.pokemon.maxHp, s.turnNumber, scaling, s.enemy.pokemon.element);
+	}
 	s.turnNumber++;
 
 	// ESCUDO_PERSISTE (ART-08): don't clear player block if shieldPersists

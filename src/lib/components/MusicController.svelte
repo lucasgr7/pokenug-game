@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { game } from '$lib/game/state.svelte';
 	import { battle } from '$lib/game/battle.svelte';
+	import { mn } from '$lib/game/missingno.svelte';
 	import { playCategory, stopMusic } from '$lib/game/music.svelte';
 
 	// Seleciona a faixa baseada na rota + estado da batalha.
@@ -10,6 +11,10 @@
 		const path = page.url.pathname;
 		const active = battle.state?.status === 'active';
 
+		// MissingNo gerencia música manualmente (intro → silence → final boss).
+		if (active && battle.state!.mode === 'missingno') {
+			return;
+		}
 		if (active) {
 			playCategory(battle.state!.mode === 'boss' ? 'boss' : 'battle');
 		} else if (path.startsWith('/battle')) {

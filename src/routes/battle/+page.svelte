@@ -26,6 +26,8 @@
 	import { getTemplate } from '$lib/data/cards';
 	import { toggleMusicMute, isMusicMuted, stopMusic } from '$lib/game/music.svelte';
 	import { interactionLabel } from '$lib/game/type-chart';
+	import { startMissingNo, mn } from '$lib/game/missingno.svelte';
+	import MissingNoOverlay from '$lib/components/battle/MissingNoOverlay.svelte';
 	import type { BattleMode } from '$lib/game/types';
 
 	let loading = $state(true);
@@ -84,9 +86,11 @@
 	onMount(async () => {
 		const regionId = page.url.searchParams.get('region');
 		const modeParam = page.url.searchParams.get('mode');
-		const mode: BattleMode = modeParam === 'boss' ? 'boss' : 'normal';
+		const mode: BattleMode = modeParam === 'boss' ? 'boss' : modeParam === 'missingno' ? 'missingno' : 'normal';
 		try {
-			if (regionId) {
+			if (mode === 'missingno') {
+				await startMissingNo();
+			} else if (regionId) {
 				await enterBattle(regionId, mode);
 			} else if (await hasSavedBattle()) {
 				// Sem região na URL, mas há uma batalha em andamento: retoma.
@@ -103,9 +107,10 @@
 	});
 
 	// Liquida recompensas quando a batalha termina.
+	// Pula para missingno — o orchestrator gerencia o fluxo.
 	$effect(() => {
 		const st = battle.state?.status;
-		if (st && st !== 'active' && !battle.settled) {
+		if (st && st !== 'active' && !battle.settled && battle.state?.mode !== 'missingno') {
 			stopMusic();
 			void finalizeBattle();
 		}
@@ -121,11 +126,13 @@
 	let ended = $derived(!!s && s.status !== 'active');
 	let resultVariant = $derived<'win' | 'boss' | 'capture' | 'defeat' | null>(
 		!s || s.status === 'active' ? null
+		: s.mode === 'missingno' ? null
 		: s.status === 'defeat' ? 'defeat'
 		: s.status === 'captured' ? 'capture'
 		: s.mode === 'boss' ? 'boss' : 'win'
 	);
 	let isBossBattle = $derived(s?.mode === 'boss');
+	let isMissingNo = $derived(s?.mode === 'missingno');
 
 	function canPlay(card: { templateId: string }): boolean {
 		if (!s || s.turn !== 'player' || s.status !== 'active') return false;
@@ -327,23 +334,29 @@
 
 			<PlayerHud {s} hpReveal={hpReveal} />
 
+			{#if isMissingNo}
+				<MissingNoOverlay ondismiss={leave} />
+			{/if}
+
 		</section>
 
 		<!-- LOGS DA BATALHA -->
 		<BattleLogs logs={battleLogs} />
 
-		<!-- CONTROLES + MÃO -->
-		<BattleHandControls
-			state={s}
-			ended={ended}
-			autoConfirm={autoConfirm}
-			canPlay={canPlay}
-			onCardTap={onCardTap}
-			onPlayCard={onPlay}
-			onPlayRelic={onPlayRelic}
-			onEndTurn={handleEndTurn}
-			onAutoConfirmChange={setAutoConfirm}
-		/>
+		<!-- CONTROLES + MÃO (oculto durante cenas scriptadas do MissingNo) -->
+		{#if !isMissingNo || !mn.active || mn.act >= 3}
+			<BattleHandControls
+				state={s}
+				ended={ended}
+				autoConfirm={autoConfirm}
+				canPlay={canPlay}
+				onCardTap={onCardTap}
+				onPlayCard={onPlay}
+				onPlayRelic={onPlayRelic}
+				onEndTurn={handleEndTurn}
+				onAutoConfirmChange={setAutoConfirm}
+			/>
+		{/if}
 
 	</div>
 

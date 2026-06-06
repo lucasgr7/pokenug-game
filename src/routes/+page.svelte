@@ -10,7 +10,8 @@
 	import { hasSavedBattle } from '$lib/game/battle.svelte';
 	import { getActiveDeck } from '$lib/db/cards';
 	import { pushToast } from '$lib/stores/toast.svelte';
-	import { formatDuration } from '$lib/utils/time';
+	import { formatDuration, isMissingNoWindowOpen } from '$lib/utils/time';
+	import { MISSINGNO_REGION } from '$lib/data/missingno';
 	import { ELEMENT_COLOR, ELEMENT_EMOJI, ELEMENT_LABEL } from '$lib/game/elements';
 	import type { BattleMode, Element } from '$lib/game/types';
 	import type { RegionProgress } from '$lib/db/index';
@@ -24,6 +25,22 @@
 	let progressByRegion = $state<Record<string, RegionProgress>>({});
 	let deckSize = $state(0);
 	let selectedZoneIdx = $state(0);
+	let windowOpen = $state(isMissingNoWindowOpen());
+
+	$effect(() => {
+		const iv = setInterval(() => {
+			windowOpen = isMissingNoWindowOpen();
+		}, 1000);
+		return () => clearInterval(iv);
+	});
+
+	function allRegionsCompleted(): boolean {
+		return REGIONS.every((r) => {
+			const p = progressByRegion[r.id];
+			if (!p) return false;
+			return p.defeats >= r.requiredDefeats && p.bossLastDefeatedAt > 0;
+		});
+	}
 
 	const activeZoneIdx = $derived.by(() => {
 		for (let i = 0; i < REGIONS.length; i++) {
@@ -410,6 +427,38 @@
 					<p class="empty-trophy-msg">Nenhuma conquista ainda.</p>
 				{/if}
 			</div>
+
+			<!-- Secret MissingNo Card -->
+			{#if import.meta.env.DEV || (allRegionsCompleted() && windowOpen)}
+				<button
+					class="missingno-card"
+					onclick={async () => {
+						if (!game.player?.activePokemonId) {
+							pushToast('Selecione um Pokémon principal na aba Pokémons primeiro.', 'error');
+							return;
+						}
+						const activePkm = game.roster.find((p) => p.id === game.player?.activePokemonId);
+						if (activePkm && normalizedPokemonHp(activePkm) <= 0) {
+							pushToast('Seu Pokémon principal está desmaiado. Selecione outro ou aguarde a recuperação.', 'error');
+							return;
+						}
+						const deck = await getActiveDeck();
+						if (deck.length < MIN_DECK) {
+							pushToast(`Seu deck precisa de ao menos ${MIN_DECK} cartas.`, 'error');
+							await goto('/deck');
+							return;
+						}
+						await goto(`/battle?region=missingno&mode=missingno`);
+					}}
+				>
+					<div class="mn-glow"></div>
+					<div class="mn-inner">
+						<div class="mn-emoji">👾</div>
+						<div class="mn-name">???</div>
+						<div class="mn-desc">Uma distorção nos dados.</div>
+					</div>
+				</button>
+			{/if}
 		{/if}
 
 	{:else}
@@ -1470,5 +1519,72 @@
 	}
 	.ch-lock-banner span {
 		font-weight: 700;
+	}
+
+	/* ── Secret MissingNo Card ── */
+	.missingno-card {
+		position: relative;
+		width: 100%;
+		margin-top: 16px;
+		padding: 0;
+		border: 1px solid rgba(175, 0, 220, 0.35);
+		border-radius: 14px;
+		background: linear-gradient(145deg, rgba(16, 2, 32, 0.95), rgba(4, 0, 12, 0.98));
+		cursor: pointer;
+		overflow: hidden;
+		transition: border-color 0.3s, box-shadow 0.3s;
+		font-family: inherit;
+		text-align: left;
+		color: inherit;
+	}
+	.missingno-card:hover, .missingno-card:focus-visible {
+		border-color: rgba(175, 0, 220, 0.7);
+		box-shadow: 0 0 24px rgba(175, 0, 220, 0.15);
+		outline: none;
+	}
+	.mn-glow {
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(80% 60% at 50% 50%, rgba(175, 0, 220, 0.06), transparent);
+		animation: mnGlow 3s ease-in-out infinite;
+		pointer-events: none;
+	}
+	@keyframes mnGlow {
+		0%, 100% { opacity: 0.5; }
+		50% { opacity: 1; }
+	}
+	.mn-inner {
+		position: relative;
+		padding: 14px 16px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+		z-index: 1;
+	}
+	.mn-emoji {
+		font-size: 28px;
+		animation: mnFloat 2.5s ease-in-out infinite;
+	}
+	@keyframes mnFloat {
+		0%, 100% { transform: translateY(0); }
+		50% { transform: translateY(-4px); }
+	}
+	.mn-name {
+		font-size: 18px;
+		font-weight: 900;
+		color: rgba(200, 120, 255, 0.8);
+		letter-spacing: 2px;
+	}
+	.mn-desc {
+		font-size: 11px;
+		color: rgba(160, 100, 200, 0.6);
+		margin-bottom: 4px;
+	}
+	.mn-warning {
+		font-size: 9px;
+		color: rgba(180, 50, 80, 0.7);
+		font-weight: 600;
+		letter-spacing: 0.08em;
 	}
 </style>

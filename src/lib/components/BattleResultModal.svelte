@@ -71,11 +71,12 @@
 		return p;
 	}
 
-	let { variant, reward, captured, enemyName, onDismiss }: {
+	let { variant, reward, captured, enemyName, onDismiss, silent = false }: {
 		variant: 'win' | 'boss' | 'capture' | 'defeat';
 		reward: BattleReward | null;
 		captured: CapturedPokemon | null;
 		enemyName: string;
+		silent?: boolean;
 		onDismiss: () => void;
 	} = $props();
 
@@ -160,7 +161,7 @@
 
 	let cfg = $derived(VARIANTS[variant]);
 
-	onMount(() => playResultSfx(variant));
+	onMount(() => { if (!silent) playResultSfx(variant); });
 </script>
 
 {#key variant}

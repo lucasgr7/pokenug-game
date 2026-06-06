@@ -4,10 +4,14 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { game, initApp, type OfflineSummary } from '$lib/game/state.svelte';
+	import { game, initApp, addToRoster, applyElementalHpBonusToPokemon, type OfflineSummary } from '$lib/game/state.svelte';
+	import { addPokemon } from '$lib/db/pokemon';
+	import { fetchPokemon } from '$lib/api/pokeapi';
+	import { ensurePokemonNatures } from '$lib/data/natures';
+	import { now, formatDuration } from '$lib/utils/time';
+	import { randomInt } from '$lib/utils/rng';
 	import { startTicker, stopTicker } from '$lib/game/jobs.svelte';
 	import { formatNumber } from '$lib/utils/math';
-	import { formatDuration } from '$lib/utils/time';
 	import Toast from '$lib/components/Toast.svelte';
 	import MusicController from '$lib/components/MusicController.svelte';
 	import Modal from '$lib/components/Modal.svelte';
@@ -91,3 +95,32 @@
 		</button>
 	{/if}
 </Modal>
+
+<!-- 🛠 Dev debug menu (yarn dev only) -->
+{#if import.meta.env.DEV}
+	{@const addRandomPokemon = async () => {
+		const speciesId = randomInt(1, 151);
+		let data: { id: number; name: string; element: import('$lib/game/types').Element; maxHp: number };
+		try {
+			data = await fetchPokemon(speciesId);
+		} catch {
+			data = { id: speciesId, name: `#${speciesId}`, element: 'normal' as import('$lib/game/types').Element, maxHp: 40 };
+		}
+		const pkm: import('$lib/game/types').CapturedPokemon = {
+			id: crypto.randomUUID(),
+			speciesId: data.id,
+			name: data.name,
+			element: data.element,
+			maxHp: data.maxHp,
+			currentHp: data.maxHp,
+			capturedAt: now()
+		};
+		ensurePokemonNatures(pkm);
+		applyElementalHpBonusToPokemon(pkm);
+		await addPokemon(pkm);
+		addToRoster(pkm);
+	}}
+	<div class="debug-menu">
+		<button class="debug-btn" onclick={addRandomPokemon}>+ Pokémon</button>
+	</div>
+{/if}

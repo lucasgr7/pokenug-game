@@ -117,3 +117,27 @@ export function playResultSfx(variant: ResultVariant): void {
 	sfx.volume = 1;
 	sfx.play().catch(() => {});
 }
+
+export function playMissingNoIntro(): void {
+	if (typeof Audio === 'undefined') return;
+	if (game.player?.musicMuted) return;
+	const el = new Audio('/mp3/final-boss-intro.mp3');
+	el.volume = 1;
+	el.play().catch(() => {});
+}
+
+export function playMissingNoBattle(): void {
+	const el = ensureAudio();
+	if (!el) return;
+	currentCategory = 'boss';
+	el.src = '/mp3/final-boss-battle.mp3';
+	el.muted = game.player?.musicMuted ?? false;
+	el.currentTime = 0;
+	el.play().then(() => startFadeIn()).catch(registerUnlock);
+}
+
+export function playSfx(path: string): void {
+	if (typeof Audio === 'undefined') return;
+	if (game.player?.musicMuted) return;
+	new Audio(path).play().catch(() => {});
+}

@@ -4,6 +4,7 @@
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import NatureIcon from '$lib/components/NatureIcon.svelte';
+	import CorruptedBadge from '$lib/components/CorruptedBadge.svelte';
 	import { NATURES } from '$lib/data/natures';
 	import { game, normalizedPokemonHp, setActivePokemon } from '$lib/game/state.svelte';
 	import {
@@ -211,7 +212,10 @@
 		<div class="mb-3 flex items-center gap-2">
 			<Sprite speciesId={selected.speciesId} size={48} alt={selected.name} />
 			<div>
-				<p class="font-bold">{selected.name}</p>
+				<p class="font-bold flex items-center gap-1.5">
+					{selected.name}
+					{#if selected.corrupted}<CorruptedBadge size={16} />{/if}
+				</p>
 				<p class="text-[10px] text-(--text-muted)">{Math.ceil(normalizedPokemonHp(selected))}/{selected.maxHp} HP</p>
 			</div>
 		</div>

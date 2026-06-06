@@ -14,6 +14,7 @@
 		const it = s.enemy.intent;
 		if (it.kind === 'attack') {
 			const attackElement = it.element ?? s.enemy.pokemon.element;
+			if (s.mode === 'missingno') return `${ELEMENT_EMOJI[attackElement]} ⚔️ ???`;
 			const interaction = getElementInteraction(attackElement, s.player.pokemon.element);
 			const projectedDamage = Math.max(0, Math.round((it.damage + s.enemy.nextDamageBonus) * interaction.multiplier));
 			return `${ELEMENT_EMOJI[attackElement]} ⚔️ ${projectedDamage}`;

@@ -21,6 +21,7 @@
 	import { formatNumber } from '$lib/utils/math';
 	import { pushToast } from '$lib/stores/toast.svelte';
 	import PlatinumShop from '$lib/components/marketplace/PlatinumShop.svelte';
+	import CorruptedBadge from '$lib/components/CorruptedBadge.svelte';
 
 	let inspectingCard: string | null = $state(null);
 
@@ -166,7 +167,10 @@
 					<div class="mb-3 flex items-center gap-2">
 						<Sprite speciesId={p.speciesId} size={48} alt={p.name} />
 						<div>
-							<p class="text-sm font-bold">{p.name}</p>
+							<p class="text-sm font-bold flex items-center gap-1.5">
+								{p.name}
+								{#if p.corrupted}<CorruptedBadge size={16} />{/if}
+							</p>
 							<p class="text-[10px] text-(--text-muted)">{ELEMENT_EMOJI[p.element]} {ELEMENT_LABEL[p.element]}</p>
 						</div>
 					</div>

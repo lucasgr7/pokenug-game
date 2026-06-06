@@ -14,6 +14,10 @@ export function isDifferentDay(a: number, b: number): boolean {
 	return startOfToday(a) !== startOfToday(b);
 }
 
+export function isMissingNoWindowOpen(ts = Date.now()): boolean {
+	return new Date(ts).getMinutes() < 15;
+}
+
 /** Formata uma duração em ms como "2h 13m" / "5m 02s" / "12s". */
 export function formatDuration(ms: number): string {
 	const totalSec = Math.max(0, Math.floor(ms / 1000));
