@@ -2,6 +2,7 @@ import { getPlayer, savePlayer } from '$lib/db/player';
 import { addPokemon, getAllPokemon } from '$lib/db/pokemon';
 import { ensurePokemonNatures } from '$lib/data/natures';
 import { clamp } from '$lib/utils/math';
+import { now } from '$lib/utils/time';
 import type { CapturedPokemon, Element, Player, Theme } from './types';
 
 const HP_PER_ELEMENT_LEVEL = 20;
@@ -325,10 +326,13 @@ async function doInit(): Promise<InitResult> {
 
 	applyThemeToDom(player.theme);
 
+	player.lastSeenAt ??= now();
+
 	// Progresso offline é calculado no módulo de jobs (carregado dinamicamente
 	// para evitar dependência circular em tempo de avaliação).
-	const { applyOfflineProgress } = await import('./jobs.svelte');
+	const { applyOfflineProgress, applyOfflineHpRecovery } = await import('./jobs.svelte');
 	const offline = await applyOfflineProgress();
+	await applyOfflineHpRecovery();
 
 	game.ready = true;
 	return { hasPlayer: true, offline };

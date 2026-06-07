@@ -101,6 +101,7 @@ export interface Player {
 	ghostPermDebuff: number;       // Alma Penada — redução permanente acumulada de dano inimigo
 	platinum: number;              // premium currency, market-only
 	musicMuted?: boolean;          // persistência do mute de música
+	lastSeenAt?: number;           // epoch ms, for offline HP catch-up
 }
 
 export type NatureId =
@@ -225,6 +226,7 @@ export interface BattleReward {
 	captured: CapturedPokemon | null;
 	unlockedRegionName: string | null;
 	cardReward: BossCardReward | null;
+	cardChoices: BossCardReward[];
 }
 
 export interface SavedBattle {
@@ -250,6 +252,7 @@ export interface BattleState {
 			firstAttackThisTurn: boolean;
 			damageSufferedThisTurn: boolean;
 			damageReceivedLastTurn: number;
+			cardsPlayedThisTurn: number;
 		};
 	};
 	enemy: {

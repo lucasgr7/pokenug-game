@@ -4,7 +4,7 @@
 	import StatusModal from './StatusModal.svelte';
 	import { buildEntry } from './status-entry';
 	import { ELEMENT_EMOJI } from '$lib/game/elements';
-	import { getElementInteraction } from '$lib/game/type-chart';
+	import { projectedEnemyDamage } from '$lib/game/enemy-intent';
 	import type { BattleState, ActiveStatus } from '$lib/game/types';
 
 	let { s, hpReveal = true }: { s: BattleState; hpReveal?: boolean } = $props();
@@ -15,9 +15,7 @@
 		if (it.kind === 'attack') {
 			const attackElement = it.element ?? s.enemy.pokemon.element;
 			if (s.mode === 'missingno') return `${ELEMENT_EMOJI[attackElement]} ⚔️ ???`;
-			const interaction = getElementInteraction(attackElement, s.player.pokemon.element);
-			const projectedDamage = Math.max(0, Math.round((it.damage + s.enemy.nextDamageBonus) * interaction.multiplier));
-			return `${ELEMENT_EMOJI[attackElement]} ⚔️ ${projectedDamage}`;
+			return `${ELEMENT_EMOJI[attackElement]} ⚔️ ${projectedEnemyDamage(s)}`;
 		}
 		if (it.kind === 'defend') return `🛡️ ${it.block}`;
 		return `✨ +${it.nextDamage}`;

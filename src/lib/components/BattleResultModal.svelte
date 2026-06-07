@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Card from './Card.svelte';
+	import CardDetailsModal from './CardDetailsModal.svelte';
 	import { playResultSfx } from '$lib/game/music.svelte';
 	import { ELEMENT_EMOJI, ELEMENT_LABEL } from '$lib/game/elements';
 	import { formatNumber } from '$lib/utils/math';
@@ -71,14 +72,18 @@
 		return p;
 	}
 
-	let { variant, reward, captured, enemyName, onDismiss, silent = false }: {
+	let { variant, reward, captured, enemyName, onDismiss, onClaimCard, silent = false }: {
 		variant: 'win' | 'boss' | 'capture' | 'defeat';
 		reward: BattleReward | null;
 		captured: CapturedPokemon | null;
 		enemyName: string;
 		silent?: boolean;
 		onDismiss: () => void;
+		onClaimCard?: (templateId: string) => void;
 	} = $props();
+
+	let claimedId = $state<string | null>(null);
+	let inspectingTemplateId = $state<string | null>(null);
 
 	let particles = $derived(genParticles(variant));
 
@@ -284,6 +289,39 @@
 						<div class="reward-card">
 							<Card templateId={reward.cardReward.templateId} compact />
 						</div>
+					{:else if variant !== 'defeat' && reward.cardChoices.length > 0}
+						<div class="reward-row">
+							<div class="reward-label">🃏 Escolha uma carta</div>
+						</div>
+						<div class="card-choices">
+							{#each reward.cardChoices as choice (choice.templateId)}
+								<!-- svelte-ignore a11y_no_static_element_interactions -->
+								<div
+									class="choice-btn"
+									class:claimed={claimedId !== null}
+									role="button"
+									tabindex="0"
+									oncontextmenu={(e) => { e.preventDefault(); inspectingTemplateId = choice.templateId; }}
+									onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (claimedId) return; claimedId = choice.templateId; onClaimCard?.(choice.templateId); } }}
+								>
+									<Card
+										templateId={choice.templateId}
+										compact
+										playable={claimedId === null}
+										onclick={() => {
+											if (claimedId) return;
+											claimedId = choice.templateId;
+											onClaimCard?.(choice.templateId);
+										}}
+										onlongpress={() => { inspectingTemplateId = choice.templateId; }}
+									/>
+									<span class="choice-rarity">{choice.rarity}</span>
+								</div>
+							{/each}
+						</div>
+						{#if claimedId === null}
+							<div class="forfeit-hint">Cartas não escolhidas serão perdidas.</div>
+						{/if}
 					{/if}
 					{#if reward.unlockedRegionName}
 						<div class="reward-row highlight">
@@ -307,6 +345,12 @@
 		</div>
 	</div>
 {/key}
+
+<CardDetailsModal
+	templateId={inspectingTemplateId}
+	open={!!inspectingTemplateId}
+	onclose={() => (inspectingTemplateId = null)}
+/>
 
 <style>
 	.modal-backdrop {
@@ -528,6 +572,38 @@
 		width: 110px;
 		margin: 0 auto;
 		animation: slideUp 0.4s 0.57s both;
+	}
+
+	.card-choices {
+		display: flex;
+		gap: 8px;
+		justify-content: center;
+		animation: slideUp 0.4s 0.57s both;
+	}
+	.choice-btn {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+		width: 104px;
+		transition: transform 0.15s, opacity 0.15s;
+		touch-action: manipulation;
+		-webkit-touch-callout: none;
+		user-select: none;
+	}
+	.choice-btn.claimed { opacity: 0.5; }
+	.choice-rarity {
+		font-size: 10px;
+		font-weight: 800;
+		text-transform: uppercase;
+		color: var(--txt-dim, #9a9bab);
+	}
+	.forfeit-hint {
+		text-align: center;
+		font-size: 11px;
+		color: rgba(255,255,255,0.35);
+		margin-top: 4px;
+		animation: slideUp 0.4s 0.65s both;
 	}
 
 	.cta {

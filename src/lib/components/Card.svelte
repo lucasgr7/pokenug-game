@@ -271,6 +271,9 @@
 		background: transparent;
 		transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.25, 1.1), filter 0.2s;
 		text-align: left;
+		touch-action: manipulation;
+		-webkit-touch-callout: none;
+		user-select: none;
 	}
 	.card-root:disabled {
 		cursor: default;

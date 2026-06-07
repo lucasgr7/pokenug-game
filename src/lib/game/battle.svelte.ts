@@ -16,6 +16,7 @@ import { fetchPokemon } from '$lib/api/pokeapi';
 import { ensurePokemonNatures } from '$lib/data/natures';
 import { applyCardEffect } from './cards/apply';
 import { isPermanentlyConsumed, resolveTypedDamage } from './damage';
+import { enemyAttackDamageAfterDebuffs } from './enemy-intent';
 import type { CardEffectCtx } from './cards/types';
 import {
 	addStatus,
@@ -227,6 +228,7 @@ function drawCards(count: number, turnStart = false): void {
 		s.player.turnFlags.firstAttackThisTurn = true;
 		s.player.turnFlags.damageSufferedThisTurn = false;
 		s.player.turnFlags.damageReceivedLastTurn = 0;
+		s.player.turnFlags.cardsPlayedThisTurn = 0;
 
 		// Dispatch onTurnStart for status hooks (assombracao++, next_turn_bonus, auto_jogar, etc.)
 		dispatchOnTurnStart(s);
@@ -433,7 +435,7 @@ export function repairActiveBattleState(): void {
 		changed = true;
 	}
 	if (!s.player.turnFlags) {
-		s.player.turnFlags = { firstAttackThisTurn: true, damageSufferedThisTurn: false, damageReceivedLastTurn: 0 };
+		s.player.turnFlags = { firstAttackThisTurn: true, damageSufferedThisTurn: false, damageReceivedLastTurn: 0, cardsPlayedThisTurn: 0 };
 		changed = true;
 	}
 
@@ -453,9 +455,16 @@ function cardMatchesBossBucket(rarity: CardRarity, bucket: BossRewardBucket): bo
 
 function rollWildRewardBucket(): BossRewardBucket {
 	const roll = Math.random();
-	if (roll <= 0.6) return 'common';
-	if (roll <= 0.9) return 'rare';
+	if (roll <= 0.62) return 'common';
+	if (roll <= 0.92) return 'rare';
 	return 'epicPlus';
+}
+
+function cardMatchesWildBucket(rarity: CardRarity, bucket: BossRewardBucket): boolean {
+	if (rarity === 'starter' || rarity === 'secret') return false;
+	if (bucket === 'common') return rarity === 'common';
+	if (bucket === 'rare') return rarity === 'rare';
+	return rarity === 'epic';
 }
 
 function toCardReward(c: CardTemplate): BossCardReward {
@@ -491,12 +500,51 @@ function pickVictoryRewardCard(defeatedElement: Element, isBoss: boolean): BossC
 	}
 
 	const bucket = rollWildRewardBucket();
-	let pool = CATALOG.filter((c) => c.element === element && cardMatchesBossBucket(c.rarity, bucket) && ok(c));
-	if (pool.length === 0) pool = CATALOG.filter((c) => c.element === element && c.rarity !== 'starter' && ok(c));
-	if (pool.length === 0) pool = CATALOG.filter((c) => cardMatchesBossBucket(c.rarity, bucket) && ok(c));
-	if (pool.length === 0) pool = CATALOG.filter((c) => c.rarity !== 'starter' && ok(c));
+	let pool = CATALOG.filter((c) => c.element === element && cardMatchesWildBucket(c.rarity, bucket) && ok(c));
+	if (pool.length === 0) pool = CATALOG.filter((c) => c.element === element && c.rarity !== 'starter' && c.rarity !== 'secret' && ok(c));
+	if (pool.length === 0) pool = CATALOG.filter((c) => cardMatchesWildBucket(c.rarity, bucket) && ok(c));
+	if (pool.length === 0) pool = CATALOG.filter((c) => c.rarity !== 'starter' && c.rarity !== 'secret' && ok(c));
 	if (pool.length === 0) return null;
 	return toCardReward(pick(pool));
+}
+
+function pickVictoryRewardChoices(defeatedElement: Element, isBoss: boolean, count = 3): BossCardReward[] {
+	const banned = game.player?.bannedTemplateIds ?? [];
+	const chosenIds = new Set<string>();
+	const result: BossCardReward[] = [];
+
+	for (let i = 0; i < count; i++) {
+		const sameType = Math.random() < 0.75;
+		let element: Element = defeatedElement;
+		if (!sameType) {
+			const others = ELEMENTS.filter((e) => e !== defeatedElement);
+			element = others.length ? pick(others) : defeatedElement;
+		}
+
+		const ok = (c: CardTemplate) => !banned.includes(c.id) && !chosenIds.has(c.id);
+
+		if (isBoss) {
+			const epicPlus = (c: CardTemplate) => (c.rarity === 'epic' || c.rarity === 'secret') && ok(c);
+			let pool = CATALOG.filter((c) => c.element === element && epicPlus(c));
+			if (pool.length === 0) pool = CATALOG.filter(epicPlus);
+			if (pool.length === 0) continue;
+			const chosen = toCardReward(pick(pool));
+			chosenIds.add(chosen.templateId);
+			result.push(chosen);
+		} else {
+			const bucket = rollWildRewardBucket();
+			let pool = CATALOG.filter((c) => c.element === element && cardMatchesWildBucket(c.rarity, bucket) && ok(c));
+			if (pool.length === 0) pool = CATALOG.filter((c) => c.element === element && c.rarity !== 'starter' && c.rarity !== 'secret' && ok(c));
+			if (pool.length === 0) pool = CATALOG.filter((c) => cardMatchesWildBucket(c.rarity, bucket) && ok(c));
+			if (pool.length === 0) pool = CATALOG.filter((c) => c.rarity !== 'starter' && c.rarity !== 'secret' && ok(c));
+			if (pool.length === 0) continue;
+			const chosen = toCardReward(pick(pool));
+			chosenIds.add(chosen.templateId);
+			result.push(chosen);
+		}
+	}
+
+	return result;
 }
 
 export async function startBattle(regionId: string, mode: BattleMode = 'normal'): Promise<void> {
@@ -552,7 +600,7 @@ export async function startBattle(regionId: string, mode: BattleMode = 'normal')
 			poisonCounter: 0,
 			ghostPermDebuff: game.player?.ghostPermDebuff ?? 0,
 			statuses: [],
-			turnFlags: { firstAttackThisTurn: true, damageSufferedThisTurn: false, damageReceivedLastTurn: 0 }
+			turnFlags: { firstAttackThisTurn: true, damageSufferedThisTurn: false, damageReceivedLastTurn: 0, cardsPlayedThisTurn: 0 }
 		},
 		enemy: {
 			pokemon: enemy,
@@ -619,7 +667,7 @@ export async function startMissingNoBattle(initialPkm: CapturedPokemon): Promise
 			poisonCounter: 0,
 			ghostPermDebuff: 0,
 			statuses: [],
-			turnFlags: { firstAttackThisTurn: true, damageSufferedThisTurn: false, damageReceivedLastTurn: 0 }
+			turnFlags: { firstAttackThisTurn: true, damageSufferedThisTurn: false, damageReceivedLastTurn: 0, cardsPlayedThisTurn: 0 }
 		},
 		enemy: {
 			pokemon: enemy,
@@ -666,7 +714,7 @@ export async function swapActiveFighter(pkm: CapturedPokemon): Promise<void> {
 	s.player.poisonCounter = 0;
 	s.player.ghostPermDebuff = 0;
 	s.player.statuses = [];
-	s.player.turnFlags = { firstAttackThisTurn: true, damageSufferedThisTurn: false, damageReceivedLastTurn: 0 };
+	s.player.turnFlags = { firstAttackThisTurn: true, damageSufferedThisTurn: false, damageReceivedLastTurn: 0, cardsPlayedThisTurn: 0 };
 
 	s.deck = shuffle(await getActiveDeck());
 	s.hand = [];
@@ -702,7 +750,9 @@ export async function enterBattle(regionId: string, mode: BattleMode = 'normal')
 			(count) => drawCards(count)
 		);
 		setBattleState(battle.state);
-		battle.reward = saved.reward ? { ...saved.reward, cardReward: saved.reward.cardReward ?? null } : null;
+		battle.reward = saved.reward
+			? { ...saved.reward, cardReward: saved.reward.cardReward ?? null, cardChoices: saved.reward.cardChoices ?? [] }
+			: null;
 		battle.settled = saved.settled;
 		battle.enemyHurt = 0;
 		battle.playerHurt = 0;
@@ -779,6 +829,8 @@ export function playCard(cardId: string): PlayCardResult {
 
 	// Dispatch onCardPlayed for status hooks (static_shock, dano_eletrico, etc.)
 	dispatchOnCardPlayed(s, tpl, card);
+
+	s.player.turnFlags.cardsPlayedThisTurn++;
 
 	const exhausted = discardOrExhaust(card);
 
@@ -858,25 +910,7 @@ export function endTurn(): EnemyTurnResult | null {
 
 	if (intent.kind === 'attack') {
 		const attackElement = intent.element ?? s.enemy.pokemon.element;
-		let dmg = intent.damage + s.enemy.nextDamageBonus;
-
-		// IMOBILIZADO (ART-04): halve enemy damage
-		if (hasStatus(s.enemy, 'imobilizado')) {
-			dmg = Math.floor(dmg * 0.5);
-		}
-
-		// INTIMIDATE: reduce damage by stored reduction
-		if (hasStatus(s.enemy, 'intimidate')) {
-			const intimidateSt = getStatus(s.enemy, 'intimidate')!;
-			const reduction = intimidateSt.data?.reduction ?? 0;
-			dmg = Math.round(dmg * (1 - reduction));
-		}
-
-		// Alma Penada permanent damage reduction
-		if (s.player.ghostPermDebuff > 0) {
-			dmg = Math.max(0, dmg - s.player.ghostPermDebuff);
-		}
-
+		const dmg = enemyAttackDamageAfterDebuffs(s);
 		const typedDamage = resolveTypedDamage(dmg, attackElement, s.player.pokemon.element);
 		s.enemy.nextDamageBonus = 0;
 		const absorbed = dealToPlayer(typedDamage.damage);
@@ -1025,14 +1059,6 @@ export async function finalizeBattle(): Promise<void> {
 		await markBossDefeated(s.regionId);
 	}
 
-	let bossCardReward: BossCardReward | null = null;
-	if (s.status === 'victory') {
-		bossCardReward = pickVictoryRewardCard(s.enemy.pokemon.element, isBossFight);
-		if (bossCardReward) {
-			await addToInventory({ id: crypto.randomUUID(), templateId: bossCardReward.templateId });
-		}
-	}
-
 	let unlockedRegionName: string | null = null;
 	const region = getRegion(s.regionId);
 	const progress = await getRegionProgress(s.regionId);
@@ -1045,11 +1071,26 @@ export async function finalizeBattle(): Promise<void> {
 		}
 	}
 
+	const cardChoices: BossCardReward[] = s.status === 'victory'
+		? pickVictoryRewardChoices(s.enemy.pokemon.element, isBossFight, 3)
+		: [];
+
 	battle.reward = {
 		money,
 		elementPoints: { type: s.enemy.pokemon.element, amount: elementAmount },
 		captured,
 		unlockedRegionName,
-		cardReward: bossCardReward
+		cardReward: null,
+		cardChoices
 	};
+}
+
+export async function claimRewardCard(templateId: string): Promise<void> {
+	if (!battle.reward) return;
+	if (battle.reward.cardReward) return;
+	const chosen = battle.reward.cardChoices.find((c) => c.templateId === templateId);
+	if (!chosen) return;
+	await addToInventory({ id: crypto.randomUUID(), templateId: chosen.templateId });
+	battle.reward.cardReward = chosen;
+	void persistBattle();
 }

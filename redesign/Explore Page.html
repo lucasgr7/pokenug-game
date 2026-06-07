@@ -580,35 +580,6 @@ function renderHero() {
 }
 
 /* ─────────────────────────────
-   RENDER: BOSS GATE
-───────────────────────────── */
-function renderBossGate(reveal) {
-  const z = zones[activeIdx];
-  const gate = document.getElementById('bossGate');
-  const phase = bossPhase(z);
-  const pct = Math.min(1, z.defeated/z.total);
-
-  if (phase==='cooldown') {
-    gate.innerHTML=`<div class="bg-cooldown-wrap"><div class="bg-cd-icon">⏱</div><div><div class="bg-cd-title">Boss em Cooldown</div><div class="bg-cd-time">${z.cooldown||'23h 59m'}</div></div></div>`;
-    return;
-  }
-  if (phase==='revealed') {
-    gate.innerHTML=`<div class="bg-revealed${reveal?' anim-in':''}" style="--zc:${z.color}"><div class="bg-rev-glow"></div><div class="bg-eyebrow"><div class="bg-dot"></div><span class="bg-eyebrow-txt">Boss Revelado</span></div><div class="bg-boss-name">${z.bossEmoji} ${z.bossName}</div><div class="bg-boss-desc">${z.bossDesc}</div><button class="bg-fight-btn">⚔ Desafiar o Boss</button></div>`;
-    gate.querySelector('.bg-fight-btn').addEventListener('click', doFightBoss);
-    return;
-  }
-  const labels = {
-    hidden:     { title:'Boss Não Detectado',   sub:`Derrote mais inimigos para revelar o boss da região.` },
-    traces:     { title:'Rastros Detectados',    sub:`Algo poderoso habita aqui. Restam ${z.total-z.defeated} inimigos.` },
-    approaching:{ title:'O Boss se Aproxima…',  sub:`Apenas ${z.total-z.defeated} ${z.total-z.defeated===1?'inimigo':'inimigos'} até o confronto.` },
-  };
-  const { title, sub } = labels[phase]||labels.hidden;
-  const phClass = phase==='approaching'?'approaching':phase==='traces'?'traces':'';
-  const icon = phase==='approaching'?'👁':phase==='traces'?'🐾':'🔒';
-  gate.innerHTML=`<div class="bg-locked-wrap ${phClass}" style="--zc:${z.color}"><div class="bg-lock-icon">${icon}</div><div class="bg-locked-info"><div class="bg-l-title">${title}</div><div class="bg-l-sub">${sub}</div><div class="bg-mini-bar"><div class="bg-mini-fill" style="width:${pct*100}%"></div></div></div></div>`;
-}
-
-/* ─────────────────────────────
    RENDER: NEXT TEASER
 ───────────────────────────── */
 function renderNextTeaser() {
@@ -715,14 +686,12 @@ function doExplore() {
   hero.classList.add('flash');
   setTimeout(()=>hero.classList.remove('flash'),420);
 
-  renderBossGate(z.defeated >= z.total);
 }
 
 function doFightBoss() {
   const z = zones[activeIdx];
   if (z.defeated < z.total) return;
   z.bossState='cooldown'; z.cooldown='23h 59m';
-  renderBossGate(false);
   const bb = document.getElementById('btnBoss');
   if (bb) { bb.disabled=true; bb.innerHTML='🔒 Fight Boss'; }
   const note = document.getElementById('ktNote');
@@ -757,7 +726,6 @@ setTimeout(scalePhone,200);
 ───────────────────────────── */
 renderPath();
 renderHero();
-renderBossGate(false);
 renderNextTeaser();
 renderTrophies();
 renderChallenges();

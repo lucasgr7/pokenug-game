@@ -1,9 +1,15 @@
-import type { Card, CardTemplate } from '$lib/game/types';
+import type { Card, CardKind, CardTemplate } from '$lib/game/types';
 import type { CardEffectCtx } from './types';
 import { addStatus } from '$lib/game/status/pipeline';
 import { clamp } from '$lib/utils/math';
 import { KIND_EMITTERS } from './kinds';
 import { CARD_HOOKS } from './card-hooks';
+
+/**
+ * Kinds whose emitter already calls onPlay — skip the generic call for these
+ * to avoid double-invocation.
+ */
+const KINDS_WITH_OWN_ONPLAY: Set<CardKind> = new Set(['defense', 'buff', 'power']);
 
 function applyResourceEffects(ctx: CardEffectCtx, tpl: CardTemplate): void {
 	const { s } = ctx;
@@ -40,7 +46,9 @@ export function applyCardEffect(ctx: CardEffectCtx, tpl: CardTemplate, card?: Ca
 		}
 	}
 
-	CARD_HOOKS[tpl.id]?.onPlay?.(ctx, tpl, card);
+	if (!KINDS_WITH_OWN_ONPLAY.has(tpl.kind)) {
+		CARD_HOOKS[tpl.id]?.onPlay?.(ctx, tpl, card);
+	}
 
 	applyCardManipulation(ctx, tpl, card);
 }

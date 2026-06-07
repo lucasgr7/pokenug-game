@@ -29,7 +29,20 @@
 		offline = res.offline;
 		initialized = true;
 		if (res.hasPlayer) startTicker();
+		dismissSplash();
 	});
+
+	function dismissSplash() {
+		const splash = document.getElementById('pokengu-splash');
+		if (!splash) return;
+		const bar = document.getElementById('pokengu-bar');
+		if (typeof window.__splashBarStop === 'function') window.__splashBarStop();
+		if (bar) { bar.style.transition = 'width 0.15s ease'; bar.style.width = '100%'; }
+		setTimeout(() => {
+			splash.style.opacity = '0';
+			setTimeout(() => splash.remove(), 420);
+		}, 180);
+	}
 
 	onDestroy(() => stopTicker());
 

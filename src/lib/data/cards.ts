@@ -88,6 +88,7 @@ export const STARTER_DECK: Array<[string, number]> = [
 // ---- Catálogo comprável (GDD cards.md) ----
 export const CATALOG: CardTemplate[] = [
 	// ── Água ──────────────────────────────────────────────
+	// Filsofia: Constant Draw - Poder vem de comprar cartas
 	{
 		id: 'water_splash',
 		name: 'Splash',
@@ -124,7 +125,19 @@ export const CATALOG: CardTemplate[] = [
 		price: { money: 180 }
 	},
 
+	{
+		id: 'water_tsunami',
+		name: 'Tsunami',
+		description: 'Cause 40 de dano. Traz todas as suas cartas de Água para a mão.',
+		cost: 3,
+		kind: 'attack',
+		element: 'water',
+		rarity: 'secret',
+		damage: 40,
+		price: { money: 300, element: { type: 'water', amount: 80 } }
+	},
 	// ── Fogo ──────────────────────────────────────────────
+	// Filosofia: High Risk, High Reward - Poder vem de causar dano a si mesmo
 	{
 		id: 'fire_chama_ardente',
 		name: 'Chama Ardente',
@@ -161,8 +174,21 @@ export const CATALOG: CardTemplate[] = [
 		selfDamage: 8,
 		price: { money: 90 }
 	},
+	{
+		id: 'fire_escudo_ardente',
+		name: 'Escudo Ardente',
+		description: 'Ganha 16 de escudo. Você sofre 4 de dano.',
+		cost: 1,
+		kind: 'defense',
+		element: 'fire',
+		rarity: 'rare',
+		block: 16,
+		selfDamage: 4,
+		price: { money: 90 }
+	},
 
 	// ── Grama ─────────────────────────────────────────────
+	// Filosofia: Status Control - Poder vem de aplicar efeitos de status
 	{
 		id: 'grass_raiz_profunda',
 		name: 'Raiz Profunda',
@@ -269,6 +295,18 @@ export const CATALOG: CardTemplate[] = [
 		exhaust: 'combat',
 		price: { money: 300, element: { type: 'dragon', amount: 80 } }
 	},
+	{
+		id: 'dragon_cauda',
+		name: 'Cauda do Dragão',
+		description: 'Cause 11 de dano. Descarta a carta mais à esquerda da mão e compra 1. Adiciona +6 em CARGA_DRAGÃO.',
+		cost: 1,
+		kind: 'attack',
+		element: 'dragon',
+		rarity: 'rare',
+		damage: 11,
+		appliesStatuses: [{ id: 'carga_dragao', stacks: 6 }],
+		price: { money: 90 }
+	},
 
 	// ── Psíquico ──────────────────────────────────────────
 	{
@@ -314,6 +352,18 @@ export const CATALOG: CardTemplate[] = [
 		rarity: 'epic',
 		exhaust: 'combat',
 		price: { money: 180 }
+	},
+	{
+		id: 'psychic_viagem_temporal',
+		name: 'Viagem Temporal',
+		description: '[POWER] Traz 3 cartas aleatórias da pilha de exaustas para a pilha de compra. [EXHAUST_COMBATE]',
+		cost: 3,
+		kind: 'power',
+		element: 'psychic',
+		rarity: 'epic',
+		isPower: true,
+		exhaust: 'combat',
+		price: { money: 180, element: { type: 'psychic', amount: 50 } }
 	},
 
 	// ── Terra ─────────────────────────────────────────────
@@ -361,6 +411,17 @@ export const CATALOG: CardTemplate[] = [
 		element: 'ground',
 		rarity: 'rare',
 		damage: 5,
+		price: { money: 90 }
+	},
+	{
+		id: 'ground_esmagar',
+		name: 'Esmagar',
+		description: 'Cause 15 de dano.',
+		cost: 1,
+		kind: 'attack',
+		element: 'ground',
+		rarity: 'rare',
+		damage: 15,
 		price: { money: 90 }
 	},
 
@@ -412,6 +473,17 @@ export const CATALOG: CardTemplate[] = [
 		appliesStatuses: [{ id: 'auto_jogar' }],
 		price: { money: 300, element: { type: 'fighting', amount: 60 } }
 	},
+	{
+		id: 'flying_chute_aereo',
+		name: 'Chute Aéreo',
+		description: 'Cause 12 de dano.',
+		cost: 1,
+		kind: 'attack',
+		element: 'flying',
+		rarity: 'common',
+		damage: 12,
+		price: { money: 40 }
+	},
 
 	// ── Voador ────────────────────────────────────────────
 	{
@@ -447,6 +519,17 @@ export const CATALOG: CardTemplate[] = [
 		rarity: 'common',
 		block: 12,
 		price: { money: 40 }
+	},
+	{
+		id: 'flying_mergulho',
+		name: 'Mergulho',
+		description: 'Cause 20 de dano. Se for a primeira carta jogada no turno, compre 2 cartas.',
+		cost: 2,
+		kind: 'attack',
+		element: 'flying',
+		rarity: 'rare',
+		damage: 20,
+		price: { money: 90 }
 	},
 
 	// ── Inseto ────────────────────────────────────────────
@@ -493,6 +576,18 @@ export const CATALOG: CardTemplate[] = [
 		element: 'bug',
 		rarity: 'epic',
 		price: { money: 180, element: { type: 'bug', amount: 50 } }
+	},
+	{
+		id: 'bug_infestacao',
+		name: 'Infestação',
+		description: 'Cause 14 de dano. Gera 1 carta "Ovos Podres" inútil na sua mão.',
+		cost: 1,
+		kind: 'attack',
+		element: 'bug',
+		rarity: 'rare',
+		damage: 14,
+		generatesTokens: { templateId: 'bug_ovos_podres_token', count: 1 },
+		price: { money: 90 }
 	},
 
 	// ── Veneno ────────────────────────────────────────────
@@ -542,6 +637,17 @@ export const CATALOG: CardTemplate[] = [
 		appliesStatuses: [{ id: 'fraqueza', stacks: 5, target: 'enemy' }],
 		price: { money: 180 }
 	},
+	{
+		id: 'poison_mordida',
+		name: 'Mordida',
+		description: 'Cause 7 de dano. Se o inimigo tiver algum efeito negativo, ganha +1 de energia e compra 1 carta.',
+		cost: 1,
+		kind: 'attack',
+		element: 'poison',
+		rarity: 'rare',
+		damage: 7,
+		price: { money: 90 }
+	},
 
 	// ── Fantasma ──────────────────────────────────────────
 	{
@@ -551,7 +657,7 @@ export const CATALOG: CardTemplate[] = [
 		cost: 0,
 		kind: 'debuff',
 		element: 'ghost',
-		rarity: 'rare',
+		rarity: 'epic',
 		exhaust: 'run',
 		price: { money: 90 }
 	},
@@ -599,9 +705,21 @@ export const CATALOG: CardTemplate[] = [
 		element: 'ghost',
 		rarity: 'rare',
 		selfMaxHpReduction: 1,
+		exhaust: 'combat',
 		manaGain: 1,
 		drawCount: 1,
 		price: { money: 90 }
+	},
+	{
+		id: 'ghost_susto',
+		name: 'Susto',
+		description: 'Cause 4 de dano. Se o inimigo for atacar, ganha +1 de energia neste turno.',
+		cost: 1,
+		kind: 'attack',
+		element: 'ghost',
+		rarity: 'common',
+		damage: 4,
+		price: { money: 40 }
 	},
 
 	// ── Gelo ──────────────────────────────────────────────
@@ -651,6 +769,17 @@ export const CATALOG: CardTemplate[] = [
 		appliesStatuses: [{ id: 'revenge_shield', stacks: 20 }],
 		price: { money: 180 }
 	},
+	{
+		id: 'ice_espelho',
+		name: 'Espelho de Gelo',
+		description: 'Ganha escudo igual a 50% do dano pretendido do inimigo. [EXHAUST_COMBATE]',
+		cost: 2,
+		kind: 'defense',
+		element: 'ice',
+		rarity: 'rare',
+		exhaust: 'combat',
+		price: { money: 90 }
+	},
 
 	// ── Eletricidade ──────────────────────────────────────
 	{
@@ -667,7 +796,7 @@ export const CATALOG: CardTemplate[] = [
 	{
 		id: 'electric_descarga',
 		name: 'Descarga Elétrica',
-		description: 'Descarte todas as cartas da mão. Cause 2 de dano por carta descartada.',
+		description: 'Descarte todas as cartas da mão e compre o mesmo número. Cause 4 de dano por carta descartada.',
 		cost: 2,
 		kind: 'attack',
 		element: 'electric',
@@ -686,6 +815,18 @@ export const CATALOG: CardTemplate[] = [
 		appliesStatuses: [{ id: 'shield_cancelled', target: 'enemy' }],
 		price: { money: 90 }
 	},
+	{
+		id: 'electric_recarga',
+		name: 'Recarga',
+		description: 'Compre 2 cartas. Ganha +1 de energia. Você perde 5% da vida máxima.',
+		cost: 0,
+		kind: 'energy',
+		element: 'electric',
+		rarity: 'rare',
+		manaGain: 1,
+		drawCount: 2,
+		price: { money: 90 }
+	},
 
 	// ── Pedra ─────────────────────────────────────────────
 	{
@@ -702,12 +843,12 @@ export const CATALOG: CardTemplate[] = [
 	{
 		id: 'rock_barreira',
 		name: 'Barreira Mineral',
-		description: 'Ganha 10 de escudo. [COPIA_DESCARTE] Cria 1 cópia com -1 de defesa no descarte. (Limite: 3)',
+		description: 'Ganha 8 de escudo. [COPIA_DESCARTE] Cria 1 cópia com -1 de escudo no descarte, até chegar a 0.',
 		cost: 0,
 		kind: 'defense',
 		element: 'rock',
 		rarity: 'rare',
-		block: 10,
+		block: 8,
 		price: { money: 90 }
 	},
 	{
@@ -729,6 +870,17 @@ export const CATALOG: CardTemplate[] = [
 		kind: 'buff',
 		element: 'rock',
 		rarity: 'rare',
+		price: { money: 90 }
+	},
+	{
+		id: 'rock_lancar_pedra',
+		name: 'Lançar Pedra',
+		description: 'Cause 10 de dano. Se o inimigo tiver escudo, ganha +1 de energia e compra 1 carta.',
+		cost: 1,
+		kind: 'attack',
+		element: 'rock',
+		rarity: 'rare',
+		damage: 10,
 		price: { money: 90 }
 	},
 
@@ -779,6 +931,16 @@ export const TOKEN_TEMPLATES: CardTemplate[] = [
 		element: 'bug',
 		rarity: 'common',
 		damage: 5,
+		exhaust: 'run'
+	},
+	{
+		id: 'bug_ovos_podres_token',
+		name: 'Ovos Podres',
+		description: 'Carta inútil. Gasta 1 de energia e é exaurida.',
+		cost: 1,
+		kind: 'buff',
+		element: 'bug',
+		rarity: 'common',
 		exhaust: 'run'
 	}
 ];

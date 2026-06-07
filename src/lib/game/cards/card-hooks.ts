@@ -5,6 +5,7 @@ import { logEvent } from '$lib/game/status/pipeline';
 import { isPermanentlyConsumed } from '$lib/game/damage';
 import { removeFromDeck, removeFromInventory } from '$lib/db/cards';
 import { getTemplate } from '$lib/data/cards';
+import { projectedEnemyDamage } from '$lib/game/enemy-intent';
 
 function countCardCopies(s: CardEffectCtx['s'], templateId: string): number {
 	return [...s.deck, ...s.hand, ...s.discard].filter((c) => c.templateId === templateId).length;
@@ -35,13 +36,66 @@ export const CARD_HOOKS: Record<string, CardHook> = {
 		}
 	},
 
+	flying_mergulho: {
+		onAfterAttack: (ctx) => {
+			if (ctx.s.player.turnFlags.cardsPlayedThisTurn === 0) ctx.draw(2);
+		}
+	},
+
+	water_tsunami: {
+		onAfterAttack: (ctx) => {
+			const s = ctx.s;
+			const isWater = (c: { templateId: string }) => getTemplate(c.templateId)?.element === 'water';
+			const pulled = [...s.deck.filter(isWater), ...s.discard.filter(isWater)];
+			s.deck = s.deck.filter((c) => !isWater(c));
+			s.discard = s.discard.filter((c) => !isWater(c));
+			s.hand.push(...pulled);
+		}
+	},
+
+	dragon_cauda: {
+		onAfterAttack: (ctx) => {
+			const s = ctx.s;
+			if (s.hand.length > 0) s.discard.push(s.hand.shift()!);
+			ctx.draw(1);
+		}
+	},
+
+	poison_mordida: {
+		onAfterAttack: (ctx) => {
+			if (ctx.s.enemy.statuses.length > 0) {
+				ctx.s.player.mana = Math.min(6, ctx.s.player.mana + 1);
+				ctx.draw(1);
+			}
+		}
+	},
+
+	ghost_susto: {
+		onAfterAttack: (ctx) => {
+			if (ctx.s.enemy.intent.kind === 'attack') {
+				ctx.s.player.mana = Math.min(6, ctx.s.player.mana + 1);
+			}
+		}
+	},
+
+	rock_lancar_pedra: {
+		onBeforeDamage: (ctx) => {
+			if (ctx.s.enemy.block > 0) {
+				ctx.s.player.mana = Math.min(6, ctx.s.player.mana + 1);
+				ctx.draw(1);
+			}
+			return 10;
+		}
+	},
+
 	electric_descarga: {
 		onAfterAttack: (ctx) => {
 			const discardCount = ctx.s.hand.length;
-			ctx.s.discard.push(...ctx.s.hand);
-			ctx.s.hand = [];
 			if (discardCount > 0) {
-				ctx.dealToEnemy(discardCount * 2);
+				ctx.s.discard.push(...ctx.s.hand);
+				ctx.s.hand = [];
+				ctx.draw(discardCount);
+				ctx.dealToEnemy(discardCount * 4);
 				logEvent({ kind: 'bonus_dmg', source: 'electric_descarga', amount: discardCount * 2 });
 			}
 		}
@@ -59,8 +113,9 @@ export const CARD_HOOKS: Record<string, CardHook> = {
 
 	bug_enxame: {
 		onAfterAttack: (ctx) => {
-			if (ctx.s.pilhaExaurir > 0) {
-				const enxameDmg = 2 * ctx.s.pilhaExaurir;
+			const exhaustedCount = ctx.s.exhausted.length;
+			if (exhaustedCount > 0) {
+				const enxameDmg = 2 * exhaustedCount;
 				ctx.dealToEnemy(enxameDmg);
 				logEvent({ kind: 'bonus_dmg', source: 'bug_enxame', amount: enxameDmg });
 			}
@@ -96,6 +151,25 @@ export const CARD_HOOKS: Record<string, CardHook> = {
 		}
 	},
 
+	// ── Powers ───────────────────────────────────────────
+
+	psychic_viagem_temporal: {
+		onPlay: (ctx) => {
+			const s = ctx.s;
+			for (let i = 0; i < 3 && s.exhausted.length > 0; i++) {
+				const idx = Math.floor(Math.random() * s.exhausted.length);
+				s.deck.push(s.exhausted.splice(idx, 1)[0]);
+			}
+		}
+	},
+
+	electric_recarga: {
+		onPlay: (ctx) => {
+			const s = ctx.s;
+			s.player.hp = Math.max(0, s.player.hp - Math.ceil(s.player.pokemon.maxHp * 0.05));
+		}
+	},
+
 	// ── Defesas ──────────────────────────────────────────
 
 	rock_muralha: {
@@ -118,6 +192,13 @@ export const CARD_HOOKS: Record<string, CardHook> = {
 
 	ghost_fantasmagoria: {
 		onPlay: (ctx) => { ctx.s.player.block += 8; }
+	},
+
+	ice_espelho: {
+		onPlay: (ctx) => {
+			const projected = projectedEnemyDamage(ctx.s);
+			ctx.s.player.block += Math.floor(projected * 0.5);
+		}
 	},
 
 	// ── Powers ───────────────────────────────────────────
@@ -195,10 +276,11 @@ export const CARD_HOOKS: Record<string, CardHook> = {
 	},
 
 	rock_barreira: {
-		onPlay: (ctx, tpl) => {
-			const copies = countCardCopies(ctx.s, tpl.id);
-			if (copies < 3) {
-				ctx.s.discard.push({ id: crypto.randomUUID(), templateId: tpl.id });
+		onPlay: (ctx, tpl, card) => {
+			const baseBlock = tpl.block ?? 0;
+			const nextMod = (card?.modifier ?? 0) - 1;
+			if (baseBlock + nextMod > 0) {
+				ctx.s.discard.push({ id: crypto.randomUUID(), templateId: tpl.id, modifier: nextMod });
 			}
 		}
 	},

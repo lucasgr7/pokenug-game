@@ -366,24 +366,6 @@
 						<div class="bg-boss-name">{ar.emoji} {ar.bossName}</div>
 						<div class="bg-boss-desc">{ar.bossDesc}</div>
 					</div>
-				{:else}
-					{@const pct = req > 0 ? Math.min(1, defs / req) : 0}
-					{@const phaseInfo = {
-						hidden: { title: 'Boss Não Detectado', sub: 'Derrote mais inimigos para revelar o boss da região.', icon: '🔒' },
-						traces: { title: 'Rastros Detectados', sub: `Algo poderoso habita aqui. Restam ${remaining} inimigos.`, icon: '🐾' },
-						approaching: { title: 'O Boss se Aproxima…', sub: `Apenas ${remaining} ${remaining === 1 ? 'inimigo' : 'inimigos'} até o confronto.`, icon: '👁' }
-					}[bp]}
-					{@const phClass = bp === 'approaching' ? 'approaching' : bp === 'traces' ? 'traces' : ''}
-					<div class="bg-locked-wrap {phClass}">
-						<div class="bg-lock-icon">{phaseInfo.icon}</div>
-						<div class="bg-locked-info">
-							<div class="bg-l-title">{phaseInfo.title}</div>
-							<div class="bg-l-sub">{phaseInfo.sub}</div>
-							<div class="bg-mini-bar">
-								<div class="bg-mini-fill" style="width: {pct * 100}%"></div>
-							</div>
-						</div>
-					</div>
 				{/if}
 			</div>
 

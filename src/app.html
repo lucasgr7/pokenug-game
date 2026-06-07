@@ -16,6 +16,69 @@
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
+		<!-- Splash screen — visible before JS hydrates; dismissed by +layout.svelte after initApp() -->
+		<div id="pokengu-splash" aria-hidden="true" style="
+			position:fixed;inset:0;z-index:9999;
+			background:#0c0a09;
+			display:flex;flex-direction:column;align-items:center;justify-content:center;
+			transition:opacity 0.4s ease;
+		">
+			<!-- Image at native 16:9 aspect ratio, full width → natural letterbox on portrait -->
+			<img
+				src="/images/loading.jpg"
+				alt=""
+				style="width:100%;height:auto;display:block;flex-shrink:0;"
+			/>
+			<!-- PokeNGU title ~30% up from the bottom -->
+			<div style="
+				position:absolute;bottom:30%;left:0;right:0;
+				text-align:center;pointer-events:none;
+			">
+				<span style="
+					font-family:'Russo One',system-ui,sans-serif;
+					font-size:clamp(28px,9vw,44px);
+					font-weight:900;
+					letter-spacing:0.05em;
+					background:linear-gradient(135deg,#fff 0%,#7ee9d8 55%,#3ad6c2 100%);
+					-webkit-background-clip:text;background-clip:text;
+					-webkit-text-fill-color:transparent;
+					filter:drop-shadow(0 2px 16px rgba(58,214,194,0.55));
+				">PokeNGU</span>
+			</div>
+			<!-- Progress bar pinned to bottom -->
+			<div style="
+				position:absolute;bottom:0;left:0;right:0;height:4px;
+				background:rgba(255,255,255,0.12);
+			">
+				<div id="pokengu-bar" style="
+					height:100%;width:0%;
+					background:linear-gradient(90deg,#3ad6c2,#7ee9d8);
+					transition:width 0.25s ease;
+					box-shadow:0 0 8px #3ad6c2;
+				"></div>
+			</div>
+		</div>
+		<script>
+			(function () {
+				var bar = document.getElementById('pokengu-bar');
+				if (!bar) return;
+				var progress = 0;
+				var raf;
+				function step() {
+					progress = progress < 60
+						? progress + 1.4
+						: progress < 80
+							? progress + 0.4
+							: progress < 88
+								? progress + 0.08
+								: progress;
+					bar.style.width = progress + '%';
+					if (progress < 88) raf = requestAnimationFrame(step);
+				}
+				raf = requestAnimationFrame(step);
+				window.__splashBarStop = function () { if (raf) cancelAnimationFrame(raf); };
+			})();
+		</script>
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>

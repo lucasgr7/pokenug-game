@@ -20,7 +20,8 @@
 		type PlayCardResult,
 		endTurn,
 		finalizeBattle,
-		endBattleCleanup
+		endBattleCleanup,
+		claimRewardCard
 	} from '$lib/game/battle.svelte';
 	import { buildEndTurnLog, buildPlayLog, type BattleLogEntry, type LogPart } from '$lib/game/battle-log';
 	import { getTemplate } from '$lib/data/cards';
@@ -41,7 +42,6 @@
 	}
 
 	let playedFx = $state<PlayedFx | null>(null);
-	let autoConfirm = $state(false);
 
 	// ── Battle intro ─────────────────────────────────────────────────────
 	let showIntro = $state(false);
@@ -57,6 +57,57 @@
 			setTimeout(() => { hpReveal = true; }, 250);
 			setTimeout(() => { showIntro = false; }, 5000);
 		}
+	});
+
+	// ── Damage / block floats ─────────────────────────────────────────────
+	let enemyDmgFloat = $state<{ id: string; amount: number; block?: boolean } | null>(null);
+	let playerDmgFloat = $state<{ id: string; amount: number; block?: boolean } | null>(null);
+
+	// ── Turn flash ────────────────────────────────────────────────────────
+	let showTurnFlash = $state(false);
+	let prevTurn = $state<'player' | 'enemy' | null>(null);
+
+	$effect(() => {
+		const turn = s?.turn ?? null;
+		if (turn === 'player' && prevTurn === 'enemy') {
+			showTurnFlash = true;
+			setTimeout(() => { showTurnFlash = false; }, 1100);
+		}
+		prevTurn = turn;
+	});
+
+	// ── Damage / block floats ─────────────────────────────────────────────
+	let enemyDmgFloat = $state<{ id: string; amount: number; block?: boolean } | null>(null);
+	let playerDmgFloat = $state<{ id: string; amount: number; block?: boolean } | null>(null);
+
+	// ── Turn flash ────────────────────────────────────────────────────────
+	let showTurnFlash = $state(false);
+	let prevTurn = $state<'player' | 'enemy' | null>(null);
+
+	$effect(() => {
+		const turn = s?.turn ?? null;
+		if (turn === 'player' && prevTurn === 'enemy') {
+			showTurnFlash = true;
+			setTimeout(() => { showTurnFlash = false; }, 1100);
+		}
+		prevTurn = turn;
+	});
+
+	// ── Damage / block floats ─────────────────────────────────────────────
+	let enemyDmgFloat = $state<{ id: string; amount: number; block?: boolean } | null>(null);
+	let playerDmgFloat = $state<{ id: string; amount: number; block?: boolean } | null>(null);
+
+	// ── Turn flash ────────────────────────────────────────────────────────
+	let showTurnFlash = $state(false);
+	let prevTurn = $state<'player' | 'enemy' | null>(null);
+
+	$effect(() => {
+		const turn = s?.turn ?? null;
+		if (turn === 'player' && prevTurn === 'enemy') {
+			showTurnFlash = true;
+			setTimeout(() => { showTurnFlash = false; }, 1100);
+		}
+		prevTurn = turn;
 	});
 
 	// ── Damage / block floats ─────────────────────────────────────────────
@@ -172,16 +223,6 @@
 			enemyDmgFloat = { id: floatId, amount: res.damage };
 			setTimeout(() => { if (enemyDmgFloat?.id === floatId) enemyDmgFloat = null; }, 1000);
 		}
-	}
-
-	function onCardTap(cardId: string, templateId: string) {
-		const handCard = s?.hand.find((c) => c.id === cardId);
-		if (!handCard || !canPlay(handCard)) return;
-		onPlay(cardId, templateId);
-	}
-
-	function setAutoConfirm(enabled: boolean) {
-		autoConfirm = enabled;
 	}
 
 	function handleEndTurn() {
@@ -348,13 +389,10 @@
 			<BattleHandControls
 				state={s}
 				ended={ended}
-				autoConfirm={autoConfirm}
 				canPlay={canPlay}
-				onCardTap={onCardTap}
 				onPlayCard={onPlay}
 				onPlayRelic={onPlayRelic}
 				onEndTurn={handleEndTurn}
-				onAutoConfirmChange={setAutoConfirm}
 			/>
 		{/if}
 
@@ -369,6 +407,7 @@
 				captured={battle.reward?.captured ?? null}
 				enemyName={s!.enemy.pokemon.name}
 				onDismiss={leave}
+				onClaimCard={(id: string) => claimRewardCard(id)}
 			/>
 		{/key}
 	{/if}

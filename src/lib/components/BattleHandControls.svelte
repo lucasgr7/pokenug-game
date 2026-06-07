@@ -8,30 +8,25 @@
 	let {
 		state: battleState,
 		ended = false,
-		autoConfirm = false,
 		canPlay,
-		onCardTap,
 		onPlayCard,
 		onPlayRelic,
-		onEndTurn,
-		onAutoConfirmChange
+		onEndTurn
 	}: {
 		state: BattleState;
 		ended?: boolean;
-		autoConfirm?: boolean;
 		canPlay: (card: BattleCard) => boolean;
-		onCardTap: (cardId: string, templateId: string) => void;
 		onPlayCard: (cardId: string, templateId: string) => void;
 		onPlayRelic: (cardId: string, templateId: string) => void;
 		onEndTurn: () => void;
-		onAutoConfirmChange: (enabled: boolean) => void;
 	} = $props();
 
 	type PileKind = 'deck' | 'discard' | 'exhausted';
 
 	let openPile: PileKind | null = $state(null);
-	// { cardId } present when opened from hand (enables play button); absent for pile/relic inspect
 	let inspecting: { templateId: string; cardId?: string } | null = $state(null);
+	let wasLongPress = $state(false);
+	let pressTimer: ReturnType<typeof setTimeout> | null = $state(null);
 
 	const pileKinds: PileKind[] = ['deck', 'discard', 'exhausted'];
 	const PILE_META: Record<PileKind, { icon: string; label: string }> = {
@@ -40,22 +35,33 @@
 		exhausted: { icon: '💤', label: 'Cartas exaustas' }
 	};
 
-	function handleAutoConfirmToggle(event: Event) {
-		onAutoConfirmChange((event.currentTarget as HTMLInputElement).checked);
-	}
-
 	function getPileCards(pile: PileKind | null): BattleCard[] {
 		if (!pile) return [];
 		return battleState[pile];
 	}
 
-	// Single tap: in auto-confirm mode play immediately; otherwise open inspector.
-	function handleCardTap(cardId: string, templateId: string) {
-		const handCard = battleState.hand.find((c) => c.id === cardId);
-		if (autoConfirm && handCard && canPlay(handCard)) {
-			onCardTap(cardId, templateId);
+	function handlePointerDown(card: BattleCard) {
+		pressTimer = setTimeout(() => {
+			wasLongPress = true;
+			inspecting = { templateId: card.templateId, cardId: card.id };
+			pressTimer = null;
+		}, 300);
+	}
+
+	function handlePointerUp() {
+		if (pressTimer) {
+			clearTimeout(pressTimer);
+			pressTimer = null;
+		}
+	}
+
+	function handleHandClick(card: BattleCard) {
+		if (wasLongPress) { wasLongPress = false; return; }
+		if (ended) return;
+		if (canPlay(card)) {
+			onPlayCard(card.id, card.templateId);
 		} else {
-			inspecting = { templateId, cardId };
+			inspecting = { templateId: card.templateId, cardId: card.id };
 		}
 	}
 
@@ -90,24 +96,6 @@
 			{/each}
 		</div>
 
-		<!-- Center: AUTO toggle -->
-		<label
-			class="auto-toggle"
-			class:on={autoConfirm}
-			title="Usa a carta imediatamente com um toque"
-		>
-			<input
-				type="checkbox"
-				class="sr-only"
-				checked={autoConfirm}
-				onchange={handleAutoConfirmToggle}
-				aria-label="Auto confirmação"
-			/>
-			<span class="switch">
-				<span class="knob"></span>
-			</span>
-			<span>AUTO</span>
-		</label>
 
 		<!-- Right: End turn -->
 		<button
@@ -159,9 +147,13 @@
 				class="hand-card"
 				class:hand-card--muted={!playable}
 				style="left: calc(50% + {xPos}px - 65px); --angle: {angle}deg; z-index: {i + 1};"
-				onclick={() => handleCardTap(card.id, card.templateId)}
-				onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleCardTap(card.id, card.templateId); }}
-				aria-label={autoConfirm ? 'Jogar carta' : 'Inspecionar carta'}
+				onpointerdown={() => handlePointerDown(card)}
+				onpointerup={handlePointerUp}
+				onpointercancel={handlePointerUp}
+				oncontextmenu={(e) => { e.preventDefault(); inspecting = { templateId: card.templateId, cardId: card.id }; }}
+				onclick={() => handleHandClick(card)}
+				onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleHandClick(card); }}
+				aria-label="Jogar carta (segure para inspecionar)"
 			>
 				<Card templateId={card.templateId} compact={true} flip playable={playable} upgradeLevel={card.upgrades ?? 0} costOverride={effectiveCardCost(battleState, card)} dealDelay={i * 55} />
 			</div>
@@ -186,6 +178,7 @@
 						<Card
 							templateId={card.templateId}
 							playable
+							compact={true}
 							onclick={() => (inspecting = { templateId: card.templateId })}
 						/>
 					{/each}
@@ -246,49 +239,13 @@
 		background: rgba(40, 40, 52, 0.9);
 	}
 
-	/* AUTO toggle */
-	.auto-toggle {
-		display: flex;
-		align-items: center;
-		gap: 7px;
+	/* hint text */
+	.hand-hint {
 		font-size: 11px;
-		font-weight: 800;
-		letter-spacing: 0.5px;
+		font-weight: 600;
 		color: var(--txt-dim, #9a9bab);
-		cursor: pointer;
-		user-select: none;
-	}
-	.auto-toggle.on {
-		color: #7ee9d8;
-	}
-	.switch {
-		width: 38px;
-		height: 21px;
-		border-radius: 999px;
-		background: #2a2b36;
-		border: 1px solid var(--line, #2b2c38);
-		position: relative;
-		transition: background 0.25s, border-color 0.25s;
-		flex-shrink: 0;
-	}
-	.auto-toggle.on .switch {
-		background: linear-gradient(90deg, #1ea193, #3ad6c2);
-		border-color: #6fe6d4;
-	}
-	.knob {
-		position: absolute;
-		top: 1.5px;
-		left: 1.5px;
-		width: 16px;
-		height: 16px;
-		border-radius: 50%;
-		background: #cfd0db;
-		transition: left 0.25s cubic-bezier(0.3, 1.4, 0.5, 1), background 0.2s;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-	}
-	.auto-toggle.on .knob {
-		left: 19px;
-		background: #fff;
+		text-align: center;
+		white-space: nowrap;
 	}
 
 	/* end turn button */
@@ -334,11 +291,7 @@
 		bottom: 24px;
 		width: 130px;
 		max-width: 30vh;
-		transform-origin: bottom center;
-		transform: rotate(var(--angle));
-		transition:
-			transform 180ms ease-out,
-			filter 180ms ease-out;
+		transition: filter 180ms ease-out;
 		cursor: pointer;
 		background: none;
 		border: none;

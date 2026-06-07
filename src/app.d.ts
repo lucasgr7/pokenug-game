@@ -8,6 +8,10 @@ declare global {
 		// interface PageState {}
 		// interface Platform {}
 	}
+
+	interface Window {
+		__splashBarStop?: () => void;
+	}
 }
 
 export {};

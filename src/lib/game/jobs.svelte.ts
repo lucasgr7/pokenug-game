@@ -150,6 +150,31 @@ async function restoreIdleHpOutOfBattle(): Promise<void> {
 	}
 }
 
+/** Offline HP recovery: heal at 5%/min capped at 8h. */
+const MAX_OFFLINE_MIN = 8 * 60;
+
+export async function applyOfflineHpRecovery(): Promise<void> {
+	if (!game.player) return;
+	const saved = await getSavedBattle();
+	if (saved?.state.status === 'active') return;
+
+	const last = game.player.lastSeenAt ?? now();
+	const elapsedMs = Math.max(0, now() - last);
+	if (elapsedMs <= 0) { game.player.lastSeenAt = now(); return; }
+
+	const elapsedMin = Math.min(elapsedMs / 60000, MAX_OFFLINE_MIN);
+	const healRatio = IDLE_HP_RESTORE_PER_MINUTE * elapsedMin;
+	for (const p of game.roster) {
+		if (jobForPokemon(p.id)) continue;
+		const hp = normalizedPokemonHp(p);
+		if (hp >= p.maxHp) continue;
+		p.currentHp = Math.min(p.maxHp, hp + p.maxHp * healRatio);
+		dirtyPokemon.add(p.id);
+	}
+	game.player.lastSeenAt = now();
+	await flush();
+}
+
 // ---- Progresso offline ----
 /**
  * Aplica a produção acumulada enquanto o app esteve fechado, usando o snapshot

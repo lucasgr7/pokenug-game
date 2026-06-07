@@ -131,6 +131,23 @@
 			</button>
 		</div>
 	</div>
+	{#if installPrompt && !installed}
+		<button
+			class="rounded-lg px-2 py-1 text-lg hover:bg-(--surface-2)"
+			onclick={installPwa}
+			aria-label="Instalar aplicativo"
+			title="Instalar app"
+		>
+			📲
+		</button>
+	{/if}
+	<button
+		class="rounded-lg px-2 py-1 text-lg hover:opacity-75"
+		onclick={toggleTheme}
+		aria-label="Alternar tema"
+	>
+		{game.player?.theme === 'dark' ? '🌙' : '☀️'}
+	</button>
 </header>
 
 <style>

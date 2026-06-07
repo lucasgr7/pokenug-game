@@ -3,7 +3,7 @@
 	import { game } from '$lib/game/state.svelte';
 	import { battle } from '$lib/game/battle.svelte';
 	import { mn } from '$lib/game/missingno.svelte';
-	import { playCategory, stopMusic } from '$lib/game/music.svelte';
+	import { playCategory, stopMusic, preloadMusic } from '$lib/game/music.svelte';
 
 	// Seleciona a faixa baseada na rota + estado da batalha.
 	// O $effect reage a mudanças de rota e a battle.state.status.
@@ -23,6 +23,7 @@
 			stopMusic();
 		} else {
 			playCategory('menu');
+			preloadMusic(['battle', 'boss']);
 		}
 	});
 </script>

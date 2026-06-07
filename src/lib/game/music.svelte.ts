@@ -3,15 +3,37 @@ import { pick } from '$lib/utils/rng';
 
 type MusicCategory = 'menu' | 'battle' | 'boss';
 
+const ALL_SRCS = {
+	menu: ['/mp3/menu-1.mp3', '/mp3/menu-2.mp3'],
+	boss: ['/mp3/boss.mp3', '/mp3/boss-2.mp3'],
+	battle: ['/mp3/battle-1.mp3', '/mp3/battle-2.mp3', '/mp3/battle-3.mp3']
+} as const;
+
 let audio: HTMLAudioElement | null = null;
 let currentCategory: MusicCategory | null = null;
 let unlockRegistered = false;
 let fadeTimer: ReturnType<typeof setTimeout> | null = null;
 
+const preloaded = new Map<string, HTMLAudioElement>();
+let preloadScheduled = false;
+
+function warm(src: string): HTMLAudioElement {
+	let el = preloaded.get(src);
+	if (!el && typeof Audio !== 'undefined') {
+		el = new Audio();
+		el.preload = 'auto';
+		el.src = src;
+		el.load();
+		preloaded.set(src, el);
+	}
+	return el!;
+}
+
 function ensureAudio(): HTMLAudioElement {
 	if (!audio && typeof Audio !== 'undefined') {
 		audio = new Audio();
 		audio.loop = true;
+		audio.preload = 'auto';
 		audio.onerror = () => console.warn('[music] Failed to load audio');
 		setupVisibilityHandler();
 	}
@@ -19,9 +41,18 @@ function ensureAudio(): HTMLAudioElement {
 }
 
 function chooseSrc(cat: MusicCategory): string {
-	if (cat === 'menu') return pick(['/mp3/menu-1.mp3', '/mp3/menu-2.mp3']);
-	if (cat === 'boss') return pick(['/mp3/boss.mp3', '/mp3/boss-2.mp3']);
-	return pick(['/mp3/battle-1.mp3', '/mp3/battle-2.mp3', '/mp3/battle-3.mp3']);
+	if (cat === 'menu') return pick(ALL_SRCS.menu);
+	if (cat === 'boss') return pick(ALL_SRCS.boss);
+	return pick(ALL_SRCS.battle);
+}
+
+export function preloadMusic(cats: MusicCategory[] = ['battle', 'boss']): void {
+	if (typeof Audio === 'undefined') return;
+	if (preloadScheduled) return;
+	preloadScheduled = true;
+	const run = () => { for (const c of cats) for (const s of ALL_SRCS[c]) warm(s); };
+	if (typeof requestIdleCallback !== 'undefined') requestIdleCallback(run);
+	else setTimeout(run, 0);
 }
 
 function startFadeIn(duration = 600): void {
