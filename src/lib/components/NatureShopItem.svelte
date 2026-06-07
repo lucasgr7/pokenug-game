@@ -3,7 +3,7 @@
 	import { t } from '$lib/i18n';
 	import Sprite from '$lib/components/Sprite.svelte';
 	import NatureIcon from '$lib/components/NatureIcon.svelte';
-	import { NATURES, NATURE_UNLOCK_COST } from '$lib/data/natures';
+	import { NATURES, natureUnlockCost } from '$lib/data/natures';
 	import { ELEMENT_EMOJI } from '$lib/game/elements';
 	import { pushToast } from '$lib/stores/toast.svelte';
 	import { canUnlockNature, natureAffordable, unlockNature } from '$lib/game/natures.svelte';
@@ -54,10 +54,10 @@
 					{:else if canBuy}
 						<button
 							class="shrink-0 rounded-lg bg-(--accent) px-2 py-1 text-[10px] font-bold text-white disabled:opacity-40"
-							disabled={!natureAffordable(pokemon)}
+							disabled={!natureAffordable(pokemon, i)}
 							onclick={() => handleUnlock(i)}
 						>
-							{ELEMENT_EMOJI[pokemon.element]}{formatNumber(NATURE_UNLOCK_COST)}
+							{ELEMENT_EMOJI[pokemon.element]}{formatNumber(natureUnlockCost(i))}
 						</button>
 					{:else}
 						<span class="shrink-0 text-[10px] text-(--text-muted)">{$_('shop.naturesLocked')}</span>

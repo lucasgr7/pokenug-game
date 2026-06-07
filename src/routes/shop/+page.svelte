@@ -16,7 +16,7 @@
 	} from '$lib/game/shop.svelte';
 	import Sprite from '$lib/components/Sprite.svelte';
 	import NatureIcon from '$lib/components/NatureIcon.svelte';
-	import { NATURES, NATURE_UNLOCK_COST } from '$lib/data/natures';
+	import { NATURES, NATURE_UNLOCK_COSTS, natureUnlockCost } from '$lib/data/natures';
 	import { canUnlockNature, natureAffordable, unlockNature } from '$lib/game/natures.svelte';
 	import { activePokemon, game, getElementPoints, getElementalDamageLevel, getElementalHpLevel } from '$lib/game/state.svelte';
 	import { ELEMENT_EMOJI, ELEMENT_LABEL } from '$lib/game/elements';
@@ -164,7 +164,7 @@
 			{@const p = activePokemon()!}
 			<div class="mt-6">
 				<h2 class="mb-2 text-base font-bold">{$_('shop.naturesTitle', { values: { name: p.name } })}</h2>
-				<p class="mb-2 text-[10px] text-(--text-muted)">{$_('shop.naturesDesc', { values: { cost: formatNumber(NATURE_UNLOCK_COST), element: $_('elements.' + p.element) } })}</p>
+				<p class="mb-2 text-[10px] text-(--text-muted)">{$_('shop.naturesDesc', { values: { costs: NATURE_UNLOCK_COSTS.map(formatNumber).join(' → '), element: $_('elements.' + p.element) } })}</p>
 				<div class="rounded-xl border border-(--border) bg-(--surface) p-4">
 					<div class="mb-3 flex items-center gap-2">
 						<Sprite speciesId={p.speciesId} size={48} alt={p.name} />
@@ -194,10 +194,10 @@
 									{:else if canBuy}
 										<button
 											class="shrink-0 rounded-lg bg-(--accent) px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-40"
-											disabled={!natureAffordable(p)}
+											disabled={!natureAffordable(p, i)}
 											onclick={() => handleUnlockNature(p.id, i)}
 										>
-											{ELEMENT_EMOJI[p.element]}{formatNumber(NATURE_UNLOCK_COST)}
+											{ELEMENT_EMOJI[p.element]}{formatNumber(natureUnlockCost(i))}
 										</button>
 									{:else}
 										<span class="shrink-0 text-[11px] text-(--text-muted)">{$_('shop.naturesLocked')}</span>

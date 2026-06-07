@@ -784,7 +784,7 @@
     "boosterSecretII": "Booster Secreto II",
     "boosterSecretIIDesc": "Abre 3 cartas secretas aleatórias.",
     "naturesTitle": "Naturezas — {name}",
-    "naturesDesc": "Desbloqueie em sequência por {cost} de pontos de {element}.",
+    "naturesDesc": "Desbloqueie em sequência por {costs} de pontos de {element}.",
     "naturesActive": "✓ Ativa",
     "naturesLocked": "🔒 Bloqueada",
     "naturesUnlockFail": "Não foi possível desbloquear.",

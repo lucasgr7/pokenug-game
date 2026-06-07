@@ -1,7 +1,14 @@
 import { shuffle } from '$lib/utils/rng';
 import type { CapturedPokemon, NatureId, PokemonNatures } from '$lib/game/types';
 
-export const NATURE_UNLOCK_COST = import.meta.env.DEV ? 1 : 1_000_000;
+// Custo progressivo por slot: 1º, 2º e último (unlock é sequencial).
+export const NATURE_UNLOCK_COSTS = import.meta.env.DEV
+	? [1, 1, 1]
+	: [250_000, 500_000, 1_000_000];
+
+export function natureUnlockCost(index: number): number {
+	return NATURE_UNLOCK_COSTS[index] ?? NATURE_UNLOCK_COSTS[NATURE_UNLOCK_COSTS.length - 1];
+}
 
 export const NATURE_IDS: NatureId[] = [
 	'hardy', 'lonely', 'brave', 'adamant', 'naughty', 'bold', 'docile',

@@ -784,7 +784,7 @@
     "boosterSecretII": "Secret Booster II",
     "boosterSecretIIDesc": "Reveals 3 random secret cards.",
     "naturesTitle": "Natures — {name}",
-    "naturesDesc": "Unlock in sequence for {cost} {element} points.",
+    "naturesDesc": "Unlock in sequence for {costs} {element} points.",
     "naturesActive": "✓ Active",
     "naturesLocked": "🔒 Locked",
     "naturesUnlockFail": "Could not unlock.",
