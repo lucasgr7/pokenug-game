@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
 	import { mn, choosePokemon, advance, winMissingNo } from '$lib/game/missingno.svelte';
 	import { battle } from '$lib/game/battle.svelte';
 	import SpeechBubble from './SpeechBubble.svelte';
@@ -43,7 +44,7 @@
 
 <div class="missingno-root">
 	<!-- Exit button — always visible during MissingNo -->
-	<button class="exit-btn" onclick={ondismiss} aria-label="Sair">✕ Sair</button>
+	<button class="exit-btn" onclick={ondismiss} aria-label={$_('battle.missingno.exit')}>{$_('battle.missingno.exitBtn')}</button>
 
 	{#if mn.act >= 1}
 		<!-- Fog layer -->
@@ -87,7 +88,7 @@
 	{#if mn.act === 2 && mn.act2Phase === 'shatter'}
 		<div class="shatter-overlay">
 			<div class="shatter-content">
-				<span class="shatter-text">D3RROT4D0...</span>
+				<span class="shatter-text">{$_('battle.missingno.shatterText')}</span>
 			</div>
 		</div>
 	{/if}
@@ -96,8 +97,8 @@
 	{#if mn.awaitingPick}
 		<div class="pick-backdrop">
 			<div class="pick-popup">
-				<div class="pick-title">ESCOLHA SEU PRÓXIMO</div>
-				<div class="pick-subtitle">Faltam {AT_STAKE_COUNT - mn.fallen.length} Pokémon</div>
+				<div class="pick-title">{$_('battle.missingno.pickTitle')}</div>
+				<div class="pick-subtitle">{$_('battle.missingno.pickSubtitle', { values: { count: AT_STAKE_COUNT - mn.fallen.length } })}</div>
 				<div class="pick-options">
 					{#each mn.pickOptions as pkm (pkm.id)}
 						<button
@@ -108,7 +109,7 @@
 								{pkm.name[0]}
 							</div>
 							<div class="pick-name">{pkm.name}</div>
-							<div class="pick-maxhp">HP {pkm.maxHp}</div>
+							<div class="pick-maxhp">{$_('battle.missingno.hpLabel', { values: { hp: pkm.maxHp } })}</div>
 						</button>
 					{/each}
 				</div>
@@ -122,10 +123,10 @@
 		<div class="end-screen">
 			<div class="end-content victory">
 				<div class="end-icon">👾</div>
-				<div class="end-title">M1SS1NGN0...</div>
-				<div class="end-sub">D3F34T3D</div>
-				<div class="end-desc">Seus Pokémon foram restaurados com a marca Corrompido.</div>
-				<button class="end-btn" onclick={ondismiss}>Voltar ao mapa</button>
+				<div class="end-title">{$_('battle.missingno.victoryTitle')}</div>
+				<div class="end-sub">{$_('battle.missingno.victorySub')}</div>
+				<div class="end-desc">{$_('battle.missingno.victoryDesc')}</div>
+				<button class="end-btn" onclick={ondismiss}>{$_('battle.missingno.backToMap')}</button>
 			</div>
 		</div>
 	{/if}
@@ -136,10 +137,10 @@
 		<div class="end-screen">
 			<div class="end-content loss">
 				<div class="end-icon">💀</div>
-				<div class="end-title">D4T4 S4LV4...</div>
-				<div class="end-sub">C0RRUPT3D</div>
-				<div class="end-desc">Todos os Pokémon foram perdidos permanentemente.</div>
-				<button class="end-btn" onclick={ondismiss}>Voltar ao mapa</button>
+				<div class="end-title">{$_('battle.missingno.lossTitle')}</div>
+				<div class="end-sub">{$_('battle.missingno.lossSub')}</div>
+				<div class="end-desc">{$_('battle.missingno.lossDesc')}</div>
+				<button class="end-btn" onclick={ondismiss}>{$_('battle.missingno.backToMap')}</button>
 			</div>
 		</div>
 	{/if}

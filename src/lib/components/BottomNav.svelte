@@ -1,23 +1,29 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { _ } from 'svelte-i18n';
 
 	const items = [
-		{ href: '/', label: 'Mapa' },
-		{ href: '/jobs', label: 'Jobs' },
-		{ href: '/deck', label: 'Deck' },
-		{ href: '/market', label: 'Mercado' },
-		{ href: '/shop', label: 'Loja' }
+		{ href: '/' },
+		{ href: '/jobs' },
+		{ href: '/deck' },
+		{ href: '/market' },
+		{ href: '/shop' }
 	];
 
 	let current = $derived(page.url.pathname);
+
+	let navItems = $derived(items.map((item) => ({
+		...item,
+		label: $_('nav.' + (item.href === '/' ? 'map' : item.href.replace('/', '')))
+	})));
 </script>
 
 <nav
 	class="nav-bar sticky bottom-0 z-30 grid grid-cols-5"
 	style="padding-bottom: env(safe-area-inset-bottom);"
 >
-	{#each items as item (item.href)}
+	{#each navItems as item (item.href)}
 		<button
 			class="nav-item flex flex-col items-center gap-1 py-2 text-[11px] font-semibold transition-colors"
 			class:active={current === item.href}

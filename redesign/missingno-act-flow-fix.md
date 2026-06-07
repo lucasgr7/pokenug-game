@@ -109,7 +109,7 @@ function runAct2() {
   mn.act = 2;                       // overlay $effect plays the shatter animation
   const allies = mn.party.slice(0, 5);
   queue([
-    speech('...4IND4 NÃO 4C4B0U.', { speaker: '', isAlly: false }),
+    speech('...4IND4 NÃO 4C4B0U?', { speaker: '', isAlly: false }),
     action(() => stopMusic()),
     ...allies.map(a => speech(`${a.name}: É a minha vez.`, { speaker: a.name, isAlly: true })),
     action(() => { playMissingNoBattle(); enterCycle(); }),

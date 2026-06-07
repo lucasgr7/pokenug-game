@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
 	import type { Element } from '$lib/game/types';
-	import { ELEMENT_COLOR, ELEMENT_EMOJI, ELEMENT_LABEL } from '$lib/game/elements';
+	import { ELEMENT_COLOR, ELEMENT_EMOJI } from '$lib/game/elements';
 	import { formatNumber } from '$lib/utils/math';
 	import { MARKET_UNIT, QUANTITY_STEPS, estimateBuyCost, estimateSellGain } from '$lib/game/market.svelte';
 
@@ -44,13 +45,13 @@
 		style="background: {color}11; border-color: {color}33;"
 	>
 		<p class="text-xs uppercase tracking-widest font-black mb-1" style="color: {color}99;">
-			Preço atual por {MARKET_UNIT} pontos
+			{$_('market.currentPricePer', { values: { unit: MARKET_UNIT } })}
 		</p>
 		<p class="text-3xl font-black" style="color: {color};">
 			💰 {currentPrice.toLocaleString('pt-BR')}
 		</p>
 		<p class="text-xs text-[var(--text-muted)] mt-1">
-			±2.5%+ por transação (escala com sequência) · reset a cada 2h · taxa 1%
+			{$_('market.priceImpact')}
 		</p>
 	</div>
 
@@ -72,12 +73,12 @@
 	<!-- Player balances -->
 	<div class="grid grid-cols-2 gap-3">
 		<div class="bg-[var(--surface)] rounded-xl p-3 border border-[var(--border)]">
-			<p class="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-bold mb-1">Seu saldo</p>
+			<p class="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-bold mb-1">{$_('market.yourBalance')}</p>
 			<p class="text-base font-black text-[var(--text)]">💰 {formatNumber(playerMoney)}</p>
 		</div>
 		<div class="bg-[var(--surface)] rounded-xl p-3 border border-[var(--border)]">
 			<p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: {color}99;">
-				{ELEMENT_EMOJI[element]} {ELEMENT_LABEL[element]}
+				{ELEMENT_EMOJI[element]} {$_('elements.' + element)}
 			</p>
 			<p class="text-base font-black text-[var(--text)]">{formatNumber(epBalance)} pts</p>
 		</div>
@@ -97,7 +98,7 @@
 				<span class="animate-pulse">⏳</span>
 			{:else}
 				<span class="text-xl">📈</span>
-				<span>Comprar {formatNumber(quantity)}</span>
+				<span>{$_('market.buy', { values: { qty: formatNumber(quantity) } })}</span>
 				<span class="text-xs font-medium opacity-80">💰 {formatNumber(buyCost)}</span>
 			{/if}
 		</button>
@@ -114,7 +115,7 @@
 				<span class="animate-pulse">⏳</span>
 			{:else}
 				<span class="text-xl">📉</span>
-				<span>Vender {formatNumber(quantity)}</span>
+				<span>{$_('market.sell', { values: { qty: formatNumber(quantity) } })}</span>
 				<span class="text-xs font-medium opacity-80">+💰 {formatNumber(sellGain)}</span>
 			{/if}
 		</button>
@@ -122,12 +123,12 @@
 
 	<!-- Impact estimate -->
 	<p class="text-[10px] text-[var(--text-muted)] text-center">
-		Impacto estimado: ~{impactPct}% no preço
+		{$_('market.estimatedImpact', { values: { pct: impactPct } })}
 	</p>
 
 	{#if !canBuy && !busy && playerMoney < buyCost}
 		<p class="text-xs text-[var(--text-muted)] text-center">
-			Faltam 💰 {formatNumber(buyCost - playerMoney)} para comprar
+			{$_('market.missingMoney', { values: { amount: formatNumber(buyCost - playerMoney) } })}
 		</p>
 	{/if}
 </div>

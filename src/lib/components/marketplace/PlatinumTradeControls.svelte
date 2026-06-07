@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
 	import { PLATINUM_GROWTH, getPlatinumPrice, estimatePlatinumCost, buyPlatinum, platinumDiscount } from '$lib/game/market.svelte';
 	import { formatNumber } from '$lib/utils/math';
 	import { pushToast } from '$lib/stores/toast.svelte';
@@ -41,18 +42,18 @@
 		style="background: #a78bfa11; border-color: #a78bfa33;"
 	>
 		<p class="text-xs uppercase tracking-widest font-black mb-1" style="color: #a78bfa99;">
-			Preço atual do Platinum
+			{$_('market.currentPrice')}
 		</p>
 		<p class="text-3xl font-black" style="color: #a78bfa;">
 			💰 {platinumPrice.toLocaleString('pt-BR')}
 		</p>
 		{#if discountActive}
 			<p class="text-xs font-bold mt-1" style="color: #a78bfa;">
-				✨ {discountPct}% OFF — promoção ativa!
+				{$_('market.platinumDiscountActive', { values: { pct: discountPct } })}
 			</p>
 		{/if}
 		<p class="text-xs text-[var(--text-muted)] mt-1">
-			Preço sobe {((PLATINUM_GROWTH - 1) * 100).toFixed(0)}% a cada compra · sem venda
+			{$_('market.priceRises', { values: { pct: ((PLATINUM_GROWTH - 1) * 100).toFixed(0) } })}
 		</p>
 	</div>
 
@@ -74,12 +75,12 @@
 	<!-- Player balances -->
 	<div class="grid grid-cols-2 gap-3">
 		<div class="bg-[var(--surface)] rounded-xl p-3 border border-[var(--border)]">
-			<p class="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-bold mb-1">Seu saldo</p>
+			<p class="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-bold mb-1">{$_('market.yourBalance')}</p>
 			<p class="text-base font-black text-[var(--text)]">💰 {formatNumber(playerMoney)}</p>
 		</div>
 		<div class="bg-[var(--surface)] rounded-xl p-3 border border-[var(--border)]">
 			<p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: #a78bfa99;">
-				⬡ Platinum
+				⬡ {$_('market.platinum')}
 			</p>
 			<p class="text-base font-black text-[var(--text)]">{formatNumber(platinumBalance)}</p>
 		</div>
@@ -91,13 +92,13 @@
 		style="background: #a78bfa08; border-color: #a78bfa22;"
 	>
 		<p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: #a78bfa99;">
-			Custo total estimado ({quantity} unidade{quantity > 1 ? 's' : ''})
+			{$_('market.totalCost', { values: { qty: quantity, plural: quantity > 1 ? 's' : '' } })}
 		</p>
 		<p class="text-lg font-black" style="color: #a78bfa;">
 			💰 {formatNumber(totalCost)}
 		</p>
 		<p class="text-[10px] text-[var(--text-muted)] mt-0.5">
-			*Cada unidade custa {((PLATINUM_GROWTH - 1) * 100).toFixed(0)}% mais que a anterior
+			{$_('market.unitCostMore', { values: { pct: ((PLATINUM_GROWTH - 1) * 100).toFixed(0) } })}
 		</p>
 	</div>
 
@@ -114,14 +115,14 @@
 			<span class="animate-pulse">⏳</span>
 		{:else}
 			<span class="text-xl">⬡</span>
-			<span>Comprar {quantity} Platinum</span>
+			<span>{$_('market.buyPlatinum', { values: { qty: quantity } })}</span>
 			<span class="text-xs font-medium opacity-80">💰 {formatNumber(totalCost)}</span>
 		{/if}
 	</button>
 
 	{#if !hasEnough && !busy}
 		<p class="text-xs text-[var(--text-muted)] text-center">
-			Faltam 💰 {formatNumber(getPlatinumPrice() - playerMoney)} para comprar 1 unidade
+			{$_('market.missingMoneyPlat', { values: { amount: formatNumber(getPlatinumPrice() - playerMoney) } })}
 		</p>
 	{/if}
 </div>

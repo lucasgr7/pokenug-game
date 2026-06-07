@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
 	import { ELEMENTS, type Element } from '$lib/game/types';
-	import { ELEMENT_COLOR, ELEMENT_EMOJI, ELEMENT_LABEL } from '$lib/game/elements';
+	import { ELEMENT_COLOR, ELEMENT_EMOJI } from '$lib/game/elements';
 	import {
 		buyElementPack,
 		buyPlatinumPokemon,
@@ -47,14 +48,14 @@
 
 <div class="space-y-4">
 	<div class="flex items-center gap-2 text-sm font-bold">
-		<span class="text-[var(--text-muted)]">Saldo:</span>
+		<span class="text-[var(--text-muted)]">{$_('shop.platinBalance')}</span>
 		<span class="text-[#a78bfa]">⬡ {formatNumber(platinum)}</span>
 	</div>
 
 	<!-- Element packs -->
 	<div>
 		<p class="text-[10px] uppercase tracking-widest font-black text-[var(--text-muted)] mb-2">
-			Pacotes por Elemento ({PLATINUM_PACK_COST}⬡ · {PLATINUM_PACK_SIZE} cartas)
+			{$_('shop.elementPacks', { values: { cost: PLATINUM_PACK_COST, size: PLATINUM_PACK_SIZE } })}
 		</p>
 		<div class="grid grid-cols-5 gap-1.5 mb-3">
 			{#each ELEMENTS as el (el)}
@@ -75,7 +76,7 @@
 			class="w-full rounded-xl py-2.5 font-black text-sm border-2 transition-all disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed"
 			style="background: #a78bfa22; border-color: #a78bfa55; color: #a78bfa;"
 		>
-			Comprar pacote de {ELEMENT_LABEL[selectedElement]} (⬡{PLATINUM_PACK_COST})
+			{$_('shop.buyPack', { values: { element: $_('elements.' + selectedElement), cost: PLATINUM_PACK_COST } })}
 		</button>
 	</div>
 

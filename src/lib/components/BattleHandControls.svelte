@@ -4,6 +4,7 @@
 	import CardDetailsModal from '$lib/components/CardDetailsModal.svelte';
 	import { effectiveCardCost } from '$lib/game/battle.svelte';
 	import type { Card as BattleCard, BattleState } from '$lib/game/types';
+	import { _ } from 'svelte-i18n';
 
 	let {
 		state: battleState,
@@ -29,11 +30,11 @@
 	let pressTimer: ReturnType<typeof setTimeout> | null = $state(null);
 
 	const pileKinds: PileKind[] = ['deck', 'discard', 'exhausted'];
-	const PILE_META: Record<PileKind, { icon: string; label: string }> = {
-		deck: { icon: '🂠', label: 'Pilha de compra' },
-		discard: { icon: '♻', label: 'Pilha de descarte' },
-		exhausted: { icon: '💤', label: 'Cartas exaustas' }
-	};
+	let PILE_META = $derived<Record<PileKind, { icon: string; label: string }>>({
+		deck: { icon: '🂠', label: $_('battle.hand.pileDeck') },
+		discard: { icon: '♻', label: $_('battle.hand.pileDiscard') },
+		exhausted: { icon: '💤', label: $_('battle.hand.pileExhausted') }
+	});
 
 	function getPileCards(pile: PileKind | null): BattleCard[] {
 		if (!pile) return [];
@@ -89,14 +90,12 @@
 					type="button"
 					class="chip"
 					onclick={() => (openPile = pile)}
-					aria-label={`Abrir ${PILE_META[pile].label}`}
+					aria-label={$_('battle.hand.openPile', { values: { pile: PILE_META[pile].label } })}
 				>
 					{PILE_META[pile].icon} {battleState[pile].length}
 				</button>
 			{/each}
 		</div>
-
-
 
 		<!-- Right: End turn -->
 		<button
@@ -105,14 +104,14 @@
 			disabled={battleState.turn !== 'player' || ended}
 			onclick={onEndTurn}
 		>
-			Fim de turno ↦
+			{$_( 'battle.hand.endTurn' )} ↦
 		</button>
 	</div>
 
 	<!-- Relics row -->
 	{#if battleState.relicSlots.length > 0}
 		<div class="mb-1 flex items-center gap-2 px-1">
-			<span class="shrink-0 text-[10px] font-black uppercase tracking-widest text-purple-400">Relíquias</span>
+			<span class="shrink-0 text-[10px] font-black uppercase tracking-widest text-purple-400">{$_( 'battle.hand.relics' )}</span>
 			{#each battleState.relicSlots as relic (relic.id)}
 				<div
 					role="button"
@@ -121,7 +120,7 @@
 					onclick={() => onPlayRelic(relic.id, relic.templateId)}
 					oncontextmenu={(e) => { e.preventDefault(); inspecting = { templateId: relic.templateId }; }}
 					onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') onPlayRelic(relic.id, relic.templateId); }}
-					aria-label="Jogar relíquia (clique direito para inspecionar)"
+					aria-label={$_('battle.hand.playRelic')}
 				>
 					<Card
 						templateId={relic.templateId}
@@ -133,7 +132,7 @@
 	{/if}
 
 	<!-- Hand fan -->
-	<div class="hand-fan" role="group" aria-label="Mão de cartas">
+	<div class="hand-fan" 		role="group" aria-label={$_('battle.hand.handLabel')}>
 		{#each battleState.hand as card, i (card.id)}
 			{@const n = battleState.hand.length || 1}
 			{@const mid = (n - 1) / 2}
@@ -154,7 +153,7 @@
 				oncontextmenu={(e) => { e.preventDefault(); inspecting = { templateId: card.templateId, cardId: card.id }; }}
 				onclick={() => handleHandClick(card)}
 				onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleHandClick(card); }}
-				aria-label="Jogar carta (segure para inspecionar)"
+				aria-label={$_('battle.hand.playCard')}
 			>
 				<Card templateId={card.templateId} compact={true} flip playable={playable} upgradeLevel={card.upgrades ?? 0} costOverride={effectiveCardCost(battleState, card)} dealDelay={i * 55} />
 			</div>
@@ -171,7 +170,7 @@
 	{#if openPile}
 		<div class="space-y-3">
 			<p class="text-sm text-(--text-muted)">
-				{PILE_META[openPile].icon} {getPileCards(openPile).length} carta(s)
+				{PILE_META[openPile].icon} {$_('battle.hand.cardLabel', { values: { count: getPileCards(openPile).length } })}
 			</p>
 			{#if getPileCards(openPile).length > 0}
 				<div class="grid max-h-[55vh] grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3">
@@ -186,7 +185,7 @@
 				</div>
 			{:else}
 				<div class="rounded-xl border border-white/10 bg-black/10 px-4 py-6 text-center text-sm font-semibold text-(--text-muted)">
-					Nenhuma carta nesta pilha.
+					{$_( 'battle.hand.emptyPile' )}
 				</div>
 			{/if}
 		</div>

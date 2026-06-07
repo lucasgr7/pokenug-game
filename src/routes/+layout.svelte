@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '../app.css';
+	import '$lib/i18n';
 	import favicon from '$lib/assets/favicon.svg';
 	import { onDestroy, onMount } from 'svelte';
 	import { page } from '$app/state';
@@ -17,6 +18,8 @@
 	import Modal from '$lib/components/Modal.svelte';
 	import BottomNav from '$lib/components/BottomNav.svelte';
 	import { injectAnalytics } from '@vercel/analytics/sveltekit';
+	import { _ } from 'svelte-i18n';
+	import { waitLocale } from '$lib/i18n';
 
 	let { children } = $props();
 
@@ -25,6 +28,7 @@
 
 	onMount(async () => {
 		injectAnalytics();
+		await waitLocale();
 		const res = await initApp();
 		offline = res.offline;
 		initialized = true;
@@ -86,25 +90,24 @@
 	{/if}
 </div>
 
-<Modal open={!!offline} title="Bem-vindo de volta!" onclose={() => (offline = null)}>
+<Modal open={!!offline} title={offline ? $_('layout.welcomeBack') : ''} onclose={() => (offline = null)}>
 	{#if offline}
 		<p class="mb-3 text-sm text-[var(--text-muted)]">
-			Você ficou fora por {formatDuration(offline.elapsedMs)}. Enquanto isso, seus pokémons
-			trabalharam:
+			{$_( 'layout.offlineEarnings', { values: { duration: formatDuration(offline.elapsedMs) } } )}
 		</p>
 		<ul class="space-y-1 text-sm">
 			{#if offline.money >= 1}
-				<li>💰 <strong>{formatNumber(offline.money)}</strong> de dinheiro</li>
+				<li>+{@html $_( 'layout.moneyEarned', { values: { amount: formatNumber(offline.money) } } )}</li>
 			{/if}
 			{#each offlineEntries as [el, v] (el)}
-				<li>✨ <strong>{formatNumber(v ?? 0)}</strong> pontos de {el}</li>
+				<li>+{@html $_( 'layout.pointsEarned', { values: { amount: formatNumber(v ?? 0), element: el } } )}</li>
 			{/each}
 		</ul>
 		<button
 			class="mt-4 w-full rounded-xl bg-[var(--accent)] py-2.5 font-semibold text-[var(--accent-text)]"
 			onclick={() => (offline = null)}
 		>
-			Continuar
+			{$_( 'layout.continue' )}
 		</button>
 	{/if}
 </Modal>

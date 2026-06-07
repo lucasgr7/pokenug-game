@@ -4,13 +4,8 @@
 	import { STARTERS, type StarterDef } from '$lib/data/starters';
 	import { createPlayer } from '$lib/game/onboarding';
 	import { pushToast } from '$lib/stores/toast.svelte';
+	import { _ } from 'svelte-i18n';
 
-	const elementLabel: Record<string, string> = {
-		grass: 'Planta',
-		fire: 'Fogo',
-		water: 'Água',
-		electric: 'Elétrico'
-	};
 	const elementColor: Record<string, string> = {
 		grass: '#16a34a',
 		fire: '#ef4444',
@@ -30,11 +25,11 @@
 		submitting = true;
 		try {
 			await createPlayer(name, selected);
-			pushToast(`Boa sorte, ${name.trim()}!`, 'success');
+			pushToast($_('onboarding.boaSorte', { values: { name: name.trim() } }), 'success');
 			await goto('/');
 		} catch (e) {
 			console.error(e);
-			pushToast('Algo deu errado ao criar o jogador.', 'error');
+			pushToast($_('onboarding.error'), 'error');
 			submitting = false;
 		}
 	}
@@ -42,25 +37,25 @@
 
 <main class="flex min-h-[100dvh] flex-col px-5 py-8">
 	<header class="mb-6 text-center">
-		<h1 class="text-3xl font-extrabold tracking-tight">Pokengu</h1>
-		<p class="mt-1 text-sm text-[var(--text-muted)]">Comece sua jornada de treinador.</p>
+		<h1 class="text-3xl font-extrabold tracking-tight">{$_( 'onboarding.title' )}</h1>
+		<p class="mt-1 text-sm text-[var(--text-muted)]">{$_( 'onboarding.subtitle' )}</p>
 	</header>
 
-	<label class="mb-2 block text-sm font-medium" for="trainer-name">Seu nome</label>
+	<label class="mb-2 block text-sm font-medium" for="trainer-name">{$_( 'onboarding.seuNome' )}</label>
 	<input
 		id="trainer-name"
 		bind:value={name}
 		maxlength="16"
-		placeholder="Treinador"
+		placeholder={$_('onboarding.placeholder')}
 		class="mb-1 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 outline-none focus:border-[var(--accent)]"
 	/>
 	<p class="mb-6 h-4 text-xs text-[var(--text-muted)]">
 		{#if name.length > 0 && !nameValid}
-			Use entre 2 e 16 caracteres.
+			{$_( 'onboarding.nameHint' )}
 		{/if}
 	</p>
 
-	<h2 class="mb-3 text-sm font-medium">Escolha seu inicial</h2>
+	<h2 class="mb-3 text-sm font-medium">{$_( 'onboarding.escolhaInicial' )}</h2>
 	<div class="grid grid-cols-2 gap-3">
 		{#each STARTERS as s (s.speciesId)}
 			<button
@@ -78,7 +73,7 @@
 					class="mt-0.5 rounded-full px-2 py-0.5 text-xs font-semibold text-white"
 					style="background: {elementColor[s.element]};"
 				>
-					{elementLabel[s.element]}
+					{$_('elements.' + s.element)}
 				</span>
 			</button>
 		{/each}
@@ -92,6 +87,6 @@
 		disabled={!canStart}
 		onclick={start}
 	>
-		{submitting ? 'Criando…' : 'Começar aventura'}
+		{submitting ? $_('onboarding.criando') : $_('onboarding.comecar')}
 	</button>
 </main>

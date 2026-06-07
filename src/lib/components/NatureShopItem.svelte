@@ -1,8 +1,10 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
+	import { t } from '$lib/i18n';
 	import Sprite from '$lib/components/Sprite.svelte';
 	import NatureIcon from '$lib/components/NatureIcon.svelte';
 	import { NATURES, NATURE_UNLOCK_COST } from '$lib/data/natures';
-	import { ELEMENT_EMOJI, ELEMENT_LABEL } from '$lib/game/elements';
+	import { ELEMENT_EMOJI } from '$lib/game/elements';
 	import { pushToast } from '$lib/stores/toast.svelte';
 	import { canUnlockNature, natureAffordable, unlockNature } from '$lib/game/natures.svelte';
 	import { formatNumber } from '$lib/utils/math';
@@ -17,9 +19,11 @@
 	async function handleUnlock(index: number) {
 		const ok = await unlockNature(pokemon.id, index);
 		if (ok) {
-			pushToast(`Natureza ${NATURES[pokemon.natures!.assigned[index]].namePt} desbloqueada!`, 'success');
+			const id = pokemon.natures!.assigned[index];
+			const name = t('natures.' + id + '.name');
+			pushToast(t('shop.natureUnlocked', { name }), 'success');
 		} else {
-			pushToast('Não foi possível desbloquear.', 'error');
+			pushToast(t('shop.naturesUnlockFail'), 'error');
 		}
 	}
 </script>
@@ -29,7 +33,7 @@
 		<Sprite speciesId={pokemon.speciesId} size={40} alt={pokemon.name} />
 		<div>
 			<p class="text-sm font-bold">{pokemon.name}</p>
-			<p class="text-[10px] text-(--text-muted)">{ELEMENT_EMOJI[pokemon.element]} {ELEMENT_LABEL[pokemon.element]}</p>
+			<p class="text-[10px] text-(--text-muted)">{ELEMENT_EMOJI[pokemon.element]} {$_('elements.' + pokemon.element)}</p>
 		</div>
 	</div>
 	<div class="space-y-1.5">
@@ -42,11 +46,11 @@
 				<div class="flex items-center gap-2 rounded-lg border border-(--border)/50 p-1.5">
 					<NatureIcon {id} locked={!unlocked} size={28} />
 					<div class="min-w-0 flex-1">
-						<p class="text-[11px] font-bold">{meta.namePt}</p>
-						<p class="truncate text-[9px] text-(--text-muted)">{meta.description}</p>
+						<p class="text-[11px] font-bold">{$_('natures.' + id + '.name')}</p>
+						<p class="truncate text-[9px] text-(--text-muted)">{$_('natures.' + id + '.description')}</p>
 					</div>
 					{#if unlocked}
-						<span class="shrink-0 rounded-full bg-(--success)/20 px-2 py-0.5 text-[9px] font-bold text-(--success)">✓ Ativa</span>
+						<span class="shrink-0 rounded-full bg-(--success)/20 px-2 py-0.5 text-[9px] font-bold text-(--success)">{$_('shop.naturesActive')}</span>
 					{:else if canBuy}
 						<button
 							class="shrink-0 rounded-lg bg-(--accent) px-2 py-1 text-[10px] font-bold text-white disabled:opacity-40"
@@ -56,7 +60,7 @@
 							{ELEMENT_EMOJI[pokemon.element]}{formatNumber(NATURE_UNLOCK_COST)}
 						</button>
 					{:else}
-						<span class="shrink-0 text-[10px] text-(--text-muted)">🔒 Bloqueada</span>
+						<span class="shrink-0 text-[10px] text-(--text-muted)">{$_('shop.naturesLocked')}</span>
 					{/if}
 				</div>
 			{/each}

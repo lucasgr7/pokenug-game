@@ -1,5 +1,6 @@
 import { defineStatus } from '../registry';
 import { removeStatus } from '../pipeline';
+import { statusLabel, statusTitle } from '$lib/i18n/game';
 
 
 defineStatus({
@@ -12,8 +13,8 @@ defineStatus({
     modifyOutgoingBlock: (b) => Math.max(1, Math.floor(b / 2)),
     emblem: () => ({
       icon: '⚡',
-      label: 'Fúria',
-      title: 'ATQ×2, DEF÷2 — toda a batalha',
+      label: statusLabel('berserk'),
+      title: statusTitle('berserk'),
       color: '#ef4444',
       bg: 'rgba(239,68,68,0.15)'
     })
@@ -27,8 +28,8 @@ defineStatus({
     resolveAttackElement: (el, ctx) => (!el && ctx.tpl?.rarity === 'starter' ? ctx.s.player.pokemon.element : el),
     emblem: () => ({
       icon: '🎯',
-      label: 'Especialização',
-      title: 'Cartas starter → tipo do seu Pokémon',
+      label: statusLabel('specialize'),
+      title: statusTitle('specialize'),
       color: '#818cf8',
       bg: 'rgba(79,70,229,0.15)'
     })
@@ -46,8 +47,8 @@ defineStatus({
     },
     emblem: (self) => ({
       icon: '✨',
-      label: `+${self.stacks}`,
-      title: `Próximo ataque +${self.stacks}`,
+      label: statusLabel('empowered', { stacks: self.stacks }),
+      title: statusTitle('empowered', { stacks: self.stacks }),
       color: '#c084fc',
       bg: 'rgba(192,132,252,0.15)'
     })
@@ -73,8 +74,8 @@ defineStatus({
     },
     emblem: () => ({
       icon: '👊',
-      label: 'Sequência',
-      title: 'Golpes Lutador consecutivos acumulam bônus',
+      label: statusLabel('sequencia'),
+      title: statusTitle('sequencia'),
       color: '#f97316',
       bg: 'rgba(249,115,22,0.15)'
     })
@@ -94,8 +95,8 @@ defineStatus({
     },
     emblem: (self) => ({
       icon: '👻',
-      label: `Assombração +${self.stacks}`,
-      title: `Cartas Fantasma +${self.stacks} dano`,
+      label: statusLabel('assombracao', { stacks: self.stacks }),
+      title: statusTitle('assombracao', { stacks: self.stacks }),
       color: '#a78bfa',
       bg: 'rgba(167,139,250,0.15)'
     })

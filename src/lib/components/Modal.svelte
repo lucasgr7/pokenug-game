@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { fade, scale } from 'svelte/transition';
 	import type { Snippet } from 'svelte';
+	import { _ } from 'svelte-i18n';
 
 	let {
 		open = false,
@@ -72,7 +73,7 @@
 							type="button"
 							class="rounded-xl px-2 py-1 text-(--text-muted) transition hover:bg-(--surface-2) hover:text-(--text)"
 							onclick={() => onclose?.()}
-							aria-label="Fechar">✕</button
+							aria-label={$_('modal.fechar')}>✕</button
 						>
 					{/if}
 				</div>

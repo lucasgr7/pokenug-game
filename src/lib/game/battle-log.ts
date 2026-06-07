@@ -1,7 +1,8 @@
+import { t } from '$lib/i18n';
 import { ELEMENT_COLOR, ELEMENT_EMOJI } from './elements';
 import type { EnemyTurnResult, PlayCardResult } from './battle.svelte';
 import type { BattleEvent } from './status/types';
-import { getStatusDef } from './status';
+
 
 export interface LogPart {
 	text: string;
@@ -71,7 +72,7 @@ function appendMatchupDamage(parts: LogPart[], modifier?: number): LogPart[] {
 	return [
 		...parts,
 		{
-			text: ` · ${positive ? '+' : ''}${modifier} tipo`,
+			text: t('battleLog.modifierTipo', { sign: positive ? '+' : '', modifier }),
 			color: positive ? '#fbbf24' : '#94a3b8'
 		}
 	];
@@ -84,24 +85,25 @@ export function buildPlayLog(result: PlayCardResult, templateName: string): LogP
 			parts = buildAttackPlayLog(result, templateName);
 			parts = appendMatchupDamage(parts, result.damageModifier);
 			if (result.drawCount) {
-				parts = [...parts, { text: ` · +${result.drawCount} carta`, color: '#7dd3fc' }];
+				const cnt = result.drawCount;
+				parts = [...parts, { text: t('battleLog.carta', { count: cnt }), color: '#7dd3fc' }];
 			}
 			break;
 		case 'defense':
 			parts = [
-				{ text: `🛡 ${templateName}`, color: '#60a5fa' },
+				{ text: t('battleLog.block', { template: templateName, block: result.blocked ?? 0 }), color: '#60a5fa' },
 				...(result.blocked ? [{ text: ` · +${result.blocked}`, color: '#60a5fa' }] : [])
 			];
 			break;
 		case 'heal':
 			parts = [
-				{ text: `❤ ${templateName}`, color: '#4ade80' },
+				{ text: t('battleLog.hp', { template: templateName, healed: result.healed ?? 0 }), color: '#4ade80' },
 				...(result.healed ? [{ text: ` · +${result.healed} HP`, color: '#4ade80' }] : [])
 			];
 			break;
 		case 'energy':
 			parts = [
-				{ text: `⚡ ${templateName}`, color: '#eab308' },
+				{ text: t('battleLog.mana', { template: templateName, mana: result.manaGained ?? 0 }), color: '#eab308' },
 				...(result.manaGained ? [{ text: ` · +${result.manaGained} mana`, color: '#eab308' }] : [])
 			];
 			break;
@@ -126,23 +128,25 @@ export function buildPlayLog(result: PlayCardResult, templateName: string): LogP
 }
 
 export function buildEndTurnLog(result: EnemyTurnResult): LogPart[] {
-	let parts: LogPart[] = [{ text: '↦ ', color: '#64748b' }];
+	let parts: LogPart[] = [{ text: t('battleLog.turnEnd'), color: '#64748b' }];
 
 	if (result.kind === 'attack') {
 		if (result.damage && result.damage > 0) {
-			parts.push({ text: `${result.element ? `${ELEMENT_EMOJI[result.element]} ` : ''}🤺 −${result.damage} HP`, color: '#ef4444' });
+			const dmg = result.damage;
+			const emoji = result.element ? ELEMENT_EMOJI[result.element] : '';
+			parts.push({ text: t('battleLog.enemyAttack', { emoji, damage: dmg }), color: '#ef4444' });
 		} else {
-			parts.push({ text: '🛡 Ataque bloqueado!', color: '#60a5fa' });
+			parts.push({ text: t('battleLog.attackBlocked'), color: '#60a5fa' });
 		}
 		parts = appendMatchupDamage(parts, result.damageModifier);
 		return appendEvents(parts, result.events);
 	}
 
 	if (result.kind === 'defend') {
-		parts.push({ text: `🛡 Inimigo +${result.enemyBlock} bloqueio`, color: '#60a5fa' });
+		parts.push({ text: t('battleLog.enemyBlocked', { block: result.enemyBlock ?? 0 }), color: '#60a5fa' });
 		return appendEvents(parts, result.events);
 	}
 
-	parts.push({ text: '✨ Inimigo se preparou', color: '#a8a29e' });
+	parts.push({ text: t('battleLog.enemyPrepared'), color: '#a8a29e' });
 	return appendEvents(parts, result.events);
 }

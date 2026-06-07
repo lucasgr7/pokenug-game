@@ -1,0 +1,23 @@
+import { t } from './index';
+import type { Element } from '$lib/game/types';
+
+export const cardName = (id: string) => t(`cards.${id}.name`);
+export const cardDesc = (id: string) => t(`cards.${id}.description`);
+export const elementName = (el: Element) => t(`elements.${el}`);
+export const statusLabel = (id: string, values?: Record<string, string | number | boolean>) => t(`status.${id}.label`, values);
+export const statusTitle = (id: string, values?: Record<string, string | number | boolean>) => t(`status.${id}.title`, values);
+export const natureName = (id: string) => t(`natures.${id}.name`);
+export const natureDesc = (id: string) => t(`natures.${id}.description`);
+export const regionName = (id: string) => t(`regions.${id}.name`);
+export const regionDesc = (id: string) => t(`regions.${id}.description`);
+export const bossName = (id: string) => t(`regions.${id}.bossName`);
+export const bossDesc = (id: string) => t(`regions.${id}.bossDesc`);
+export const challengeName = (id: string) => t(`challenges.${id}.name`);
+export const challengeDesc = (id: string) => t(`challenges.${id}.desc`);
+export const challengeReward = (id: string) => t(`challenges.${id}.reward`);
+export const challengeDeckLabel = (id: string) => t(`challenges.${id}.deckLabel`);
+export const missingnoName = () => t('missingno.name');
+export const missingnoDesc = () => t('missingno.description');
+export const missingnoBossName = () => t('missingno.bossName');
+export const missingnoBossDesc = () => t('missingno.bossDesc');
+export const kindLabel = (kind: string) => t(`kinds.${kind}`);

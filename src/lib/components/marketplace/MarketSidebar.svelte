@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
 	import { ELEMENTS, type Element } from '$lib/game/types';
 	import { marketState, getActiveEvent, getPlatinumPrice, platinumDiscount } from '$lib/game/market.svelte';
 	import MarketElementItem from './MarketElementItem.svelte';
@@ -42,7 +43,7 @@
 			style={selected === 'platinum'
 				? 'background: #a78bfa22; border-color: #a78bfa66;'
 				: 'border-color: transparent; background: transparent;'}
-			title="Platinum"
+			title={$_('market.platinum')}
 		>
 			<span class="text-lg leading-none">⬡</span>
 			{#if discountActive}

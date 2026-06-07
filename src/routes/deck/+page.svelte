@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { _ } from 'svelte-i18n';
+	import { t } from '$lib/i18n';
 	import Hud from '$lib/components/Hud.svelte';
 	import Card from '$lib/components/Card.svelte';
 	import Modal from '$lib/components/Modal.svelte';
@@ -44,18 +46,6 @@
 	let fCost = $state<'all' | number>('all');
 
 	const kinds: CardKind[] = ['attack', 'defense', 'heal', 'capture', 'buff', 'power', 'debuff', 'energy', 'combo', 'relic'];
-	const kindLabel: Record<CardKind, string> = {
-		attack: 'Ataque',
-		power: 'Poder',
-		defense: 'Defesa',
-		heal: 'Cura',
-		capture: 'Captura',
-		buff: 'Buff',
-		debuff: 'Debuff',
-		relic: 'Relíquia',
-		energy: 'Energia',
-		combo: 'Combo'
-	};
 
 	onMount(async () => {
 		inventory = await getInventory();
@@ -101,12 +91,12 @@
 
 	async function addOne(templateId: string) {
 		if (deckIds.length >= MAX_DECK) {
-			pushToast(`Deck cheio (${MAX_DECK}).`, 'error');
+			pushToast(t('deck.deckFull', { max: MAX_DECK }), 'error');
 			return;
 		}
 		const card = inventory.find((c) => c.templateId === templateId && !deckSet.has(c.id));
 		if (!card) {
-			pushToast('Todas as cópias já estão no deck.', 'info');
+			pushToast(t('deck.allCopiesInDeck'), 'info');
 			return;
 		}
 		await addToDeck(card);
@@ -137,7 +127,7 @@
 		class:border-[var(--accent)]={activeTab === 'deck'}
 		class:text-[var(--text-muted)]={activeTab !== 'deck'}
 		onclick={() => activeTab = 'deck'}
-	>🃏 Meu Deck</button>
+	>{$_('deck.tabDeck')}</button>
 	<button
 		class="flex-1 py-3 text-sm font-bold transition-colors"
 		class:text-[var(--accent)]={activeTab === 'catalog'}
@@ -145,16 +135,16 @@
 		class:border-[var(--accent)]={activeTab === 'catalog'}
 		class:text-[var(--text-muted)]={activeTab !== 'catalog'}
 		onclick={() => activeTab = 'catalog'}
-	>📖 Catálogo</button>
+	>{$_('deck.tabCatalog')}</button>
 </div>
 
 {#if activeTab === 'deck'}
 <main class="px-4 py-4 max-w-6xl mx-auto">
 	<!-- Deck ativo -->
 	<div class="mb-4 flex flex-col md:flex-row md:items-end justify-between border-b border-white/10 pb-3">
-		<h1 class="text-2xl sm:text-3xl font-black tracking-tight bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Deck Ativo</h1>
+		<h1 class="text-2xl sm:text-3xl font-black tracking-tight bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{$_('deck.title')}</h1>
 		<div class="flex items-center gap-2 mt-2 md:mt-0">
-			<span class="text-xs sm:text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">Cartas selecionadas:</span>
+			<span class="text-xs sm:text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">{$_('deck.selectedCards')}</span>
 			<span
 				class="rounded-full px-2.5 py-0.5 text-sm font-bold shadow-inner"
 				class:bg-red-500={deckIds.length < MIN_DECK}
@@ -170,18 +160,18 @@
 	{#if deckIds.length < MIN_DECK}
 		<div class="mb-4 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400 font-semibold shadow-sm flex items-center gap-3">
 			<span class="text-xl">⚠️</span>
-			<p>Mínimo de {MIN_DECK} cartas exigido para batalhar. Faltam {MIN_DECK - deckIds.length}.</p>
+			<p>{@html $_('deck.minDeckWarning', { values: { min: MIN_DECK, remaining: MIN_DECK - deckIds.length } })}</p>
 		</div>
 	{/if}
 
 	<div class="mb-6 text-sm font-medium text-[var(--text-muted)] bg-[var(--surface)] p-3 rounded-xl border border-white/5 shadow-sm">
-		💡 <strong class="text-[var(--text)]">Toque</strong> para adicionar/remover • <strong class="text-[var(--text)]">Segure</strong> para inspecionar
+		{@html $_('deck.hint')}
 	</div>
 
 	{#if deckGroups.length === 0}
 		<div class="mb-8 flex min-h-[160px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-white/10 bg-[var(--surface)] opacity-70">
 			<span class="text-4xl mb-3">🎴</span>
-			<p class="text-base font-bold text-[var(--text-muted)]">Seu deck está completamente vazio.</p>
+			<p class="text-base font-bold text-[var(--text-muted)]">{$_('deck.emptyDeck')}</p>
 		</div>
 	{:else}
 		<div class="mb-10 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
@@ -194,34 +184,34 @@
 	<!-- Filtros -->
 	<div class="sticky top-0 z-10 -mx-4 px-4 py-4 mb-4 backdrop-blur-xl bg-[#0f172a]/80 border-b border-white/10">
 		<h2 class="mb-3 flex items-center gap-2 text-xl font-black tracking-tight">
-			<span class="text-2xl">🎒</span> Seu Inventário
+			<span class="text-2xl">🎒</span> {$_('deck.inventoryTitle')}
 		</h2>
 		<div class="flex flex-wrap md:flex-nowrap gap-2 text-sm">
 			<select
 				bind:value={fElement}
 				class="flex-1 min-w-[140px] rounded-xl border border-white/10 bg-[var(--surface)] px-3 py-2.5 font-semibold shadow-sm hover:border-[var(--accent)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-colors outline-none"
 			>
-				<option value="all">⭐ Todos elementos</option>
+				<option value="all">{$_('deck.filterAllElements')}</option>
 				{#each ELEMENTS as el (el)}
-					<option value={el}>{ELEMENT_LABEL[el]}</option>
+					<option value={el}>{$_('elements.' + el)}</option>
 				{/each}
 			</select>
 			<select
 				bind:value={fKind}
 				class="flex-1 min-w-[140px] rounded-xl border border-white/10 bg-[var(--surface)] px-3 py-2.5 font-semibold shadow-sm hover:border-[var(--accent)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-colors outline-none"
 			>
-				<option value="all">⚔️ Todos tipos</option>
+				<option value="all">{$_('deck.filterAllKinds')}</option>
 				{#each kinds as k (k)}
-					<option value={k}>{kindLabel[k]}</option>
+					<option value={k}>		{$_('kinds.' + k)}</option>
 				{/each}
 			</select>
 			<select
 				bind:value={fCost}
 				class="flex-1 min-w-[140px] rounded-xl border border-white/10 bg-[var(--surface)] px-3 py-2.5 font-semibold shadow-sm hover:border-[var(--accent)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-colors outline-none"
 			>
-				<option value="all">💎 Todo custo</option>
+				<option value="all">{$_('deck.filterAllCosts')}</option>
 				{#each [1, 2, 3, 4] as c (c)}
-					<option value={c}>Custo {c}</option>
+					<option value={c}>{$_('deck.costLabel', { values: { cost: c } })}</option>
 				{/each}
 			</select>
 		</div>
@@ -229,12 +219,12 @@
 
 	{#if !loaded}
 		<div class="flex items-center justify-center py-12 opacity-60">
-			<span class="animate-pulse text-lg font-bold flex items-center gap-2"><span>⏳</span> Carregando inventário...</span>
+			<span class="animate-pulse text-lg font-bold flex items-center gap-2"><span>⏳</span> {$_('deck.loading')}</span>
 		</div>
 	{:else if invGroups.length === 0}
 		<div class="flex flex-col items-center justify-center py-12 opacity-60">
 			<span class="text-4xl mb-4 grayscale">🔍</span>
-			<p class="text-base font-bold text-[var(--text-muted)]">Nenhuma carta atende aos filtros.</p>
+			<p class="text-base font-bold text-[var(--text-muted)]">{$_('deck.noFiltersMatch')}</p>
 		</div>
 	{:else}
 		<div class="grid grid-cols-3 gap-2 pb-12 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
@@ -258,8 +248,8 @@
 <!-- Catalog tab -->
 <main class="px-4 py-4 max-w-6xl mx-auto">
 	<div class="mb-4">
-		<h1 class="text-2xl font-black tracking-tight bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Catálogo</h1>
-		<p class="text-sm text-[var(--text-muted)] mt-1">Todas as cartas do universo Pokengu.</p>
+		<h1 class="text-2xl font-black tracking-tight bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{$_('deck.catalogTitle')}</h1>
+		<p class="text-sm text-[var(--text-muted)] mt-1">{$_('deck.catalogSubtitle')}</p>
 	</div>
 
 	<!-- Catalog filters -->
@@ -267,18 +257,18 @@
 		<div class="flex flex-wrap gap-2 text-sm">
 			<select bind:value={catElement}
 				class="flex-1 min-w-[130px] rounded-xl border border-white/10 bg-[var(--surface)] px-3 py-2 font-semibold focus:border-[var(--accent)] outline-none">
-				<option value="all">⭐ Elementos</option>
+				<option value="all">{$_('deck.catalogFilterElements')}</option>
 				{#each ELEMENTS as el (el)}<option value={el}>{ELEMENT_LABEL[el]}</option>{/each}
 			</select>
 			<select bind:value={catKind}
 				class="flex-1 min-w-[130px] rounded-xl border border-white/10 bg-[var(--surface)] px-3 py-2 font-semibold focus:border-[var(--accent)] outline-none">
-				<option value="all">⚔️ Tipos</option>
-				{#each kinds as k (k)}<option value={k}>{kindLabel[k]}</option>{/each}
+				<option value="all">{$_('deck.catalogFilterKinds')}</option>
+				{#each kinds as k (k)}<option value={k}>		{$_('kinds.' + k)}</option>{/each}
 			</select>
 			<select bind:value={catCost}
 				class="flex-1 min-w-[100px] rounded-xl border border-white/10 bg-[var(--surface)] px-3 py-2 font-semibold focus:border-[var(--accent)] outline-none">
-				<option value="all">💎 Custo</option>
-				{#each [1,2,3,4,5] as c}<option value={c}>Custo {c}</option>{/each}
+				<option value="all">{$_('deck.catalogFilterCosts')}</option>
+				{#each [1,2,3,4,5] as c}<option value={c}>{$_('deck.costLabel', { values: { cost: c } })}</option>{/each}
 			</select>
 		</div>
 	</div>
@@ -286,7 +276,7 @@
 	{#if filteredCatalog.length === 0}
 		<div class="flex flex-col items-center justify-center py-12 opacity-60">
 			<span class="text-4xl mb-4 grayscale">🔍</span>
-			<p class="text-base font-bold text-[var(--text-muted)]">Nenhuma carta encontrada.</p>
+			<p class="text-base font-bold text-[var(--text-muted)]">{$_('deck.catalogNotFound')}</p>
 		</div>
 	{:else}
 		<div class="grid grid-cols-3 gap-2 pb-12 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
@@ -305,14 +295,14 @@
 	/>
 
 
-<Modal open={!!catalogInspectingId} onclose={() => { catalogInspectingId = null; }} title="Inspecionar Carta">
+<Modal open={!!catalogInspectingId} onclose={() => { catalogInspectingId = null; }} title={$_('deck.inspectTitle')}>
 	{#if catalogInspectedTemplate}
 		<div class="flex flex-col items-center">
 			<div class="w-48 mb-4">
 				<Card templateId={catalogInspectedTemplate.id} compact={true} showcase={true} />
 			</div>
 			<div class="bg-[var(--surface-overlay)] w-full rounded-xl p-4 text-center border border-white/10">
-				<p class="text-xs uppercase font-black text-[var(--text-muted)] mb-1 tracking-widest">Efeito da Carta</p>
+				<p class="text-xs uppercase font-black text-[var(--text-muted)] mb-1 tracking-widest">{$_('deck.cardEffect')}</p>
 				<p class="text-[var(--text)] italic leading-relaxed text-sm">"{catalogInspectedTemplate.description}"</p>
 			</div>
 		</div>

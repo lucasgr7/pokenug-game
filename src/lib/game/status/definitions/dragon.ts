@@ -1,4 +1,5 @@
 import { defineStatus } from '../registry';
+import { statusLabel, statusTitle } from '$lib/i18n/game';
 
 defineStatus({
   id: 'dragonize',
@@ -7,8 +8,8 @@ defineStatus({
     resolveAttackElement: (el) => (!el || el === 'normal' ? 'dragon' : el),
     emblem: () => ({
       icon: '🐉',
-      label: 'Dragão',
-      title: 'Ataques comuns → tipo Dragão',
+      label: statusLabel('dragonize'),
+      title: statusTitle('dragonize'),
       color: '#818cf8',
       bg: 'rgba(79,70,229,0.15)'
     })
@@ -30,8 +31,8 @@ defineStatus({
     },
     emblem: (self) => ({
       icon: '🐉',
-      label: `Carga ${self.stacks}`,
-      title: `Energia dracônica acumulada: ${self.stacks}`,
+      label: statusLabel('carga_dragao', { stacks: self.stacks }),
+      title: statusTitle('carga_dragao', { stacks: self.stacks }),
       color: '#6366f1',
       bg: 'rgba(99,102,241,0.15)'
     })
@@ -44,8 +45,8 @@ defineStatus({
   hooks: {
     emblem: () => ({
       icon: '🐉',
-      label: '×2',
-      title: 'Fúria do Dragão causa dobro',
+      label: statusLabel('furia_double'),
+      title: statusTitle('furia_double'),
       color: '#ef4444',
       bg: 'rgba(239,68,68,0.15)'
     })

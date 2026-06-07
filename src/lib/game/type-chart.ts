@@ -1,3 +1,4 @@
+import { t } from '$lib/i18n';
 import type { Element } from './types';
 
 export type Effectiveness = 0.5 | 1 | 2;
@@ -52,8 +53,8 @@ export function getElementInteraction(attacker: Element, defender: Element): Ele
 		multiplier,
 		strongAgainst,
 		weakAgainst,
-		modifierText: strongAgainst ? '+100% dano' : weakAgainst ? '-50% dano' : '',
-		shortLabel: strongAgainst ? 'Super efetivo!' : weakAgainst ? 'Pouco efetivo...' : ''
+		modifierText: strongAgainst ? t('typeChart.plus100') : weakAgainst ? t('typeChart.minus50') : '',
+		shortLabel: strongAgainst ? t('typeChart.superEffective') : weakAgainst ? t('typeChart.notVery') : ''
 	};
 }
 
@@ -62,8 +63,8 @@ export function effectiveness(attacker: Element, defender: Element): Effectivene
 }
 
 export function effectivenessLabel(value: Effectiveness): string {
-	if (value === 2) return 'Super efetivo!';
-	if (value === 0.5) return 'Pouco efetivo...';
+	if (value === 2) return t('typeChart.superEffective');
+	if (value === 0.5) return t('typeChart.notVery');
 	return '';
 }
 

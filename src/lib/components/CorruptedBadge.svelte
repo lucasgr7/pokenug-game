@@ -1,11 +1,12 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
 	let { size = 20 }: { size?: number } = $props();
 </script>
 
 <span
 	class="corrupted-badge"
 	style="font-size: {size}px; width: {size * 1.4}px; height: {size * 1.4}px;"
-	aria-label="Corrompido"
+	aria-label={$_('corrupted.label')}
 >
 	☠
 </span>

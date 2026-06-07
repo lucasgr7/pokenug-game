@@ -1,5 +1,6 @@
 import { defineStatus } from '../registry';
 import { addStatus } from '../pipeline';
+import { statusLabel, statusTitle } from '$lib/i18n/game';
 
 defineStatus({
   id: 'reflexo',
@@ -8,8 +9,8 @@ defineStatus({
   hooks: {
     emblem: () => ({
       icon: '🛡️',
-      label: 'Reflexo',
-      title: '50% do dano absorvido é devolvido',
+      label: statusLabel('reflexo'),
+      title: statusTitle('reflexo'),
       color: '#a78bfa',
       bg: 'rgba(167,139,250,0.15)'
     })
@@ -22,8 +23,8 @@ defineStatus({
   hooks: {
     emblem: (self) => ({
       icon: '🧊',
-      label: `Glaciação ${self.stacks}`,
-      title: `Cause ${self.stacks} de dano se escudo destruído`,
+      label: statusLabel('revenge_shield', { stacks: self.stacks }),
+      title: statusTitle('revenge_shield', { stacks: self.stacks }),
       color: '#67e8f9',
       bg: 'rgba(103,232,249,0.15)'
     })

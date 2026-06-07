@@ -1,5 +1,6 @@
 import { defineStatus } from '../registry';
 import { resolveTypedDamage } from '../../damage';
+import { statusLabel, statusTitle } from '$lib/i18n/game';
 
 defineStatus({
   id: 'static_shock',
@@ -14,8 +15,8 @@ defineStatus({
     },
     emblem: (self) => ({
       icon: '⚡',
-      label: `Choque +${self.stacks}`,
-      title: 'Cada carta jogada causa dano elétrico extra',
+      label: statusLabel('static_shock', { stacks: self.stacks }),
+      title: statusTitle('static_shock', { stacks: self.stacks }),
       color: '#facc15',
       bg: 'rgba(250,204,21,0.16)'
     })
@@ -34,8 +35,8 @@ defineStatus({
     },
     emblem: (self) => ({
       icon: '⚡',
-      label: `Elétrico +${self.stacks}`,
-      title: 'Cada carta causa dano elétrico bonus',
+      label: statusLabel('dano_eletrico', { stacks: self.stacks }),
+      title: statusTitle('dano_eletrico', { stacks: self.stacks }),
       color: '#facc15',
       bg: 'rgba(250,204,21,0.16)'
     })

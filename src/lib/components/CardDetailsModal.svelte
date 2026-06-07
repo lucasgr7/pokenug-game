@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
 	import Card from './Card.svelte';
 	import { getTemplate } from '$lib/data/cards';
 	import { ELEMENT_LABEL } from '$lib/game/elements';
@@ -10,8 +11,8 @@
 		onplay,
 		playable = false,
 		hidePrice = true,
-		actionLabel = 'Jogar carta',
-		disabledLabel = 'Acao indisponivel'
+		actionLabel = '',
+		disabledLabel = ''
 	}: {
 		templateId: string | null;
 		open?: boolean;
@@ -30,7 +31,7 @@
 		const money = `${tpl.price.money} ouro`;
 		if (!tpl.price.element) return money;
 		const element = tpl.price.element;
-		return `${money} + ${element.amount} ${ELEMENT_LABEL[element.type]}`;
+		return `${money} + ${element.amount} ${$_('elements.' + element.type)}`;
 	});
 </script>
 
@@ -46,11 +47,11 @@
 		{#if (!hidePrice && priceLabel) || onplay}
 			<div class="bottom-float">
 				{#if !hidePrice && priceLabel}
-					<p class="price">Preco: {priceLabel}</p>
+					<p class="price">{@html $_('cardDetails.priceLabel', { values: { price: priceLabel } })}</p>
 				{/if}
 				{#if onplay}
 					<button class="play-btn" disabled={!playable} onclick={onplay}>
-						{playable ? actionLabel : disabledLabel}
+						{playable ? (actionLabel || $_('cardDetails.playCard')) : (disabledLabel || $_('cardDetails.actionUnavailable'))}
 					</button>
 				{/if}
 			</div>

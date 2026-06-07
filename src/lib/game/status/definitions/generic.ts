@@ -1,4 +1,5 @@
 import { defineStatus } from '../registry';
+import { statusLabel, statusTitle } from '$lib/i18n/game';
 
 defineStatus({
   id: 'duplicar',
@@ -6,8 +7,8 @@ defineStatus({
   hooks: {
     emblem: () => ({
       icon: '🔁',
-      label: 'Duplicar',
-      title: 'Próxima carta executada duas vezes',
+      label: statusLabel('duplicar'),
+      title: statusTitle('duplicar'),
       color: '#c084fc',
       bg: 'rgba(192,132,252,0.15)'
     })
@@ -21,8 +22,8 @@ defineStatus({
     // stacks = extra hits, consumed by handleAttack
     emblem: (self) => ({
       icon: '↻',
-      label: `+${self.stacks} hit`,
-      title: `Próximo ataque atinge +${self.stacks} vezes`,
+      label: statusLabel('attack_repeat', { stacks: self.stacks }),
+      title: statusTitle('attack_repeat', { stacks: self.stacks }),
       color: '#fb923c',
       bg: 'rgba(251,146,60,0.15)'
     })
@@ -50,8 +51,8 @@ defineStatus({
   hooks: {
     emblem: () => ({
       icon: '🔥',
-      label: 'Espinhos',
-      title: '10 de dano ao atacante ao absorver',
+      label: statusLabel('shield_fire_thorns'),
+      title: statusTitle('shield_fire_thorns'),
       color: '#ef4444',
       bg: 'rgba(239,68,68,0.15)'
     })
@@ -65,8 +66,8 @@ defineStatus({
   hooks: {
     emblem: () => ({
       icon: '🧊',
-      label: 'Reflexo',
-      title: 'Dano absorvido é refletido ao inimigo',
+      label: statusLabel('shield_ice_reflect'),
+      title: statusTitle('shield_ice_reflect'),
       color: '#67e8f9',
       bg: 'rgba(103,232,249,0.15)'
     })
@@ -80,8 +81,8 @@ defineStatus({
     onTurnEnd: () => {},
     emblem: () => ({
       icon: '🪨',
-      label: 'Persiste',
-      title: 'Escudo não decai no próximo turno',
+      label: statusLabel('shield_persist'),
+      title: statusTitle('shield_persist'),
       color: '#fbbf24',
       bg: 'rgba(251,191,36,0.15)'
     })

@@ -14,6 +14,8 @@
 	let shown = $state('');
 	let typing = $state(true);
 
+	const isNarrator = $derived(speaker === 'NARRADOR');
+
 	let i = 0;
 	const iv = setInterval(() => {
 		i++;
@@ -27,13 +29,13 @@
 	onDestroy(() => clearInterval(iv));
 </script>
 
-<div class="speech-wrap" class:ally={isAlly}>
-	<div class="speech-bubble" class:ally={isAlly}>
-		<div class="speech-name" class:ally={isAlly}>
+<div class="speech-wrap" class:ally={isAlly} class:narrator={isNarrator}>
+	<div class="speech-bubble" class:ally={isAlly} class:narrator={isNarrator}>
+		<div class="speech-name" class:ally={isAlly} class:narrator={isNarrator}>
 			{speaker}
 		</div>
 		<div class="speech-text">
-			&ldquo;{shown}{#if typing}<span class="speech-cursor" class:ally={isAlly}></span>{/if}&rdquo;
+			{#if isNarrator}{shown}{#if typing}<span class="speech-cursor"></span>{/if}{:else}&ldquo;{shown}{#if typing}<span class="speech-cursor" class:ally={isAlly}></span>{/if}&rdquo;{/if}
 		</div>
 	</div>
 </div>
@@ -50,6 +52,13 @@
 	.speech-wrap.ally {
 		left: 14px;
 		right: auto;
+	}
+	.speech-wrap.narrator {
+		left: 18px;
+		right: 18px;
+		top: auto;
+		bottom: 116px;
+		max-width: none;
 	}
 	@keyframes bubbleIn {
 		from { opacity: 0; transform: scale(0.72) translateY(10px); }
@@ -72,6 +81,17 @@
 		border-color: rgba(18, 140, 140, 0.55);
 		box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6), 0 0 20px rgba(18, 140, 140, 0.1);
 		margin-left: auto;
+	}
+	.speech-bubble.narrator {
+		border-radius: 12px;
+		border-color: rgba(255, 255, 255, 0.16);
+		background: linear-gradient(145deg, rgba(10, 8, 18, 0.97), rgba(6, 4, 12, 0.99));
+		box-shadow: 0 8px 28px rgba(0, 0, 0, 0.72);
+		text-align: center;
+	}
+	.speech-bubble.narrator::before,
+	.speech-bubble.narrator::after {
+		content: none;
 	}
 
 	.speech-bubble::before {
@@ -130,6 +150,14 @@
 	.speech-name.ally::after {
 		content: '▣';
 		font-size: 7px;
+	}
+	.speech-name.narrator {
+		color: #9b94b8;
+		justify-content: center;
+		letter-spacing: 0.2em;
+	}
+	.speech-name.narrator::before {
+		content: none;
 	}
 
 	.speech-text {

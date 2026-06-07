@@ -22,6 +22,10 @@ function speech(text: string, speaker = 'M1SS1NGN0.', isAlly = false): Beat {
 	return { kind: 'speech', text, speaker, isAlly };
 }
 
+function narrate(text: string): Beat {
+	return { kind: 'speech', text, speaker: 'NARRADOR', isAlly: false };
+}
+
 function action(run: () => void): Beat {
 	return { kind: 'action', run };
 }
@@ -124,12 +128,22 @@ function runAct2(): void {
 		setTimeout(() => {
 			mn.act2Phase = 'bubbles';
 			playMissingNoBattle();
-			const allies = mn.party.slice(0, 5);
-			queue([
-				speech('...4IND4 NÃO 4C4B0U.', '', false),
-				...allies.map((a) => speech(`${a.name}: É a minha vez.`, a.name, true)),
-				action(() => enterCycle()),
-			]);
+
+			const first = mn.party[0];
+			const act2Beats: Beat[] = [
+				speech('...41ND4 N40 4C4B0U?', 'M1SS1NGN0.', false),
+				narrate('O treinador foi apagado. Mas a equipe dele não se desfez.'),
+				narrate(`${first?.name ?? 'O primeiro'} avança sozinho, sem esperar nenhuma ordem.`),
+				speech('0S D4D0S F0R4M 4P4G4D0S. P0R QU3 41ND4 R3S1ST3M?', 'M1SS1NGN0.', false),
+				narrate(
+					'Um a um, os outros tomam a frente — dispostos a se apagar para que ele continue existindo.'
+				),
+				speech('3RR0. 3RR0. 1ST0 N40 D3V3R14 4C0NT3C3R.', 'M1SS1NGN0.', false),
+				narrate('Cada escolha agora custa um deles. Resista enquanto houver quem fique de pé.'),
+				action(() => enterCycle())
+			];
+
+			queue(act2Beats);
 		}, 700);
 	}, ACT2_DEFEAT_HOLD_MS);
 }

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { _ } from 'svelte-i18n';
+	import { t } from '$lib/i18n';
 	import Hud from '$lib/components/Hud.svelte';
 	import Sprite from '$lib/components/Sprite.svelte';
 	import { REGIONS, getRegion } from '$lib/data/regions';
@@ -149,28 +151,28 @@
 
 		if (mode === 'boss') {
 			if (latestProgress.defeats < region.requiredDefeats) {
-				pushToast('Derrote mais inimigos comuns nesta região antes do boss.', 'error');
+				pushToast(t('map.needMoreDefeats'), 'error');
 				return;
 			}
 			if (!canFightBoss(latestProgress, Date.now())) {
 				const remaining = getBossCooldownRemainingMs(latestProgress, Date.now());
-				pushToast(`Boss em cooldown: ${formatDuration(remaining)}.`, 'error');
+				pushToast(t('map.bossCooldownMsg', { duration: formatDuration(remaining) }), 'error');
 				return;
 			}
 		}
 
 		if (!game.player?.activePokemonId) {
-			pushToast('Selecione um Pokémon principal na aba Pokémons primeiro.', 'error');
+			pushToast(t('map.selectPokemonFirst'), 'error');
 			return;
 		}
 		const activePkm = game.roster.find((p) => p.id === game.player?.activePokemonId);
 		if (activePkm && normalizedPokemonHp(activePkm) <= 0) {
-			pushToast('Seu Pokémon principal está desmaiado. Selecione outro ou aguarde a recuperação.', 'error');
+			pushToast(t('map.pokemonFainted'), 'error');
 			return;
 		}
 		const deck = await getActiveDeck();
 		if (deck.length < MIN_DECK) {
-			pushToast(`Seu deck precisa de ao menos ${MIN_DECK} cartas.`, 'error');
+			pushToast(t('map.deckTooSmall', { min: MIN_DECK }), 'error');
 			await goto('/deck');
 			return;
 		}
@@ -200,14 +202,14 @@
 			class:on={tab === 'explore'}
 			onclick={() => (tab = 'explore')}
 		>
-			Explorar
+			{$_('map.tabExplore')}
 		</button>
 		<button
 			class="tab-btn"
 			class:on={tab === 'challenges'}
 			onclick={() => (tab = 'challenges')}
 		>
-			⚠ Desafios
+			{$_('map.tabChallenges')}
 		</button>
 	</div>
 
@@ -227,7 +229,7 @@
 					disabled={zs === 'locked' || zs === 'next'}
 					onclick={() => { selectedZoneIdx = i; }}
 				>
-					<div class="zp-you">{zs === 'active' ? '▲ você' : ''}</div>
+					<div class="zp-you">{zs === 'active' ? $_('map.youAreHere') : ''}</div>
 					<div class="zp-circle">{region.emoji}</div>
 					<div class="zp-label">{region.name}</div>
 				</button>
@@ -261,27 +263,27 @@
 						<div class="zh-badge">{ar.emoji} {ar.name.split(' ')[0].toUpperCase()}</div>
 						<div class="zh-status">
 							<div class="zh-dot"></div>
-							Ativa
+							{$_('map.zoneActive')}
 						</div>
 					</div>
 					<div class="zh-name">{ar.name}</div>
 					<div class="zh-desc">{ar.description}</div>
 					<div class="zh-types">
-						<span class="zh-types-label">Pokémon</span>
+						<span class="zh-types-label">{$_('map.pokemonLabel')}</span>
 						{#each ar.types as t}
 							<span class="type-chip" style="--tc: {ELEMENT_COLOR[t]}">
-								{ELEMENT_EMOJI[t]} {ELEMENT_LABEL[t]}
-							</span>
+									{ELEMENT_EMOJI[t]} {$_('elements.' + t)}
+									</span>
 						{/each}
 						<span class="type-chip boss-chip" style="--tc: {ELEMENT_COLOR[ar.bossType]}">
-							👑 {ELEMENT_EMOJI[ar.bossType]} Boss
+							{$_('map.bossChip', { values: { emoji: ELEMENT_EMOJI[ar.bossType] } })}
 						</span>
 					</div>
 				</div>
 
 				<div class="kill-track">
 					<div class="kt-header">
-						<span class="kt-label">Inimigos Derrotados</span>
+						<span class="kt-label">{$_('map.enemiesDefeated')}</span>
 						<span class="kt-count">{defs}/{req}</span>
 					</div>
 					<div class="kt-slots">
@@ -295,8 +297,8 @@
 					</div>
 					<div class="kt-note" class:ready={defs >= req}>
 						{defs >= req
-							? 'Boss revelado — hora do confronto'
-							: `${remaining} ${remaining === 1 ? 'inimigo' : 'inimigos'} para revelar o boss`}
+							? $_('map.bossRevealed')
+							: $_('map.enemiesRemaining', { values: { count: remaining } })}
 					</div>
 				</div>
 
@@ -312,19 +314,19 @@
 						<div class="dp-info">
 							<div class="dp-name">{activePkm.name}</div>
 							<span class="dp-type-chip">
-								{ELEMENT_EMOJI[activePkm.element]} {ELEMENT_LABEL[activePkm.element]}
+								{ELEMENT_EMOJI[activePkm.element]} {$_('elements.' + activePkm.element)}
 							</span>
 						</div>
 					{:else}
 						<div class="dp-avatar" style="font-size: 22px;">❓</div>
 						<div class="dp-info">
-							<div class="dp-name">Sem Pokémon</div>
+							<div class="dp-name">{$_('map.noPokemon')}</div>
 							<span class="dp-type-chip">—</span>
 						</div>
 					{/if}
 					<div class="dp-deck">
 						<div class="dp-deck-count">{deckSize}</div>
-						<div class="dp-deck-label">cartas</div>
+						<div class="dp-deck-label">{$_('map.cards')}</div>
 					</div>
 				</button>
 
@@ -334,14 +336,14 @@
 						onclick={doExplore}
 						disabled={!isUnlocked(ar.id)}
 					>
-						⚔ Batalhar
+						{$_('map.battle')}
 					</button>
 					<button
 						class="btn-boss"
 						disabled={!bossIsReady}
 						onclick={doFightBoss}
 					>
-						{bossIsReady ? '💥 Fight Boss' : '🔒 Fight Boss'}
+						{bossIsReady ? $_('map.fightBossReady') : $_('map.fightBossLocked')}
 					</button>
 				</div>
 			</div>
@@ -352,7 +354,7 @@
 					<div class="bg-cooldown-wrap">
 						<div class="bg-cd-icon">⏱</div>
 						<div>
-							<div class="bg-cd-title">Boss em Cooldown</div>
+							<div class="bg-cd-title">{$_('map.bossCooldown')}</div>
 							<div class="bg-cd-time">{formatDuration(bossCooldownMs(ar.id))}</div>
 						</div>
 					</div>
@@ -361,7 +363,7 @@
 						<div class="bg-rev-glow"></div>
 						<div class="bg-eyebrow">
 							<div class="bg-dot"></div>
-							<span class="bg-eyebrow-txt">Boss Revelado</span>
+							<span class="bg-eyebrow-txt">{$_('map.bossRevealedLabel')}</span>
 						</div>
 						<div class="bg-boss-name">{ar.emoji} {ar.bossName}</div>
 						<div class="bg-boss-desc">{ar.bossDesc}</div>
@@ -375,7 +377,7 @@
 				<div class="next-teaser">
 					<div class="nt-icon">{nextReg.emoji}</div>
 					<div class="nt-info">
-						<div class="nt-label">Próxima Região</div>
+						<div class="nt-label">{$_('map.nextRegion')}</div>
 						<div class="nt-name">{nextReg.name}</div>
 					</div>
 					<span class="nt-lock">🔒</span>
@@ -385,7 +387,7 @@
 			<!-- Conquered Trophies -->
 			<div class="conquered-wrap">
 				<div class="conquered-hd">
-					<span class="conquered-hd-title">Regiões Conquistadas</span>
+					<span class="conquered-hd-title">{$_('map.conqueredRegions')}</span>
 				</div>
 				{#each REGIONS as region (region.id)}
 					{@const zs = zoneState(REGIONS.indexOf(region))}
@@ -406,7 +408,7 @@
 					{/if}
 				{/each}
 				{#if REGIONS.every((r) => zoneState(REGIONS.indexOf(r)) !== 'done')}
-					<p class="empty-trophy-msg">Nenhuma conquista ainda.</p>
+					<p class="empty-trophy-msg">{$_('map.noConquests')}</p>
 				{/if}
 			</div>
 
@@ -416,17 +418,17 @@
 					class="missingno-card"
 					onclick={async () => {
 						if (!game.player?.activePokemonId) {
-							pushToast('Selecione um Pokémon principal na aba Pokémons primeiro.', 'error');
+							pushToast(t('map.selectPokemonFirst'), 'error');
 							return;
 						}
 						const activePkm = game.roster.find((p) => p.id === game.player?.activePokemonId);
 						if (activePkm && normalizedPokemonHp(activePkm) <= 0) {
-							pushToast('Seu Pokémon principal está desmaiado. Selecione outro ou aguarde a recuperação.', 'error');
+							pushToast(t('map.pokemonFainted'), 'error');
 							return;
 						}
 						const deck = await getActiveDeck();
 						if (deck.length < MIN_DECK) {
-							pushToast(`Seu deck precisa de ao menos ${MIN_DECK} cartas.`, 'error');
+							pushToast(t('map.deckTooSmall', { min: MIN_DECK }), 'error');
 							await goto('/deck');
 							return;
 						}
@@ -437,7 +439,7 @@
 					<div class="mn-inner">
 						<div class="mn-emoji">👾</div>
 						<div class="mn-name">???</div>
-						<div class="mn-desc">Uma distorção nos dados.</div>
+						<div class="mn-desc">{$_('map.missingnoDesc')}</div>
 					</div>
 				</button>
 			{/if}
@@ -446,8 +448,8 @@
 	{:else}
 		<!-- Challenges Tab -->
 		<div class="ch-intro">
-			<div class="ch-intro-title">Desafios</div>
-			<div class="ch-intro-sub">Regiões com restrições de deck e maior dificuldade. Recompensas exclusivas.</div>
+			<div class="ch-intro-title">{$_('map.challengesTitle')}</div>
+			<div class="ch-intro-sub">{$_('map.challengesSubtitle')}</div>
 		</div>
 		<div class="ch-list">
 			{#each CHALLENGES as c (c.id)}
@@ -466,17 +468,17 @@
 					<div class="ch-desc">{c.desc}</div>
 					<div class="ch-restrictions">
 						<div class="ch-restr enemies">
-							<div class="ch-restr-label">Enfrenta</div>
+							<div class="ch-restr-label">{$_('map.challengesEnemies')}</div>
 							<div class="ch-enemy-chips">
 								{#each c.enemies as t}
 									<span class="ch-enemy-chip" style="--ec: {ELEMENT_COLOR[t]}">
-										{ELEMENT_EMOJI[t]} {ELEMENT_LABEL[t]}
+				{ELEMENT_EMOJI[t]} {$_('elements.' + t)}
 									</span>
 								{/each}
 							</div>
 						</div>
 						<div class="ch-restr deck" style="--rc: {deckColor}">
-							<div class="ch-restr-label">Entra com</div>
+							<div class="ch-restr-label">{$_('map.challengesDeck')}</div>
 							<div class="ch-deck-pill" style="--rc: {deckColor}">
 								{c.deckEmoji} {c.deckLabel}
 							</div>
@@ -485,21 +487,21 @@
 					{#if locked}
 						{@const unlockReg = getRegion(c.unlockRegionId!)}
 						<div class="ch-lock-banner">
-							🔒 <span>{unlockReg?.name ?? 'Complete a região anterior'}</span>
+							🔒 <span>{unlockReg?.name ?? $_('map.challengeUnlock')}</span>
 						</div>
 					{/if}
 					<div class="ch-footer">
-						<div class="ch-reward">Recompensa <span>{c.reward}</span></div>
+						<div class="ch-reward">{@html $_('map.challengesReward', { values: { reward: c.reward } })}</div>
 						<button
 							class="ch-btn"
 							class:available={!locked}
 							class:locked-btn={locked}
 							disabled={locked}
 							onclick={() => {
-								if (!locked) pushToast(`Desafio "${c.name}" em breve!`, 'info');
+								if (!locked) pushToast(t('map.challengeSoon', { name: c.name }), 'info');
 							}}
 						>
-							{locked ? '🔒 Bloqueado' : '⚔ Entrar'}
+							{locked ? $_('map.challengesLocked') : $_('map.challengesEnter')}
 						</button>
 				</div>
 				</div>

@@ -1,4 +1,5 @@
 import { defineStatus } from '../registry';
+import { statusLabel, statusTitle } from '$lib/i18n/game';
 
 defineStatus({
 	id: 'nature_corrompido',
@@ -8,8 +9,8 @@ defineStatus({
 		shouldExhaust: () => false,
 		emblem: () => ({
 			icon: '☠',
-			label: 'Corrompido',
-			title: 'Cartas nunca exaurem',
+			label: statusLabel('nature_corrompido'),
+			title: statusTitle('nature_corrompido'),
 			color: '#ff1a1a',
 			bg: '#3a0008'
 		})

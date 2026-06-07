@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { _ } from 'svelte-i18n';
+	import { t } from '$lib/i18n';
 	import Hud from '$lib/components/Hud.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import MarketSidebar from '$lib/components/marketplace/MarketSidebar.svelte';
@@ -70,7 +72,7 @@
 		const _tick = platinumDiscountTick.value;
 		if (_tick > 0 && platinumDiscount.value) {
 			const pct = Math.round(platinumDiscount.value.pct * 100);
-			pushToast(`✨ Platinum em promoção! ~${pct}% OFF`, 'success');
+			pushToast(t('market.platinumDiscount', { pct }), 'success');
 		}
 	});
 
@@ -84,7 +86,7 @@
 			if (result.success) {
 				notifyHudTrade(el, 'buy');
 				if (result.greatDeal) {
-					burstMessage = 'ÓTIMA COMPRA!';
+					burstMessage = t('market.greatBuy');
 					burstTrigger++;
 				}
 			}
@@ -102,7 +104,7 @@
 			if (result.success) {
 				notifyHudTrade(el, 'sell');
 				if (result.greatDeal) {
-					burstMessage = 'LUCRO!';
+					burstMessage = t('market.profit');
 					burstTrigger++;
 				}
 			}
@@ -158,7 +160,7 @@
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-2">
 					<span class="text-lg">⬡</span>
-					<h1 class="text-base font-black" style="color: #a78bfa;">Platinum</h1>
+					<h1 class="text-base font-black" style="color: #a78bfa;">{$_('market.platinum')}</h1>
 					{#if discountActive}
 						<span
 							class="text-xs font-black px-2 py-0.5 rounded-full"
@@ -172,7 +174,7 @@
 					<button
 						onclick={() => (infoOpen = true)}
 						class="w-7 h-7 rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] text-sm font-black hover:text-[var(--text)] transition-colors flex items-center justify-center"
-						aria-label="Como funciona"
+						aria-label={$_('market.howTo')}
 					>
 						?
 					</button>
@@ -186,8 +188,8 @@
 					style="background: #a78bfa11; border-color: #a78bfa44; color: #a78bfa;"
 				>
 					<span class="animate-pulse">✨</span>
-					<span>Platinum em promoção! -{discountPct}%</span>
-					<span class="ml-auto text-xs opacity-80">~{discountMinutes}min restantes</span>
+					<span>{$_('market.platinumDiscount', { values: { pct: discountPct } })}</span>
+					<span class="ml-auto text-xs opacity-80">{$_('market.minutesLeft', { values: { min: discountMinutes } })}</span>
 				</div>
 			{/if}
 
@@ -196,7 +198,7 @@
 				<div class="bg-[var(--surface)] rounded-2xl p-4 border border-[var(--border)]">
 					<div class="flex items-center justify-between mb-3">
 						<p class="text-[10px] uppercase tracking-widest font-black text-[var(--text-muted)]">
-							Gráfico de Preços (Platinum)
+							{$_('market.priceChart')}
 						</p>
 					</div>
 					<MarketChart candles={marketState.value.platinum.candles} color="#a78bfa" />
@@ -205,7 +207,7 @@
 				<div
 					class="bg-[var(--surface)] rounded-2xl p-6 border border-[var(--border)] flex items-center justify-center"
 				>
-					<span class="animate-pulse text-sm text-[var(--text-muted)]">Carregando...</span>
+					<span class="animate-pulse text-sm text-[var(--text-muted)]">{$_('market.carregando')}</span>
 				</div>
 			{/if}
 
@@ -217,24 +219,24 @@
 				<div class="flex items-center gap-2">
 					<span class="text-lg">{ELEMENT_EMOJI[el]}</span>
 					<h1 class="text-base font-black" style="color: {selectedColor};">
-						{ELEMENT_LABEL[el]}
+						{$_('elements.' + el)}
 					</h1>
 					<span class="text-xs font-bold text-green-400">{trend.up}↑</span>
 					<span class="text-xs font-bold text-red-400">{trend.down}↓</span>
 					<!-- Oracle badge -->
 					{#if oracle === 'up'}
-						<span class="text-xs font-black text-green-400">🔮 ALTA ↑</span>
+						<span class="text-xs font-black text-green-400">{$_('market.oracleUp')}</span>
 					{:else if oracle === 'down'}
-						<span class="text-xs font-black text-red-400">🔮 BAIXA ↓</span>
+						<span class="text-xs font-black text-red-400">{$_('market.oracleDown')}</span>
 					{:else}
-						<span class="text-xs font-black text-[var(--text-muted)]">🔮 incerta</span>
+						<span class="text-xs font-black text-[var(--text-muted)]">{$_('market.oracleUncertain')}</span>
 					{/if}
 				</div>
 				<div class="flex items-center gap-2">
 					<button
 						onclick={() => (infoOpen = true)}
 						class="w-7 h-7 rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] text-sm font-black hover:text-[var(--text)] transition-colors flex items-center justify-center"
-						aria-label="Como funciona"
+						aria-label={$_('market.howTo')}
 					>
 						?
 					</button>
@@ -251,10 +253,10 @@
 				>
 					{#if activeEvent.kind === 'surge'}
 						<span class="animate-pulse">🔥</span>
-						<span>ALTA! Preço subindo 3x mais rápido</span>
+						<span>{$_('market.surgeEvent')}</span>
 					{:else}
 						<span class="animate-pulse">💀</span>
-						<span>QUEDA! Preço caindo 1.5%/min</span>
+						<span>{$_('market.crashEvent')}</span>
 					{/if}
 					<span class="ml-auto text-xs opacity-80">~{eventMinutes}min restantes</span>
 				</div>
@@ -267,8 +269,8 @@
 					style="background: #00000022; border-color: #ef444488; color: #ef4444;"
 				>
 					<span class="animate-pulse">🚫</span>
-					<span>MERCADO EM CRASH! {ELEMENT_LABEL[el]} congelado</span>
-					<span class="ml-auto text-xs opacity-80">Reabre em ~2h</span>
+					<span>{$_('market.marketCrash', { values: { element: $_('elements.' + el) } })}</span>
+					<span class="ml-auto text-xs opacity-80">{$_('market.reopensIn')}</span>
 				</div>
 			{/if}
 
@@ -277,9 +279,9 @@
 				<div class="bg-[var(--surface)] rounded-2xl p-4 border border-[var(--border)]">
 					<div class="flex items-center justify-between mb-3">
 						<p class="text-[10px] uppercase tracking-widest font-black text-[var(--text-muted)]">
-							Gráfico de Preços (velas de 5min)
+							{$_('market.priceChartCandles')}
 						</p>
-						<span class="text-[10px] text-[var(--text-muted)]">Reset em ~{resetMinutes}min</span>
+						<span class="text-[10px] text-[var(--text-muted)]">{$_('market.resetIn', { values: { min: resetMinutes } })}</span>
 					</div>
 					<MarketChart candles={selectedData.candles} color={selectedColor} />
 				</div>
@@ -287,7 +289,7 @@
 				<div
 					class="bg-[var(--surface)] rounded-2xl p-6 border border-[var(--border)] flex items-center justify-center"
 				>
-					<span class="animate-pulse text-sm text-[var(--text-muted)]">Carregando mercado...</span>
+					<span class="animate-pulse text-sm text-[var(--text-muted)]">{$_('market.carregandoMercado')}</span>
 				</div>
 			{/if}
 
@@ -309,44 +311,44 @@
 	</div>
 </div>
 
-<Modal open={infoOpen} onclose={() => (infoOpen = false)} title="Como funciona">
+<Modal open={infoOpen} onclose={() => (infoOpen = false)} title={$_('market.infoModalTitle')}>
 	<div class="space-y-3 text-sm">
 		<p class="text-[var(--text-muted)] leading-relaxed">
-			O Mercado de Pontos Elementares funciona como uma bolsa de valores em tempo real:
+			{$_('market.infoIntro')}
 		</p>
 		<ul class="space-y-2 text-[var(--text)]">
 			<li class="flex gap-2">
-				<span>📦</span><span>Compra e venda em lotes de <strong>100 a 100.000 pontos</strong></span>
+				<span>📦</span><span>{@html $_('market.infoBuySell')}</span>
 			</li>
 			<li class="flex gap-2">
-				<span>📈</span><span>Cada <strong>compra</strong> aumenta o preço em <strong>2.5%+</strong> (escala com sequência)</span>
+				<span>📈</span><span>{@html $_('market.infoBuyImpact')}</span>
 			</li>
 			<li class="flex gap-2">
-				<span>📉</span><span>Cada <strong>venda</strong> reduz o preço em <strong>2.5%+</strong> (vendas consecutivas drenam o preço)</span>
+				<span>📉</span><span>{@html $_('market.infoSellImpact')}</span>
 			</li>
 			<li class="flex gap-2">
-				<span>🔄</span><span>A cada <strong>2 horas</strong> os preços são reajustados com novo patamar</span>
+				<span>🔄</span><span>{@html $_('market.infoReset')}</span>
 			</li>
 			<li class="flex gap-2">
-				<span>🔥</span><span><strong>Eventos de ALTA</strong> aceleram o preço 3x por ~10-20min</span>
+				<span>🔥</span><span>{@html $_('market.infoSurge')}</span>
 			</li>
 			<li class="flex gap-2">
-				<span>💀</span><span><strong>Eventos de QUEDA</strong> drenam o preço 1.5%/min por ~10-20min</span>
+				<span>💀</span><span>{@html $_('market.infoCrash')}</span>
 			</li>
 			<li class="flex gap-2">
-				<span>🔮</span><span><strong>Oráculo</strong> dá dicas sobre a direção do preço (60% precisão)</span>
+				<span>🔮</span><span>{@html $_('market.infoOracle')}</span>
 			</li>
 			<li class="flex gap-2">
-				<span>✨</span><span>Compre durante QUEDA ou venda durante ALTA para <strong>lucro extra!</strong></span>
+				<span>✨</span><span>{@html $_('market.infoProfitTip')}</span>
 			</li>
 			<li class="flex gap-2">
-				<span>⬡</span><span><strong>Platinum</strong> é comprado com dinheiro a preço crescente. Compre na promoção!</span>
+				<span>⬡</span><span>{@html $_('market.infoPlatinum')}</span>
 			</li>
 			<li class="flex gap-2">
-				<span>💸</span><span>Taxa de <strong>1%</strong> em cada compra e venda (dinheiro destruído)</span>
+				<span>💸</span><span>{@html $_('market.infoFee')}</span>
 			</li>
 			<li class="flex gap-2">
-				<span>🟢</span><span>Velas verdes = preço subiu; velas vermelhos = caiu</span>
+				<span>🟢</span><span>{@html $_('market.infoCandles')}</span>
 			</li>
 		</ul>
 	</div>

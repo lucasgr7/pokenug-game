@@ -1,6 +1,7 @@
 import { getStatusDef } from '$lib/game/status';
 import { NATURES } from '$lib/data/natures';
 import type { BattleState, ActiveStatus } from '$lib/game/types';
+import { t } from '$lib/i18n';
 
 export interface StatusEntry {
 	icon: string;
@@ -32,7 +33,7 @@ export function buildEntry(
 		description,
 		color: emblem.color,
 		bg: emblem.bg,
-		scope: holder === s.player ? 'Jogador' : 'Inimigo',
-		decay: def.decay === 'permanent' ? 'Batalha' : def.decay === 'turnStart' ? 'Início do turno' : 'Fim do turno'
+		scope: holder === s.player ? t('battle.status.scopePlayer') : t('battle.status.scopeEnemy'),
+		decay: def.decay === 'permanent' ? t('battle.status.decayPermanent') : def.decay === 'turnStart' ? t('battle.status.decayTurnStart') : t('battle.status.decayTurnEnd')
 	};
 }

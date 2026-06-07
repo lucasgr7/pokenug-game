@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { ELEMENT_COLOR, ELEMENT_EMOJI, ELEMENT_LABEL } from '$lib/game/elements';
+	import { _ } from 'svelte-i18n';
+	import { ELEMENT_COLOR, ELEMENT_EMOJI } from '$lib/game/elements';
 	import type { Element } from '$lib/game/types';
 
 	let {
@@ -17,11 +18,11 @@
 	class="type-chip"
 	class:icon-only={iconOnly}
 	style="--chip-color: {ELEMENT_COLOR[element]};"
-	title={ELEMENT_LABEL[element]}
+	title={$_('elements.' + element)}
 >
 	<span class="glyph" aria-hidden="true">{ELEMENT_EMOJI[element]}</span>
 	{#if !iconOnly}
-		<span class="label">{compact ? 'tipo' : ELEMENT_LABEL[element]}</span>
+		<span class="label">{compact ? $_('elementMatchup.chipLabel') : $_('elements.' + element)}</span>
 	{/if}
 </span>
 

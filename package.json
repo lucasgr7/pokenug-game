@@ -25,6 +25,7 @@
 	},
 	"dependencies": {
 		"@vercel/analytics": "^2.0.1",
-		"idb": "^8.0.3"
+		"idb": "^8.0.3",
+		"svelte-i18n": "^4.0.1"
 	}
 }

@@ -2,6 +2,7 @@ import { defineStatus } from '../registry';
 import type { Card, CardTemplate } from '$lib/game/types';
 import { getTemplate } from '$lib/data/cards';
 import { CATALOG } from '$lib/data/cards';
+import { statusLabel, statusTitle } from '$lib/i18n/game';
 
 function getPokemonElement(s: { player: { pokemon: { element: string } } }): string {
 	return s.player.pokemon.element;
@@ -24,7 +25,7 @@ defineStatus({
 			ctx.s.hand.push({ id: crypto.randomUUID(), templateId: tpl.id });
 		},
 		emblem() {
-			return { icon: '🃏', label: 'Hardy', title: 'Mão extra', color: '#f59e0b', bg: '#f59e0b22' };
+			return { icon: '🃏', label: statusLabel('nature_hardy'), title: statusTitle('nature_hardy'), color: '#f59e0b', bg: '#f59e0b22' };
 		}
 	}
 });
@@ -41,7 +42,7 @@ defineStatus({
 			p.hp = Math.min(p.hp + 3, p.pokemon.maxHp);
 		},
 		emblem() {
-			return { icon: '❤️', label: 'Lonely', title: 'Regen +3/turno', color: '#ef4444', bg: '#ef444422' };
+			return { icon: '❤️', label: statusLabel('nature_lonely'), title: statusTitle('nature_lonely'), color: '#ef4444', bg: '#ef444422' };
 		}
 	}
 });
@@ -60,7 +61,7 @@ defineStatus({
 			return cost;
 		},
 		emblem() {
-			return { icon: '⚔️', label: 'Brave', title: 'Custo alinhado -1', color: '#c2410c', bg: '#c2410c22' };
+			return { icon: '⚔️', label: statusLabel('nature_brave'), title: statusTitle('nature_brave'), color: '#c2410c', bg: '#c2410c22' };
 		}
 	}
 });
@@ -87,7 +88,7 @@ defineStatus({
 			ctx.s.deck = [...rest, ...aligned];
 		},
 		emblem() {
-			return { icon: '🔄', label: 'Adamant', title: 'Cartas alinhadas primeiro', color: '#16a34a', bg: '#16a34a22' };
+			return { icon: '🔄', label: statusLabel('nature_adamant'), title: statusTitle('nature_adamant'), color: '#16a34a', bg: '#16a34a22' };
 		}
 	}
 });
@@ -103,7 +104,7 @@ defineStatus({
 			ctx.s.player.mana += 1;
 		},
 		emblem() {
-			return { icon: '⚡', label: 'Naughty', title: '+1 mana inicial', color: '#eab308', bg: '#eab30822' };
+			return { icon: '⚡', label: statusLabel('nature_naughty'), title: statusTitle('nature_naughty'), color: '#eab308', bg: '#eab30822' };
 		}
 	}
 });
@@ -123,7 +124,7 @@ defineStatus({
 			return value * 2;
 		},
 		emblem() {
-			return { icon: '🛡️', label: 'Bold', title: 'Escudo dobra', color: '#3b82f6', bg: '#3b82f622' };
+			return { icon: '🛡️', label: statusLabel('nature_bold'), title: statusTitle('nature_bold'), color: '#3b82f6', bg: '#3b82f622' };
 		}
 	}
 });
@@ -141,7 +142,7 @@ defineStatus({
 			ctx.s.player.mana -= 1;
 		},
 		emblem() {
-			return { icon: '💚', label: 'Docile', title: '+30 HP', color: '#16a34a', bg: '#16a34a22' };
+			return { icon: '💚', label: statusLabel('nature_docile'), title: statusTitle('nature_docile'), color: '#16a34a', bg: '#16a34a22' };
 		}
 	}
 });
@@ -161,7 +162,7 @@ defineStatus({
 			return size - 1;
 		},
 		emblem() {
-			return { icon: '😌', label: 'Relaxed', title: '+20 HP, -1 mão', color: '#60a5fa', bg: '#60a5fa22' };
+			return { icon: '😌', label: statusLabel('nature_relaxed'), title: statusTitle('nature_relaxed'), color: '#60a5fa', bg: '#60a5fa22' };
 		}
 	}
 });
@@ -178,7 +179,7 @@ defineStatus({
 			ctx.s.player.mana += 4;
 		},
 		emblem() {
-			return { icon: '😅', label: 'Lax', title: '+4 mana, -10 HP', color: '#a8a29e', bg: '#a8a29e22' };
+			return { icon: '😅', label: statusLabel('nature_lax'), title: statusTitle('nature_lax'), color: '#a8a29e', bg: '#a8a29e22' };
 		}
 	}
 });
@@ -205,7 +206,7 @@ defineStatus({
 			return current;
 		},
 		emblem() {
-			return { icon: '👻', label: 'Timid', title: 'Off-type não exaure', color: '#6d28d9', bg: '#6d28d922' };
+			return { icon: '👻', label: statusLabel('nature_timid'), title: statusTitle('nature_timid'), color: '#6d28d9', bg: '#6d28d922' };
 		}
 	}
 });
@@ -221,7 +222,7 @@ defineStatus({
 			return ctx.s.turnNumber >= 4 ? size + 1 : size;
 		},
 		emblem() {
-			return { icon: '📐', label: 'Serious', title: '+1 mão (turno 4+)', color: '#9333ea', bg: '#9333ea22' };
+			return { icon: '📐', label: statusLabel('nature_serious'), title: statusTitle('nature_serious'), color: '#9333ea', bg: '#9333ea22' };
 		}
 	}
 });
@@ -245,7 +246,7 @@ defineStatus({
 			st.data.used = 1;
 		},
 		emblem() {
-			return { icon: '⚡', label: 'Hasty', title: '1ª carta grátis', color: '#eab308', bg: '#eab30822' };
+			return { icon: '⚡', label: statusLabel('nature_hasty'), title: statusTitle('nature_hasty'), color: '#eab308', bg: '#eab30822' };
 		}
 	}
 });
@@ -273,7 +274,7 @@ defineStatus({
 			}
 		},
 		emblem() {
-			return { icon: '⚙️', label: 'Quirky', title: '3 exaustões = +1 mana', color: '#84cc16', bg: '#84cc1622' };
+			return { icon: '⚙️', label: statusLabel('nature_quirky'), title: statusTitle('nature_quirky'), color: '#84cc16', bg: '#84cc1622' };
 		}
 	}
 });
@@ -291,7 +292,7 @@ defineStatus({
 			}
 		},
 		emblem() {
-			return { icon: '✨', label: 'Sassy', title: 'Mana → escudo', color: '#db2777', bg: '#db277722' };
+			return { icon: '✨', label: statusLabel('nature_sassy'), title: statusTitle('nature_sassy'), color: '#db2777', bg: '#db277722' };
 		}
 	}
 });
@@ -318,7 +319,7 @@ defineStatus({
 			}
 		},
 		emblem() {
-			return { icon: '💎', label: 'Modest', title: 'Mana não gasta vira extra', color: '#22d3ee', bg: '#22d3ee22' };
+			return { icon: '💎', label: statusLabel('nature_modest'), title: statusTitle('nature_modest'), color: '#22d3ee', bg: '#22d3ee22' };
 		}
 	}
 });

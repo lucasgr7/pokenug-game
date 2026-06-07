@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { _ } from 'svelte-i18n';
+	import { t } from '$lib/i18n';
 	import Card from './Card.svelte';
 	import Modal from './Modal.svelte';
 	import { getInventory } from '$lib/db/cards';
@@ -46,18 +48,18 @@
 		if (!selected) return;
 		const id = selected.id;
 		const res = await upgradeCardCopy(id);
-		if (res == null) { pushToast('Recursos insuficientes.', 'error'); return; }
-		pushToast('Carta aprimorada!', 'success');
+		if (res == null) { pushToast(t('shop.insufficientResources'), 'error'); return; }
+		pushToast(t('shop.upgradeBought', { name: 'Carta' }), 'success');
 		await reload();
 		selected = cards.find((c) => c.id === id) ?? null;
 	}
 </script>
 
 <section class="mt-6">
-	<h2 class="mb-2 text-base font-bold">Aprimorar Cartas</h2>
-	<p class="mb-2 text-[10px] text-[var(--text-muted)]">+1 de dano/escudo por nível. Preço sobe na escala Fibonacci.</p>
+	<h2 class="mb-2 text-base font-bold">{$_('shop.cardUpgradeTitle')}</h2>
+	<p class="mb-2 text-[10px] text-[var(--text-muted)]">{$_('shop.cardUpgradeDesc')}</p>
 	{#if cards.length === 0}
-		<p class="text-sm text-[var(--text-muted)]">Nenhuma carta de ataque/defesa no inventário.</p>
+		<p class="text-sm text-[var(--text-muted)]">{$_('shop.noUpgradeCards')}</p>
 	{:else}
 		<div class="grid grid-cols-3 gap-1.5">
 			{#each paged as c (c.id)}
@@ -76,7 +78,7 @@
 	{/if}
 </section>
 
-<Modal open={!!selected} title="Aprimorar carta" onclose={() => (selected = null)}>
+<Modal open={!!selected} title={$_('shop.upgradeModalTitle')} onclose={() => (selected = null)}>
 	{#if selected && selTpl && selCost}
 		<div class="flex flex-col items-center gap-3">
 			<div class="w-40"><Card templateId={selTpl.id} showcase upgradeLevel={selLevel} /></div>
@@ -86,7 +88,7 @@
 			</p>
 			<button class="w-full rounded-xl bg-[var(--accent)] py-2.5 font-bold text-white disabled:opacity-40"
 				disabled={!selAffordable} onclick={doUpgrade}>
-				Aprimorar (+1)
+				{$_('shop.upgradeBtn')}
 			</button>
 		</div>
 	{/if}

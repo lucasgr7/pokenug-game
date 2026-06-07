@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
 	import HpBar from '$lib/components/HpBar.svelte';
 	import TypeAdvantageAlert from '$lib/components/TypeAdvantageAlert.svelte';
 	import StatusModal from './StatusModal.svelte';
@@ -30,7 +31,7 @@
 		</div>
 		<HpBar hp={hpReveal ? s.enemy.hp : 0} maxHp={s.enemy.pokemon.maxHp} block={s.enemy.block} />
 		<div class="mt-1 flex items-center gap-1 text-[11px] font-bold text-(--danger)">
-			<span class="rounded bg-(--danger)/15 px-1.5 py-0.5">Intenção {intentText()}</span>
+			<span class="rounded bg-(--danger)/15 px-1.5 py-0.5">{$_('battle.enemyHud.intentPrefix')} {intentText()}</span>
 		</div>
 		<TypeAdvantageAlert attacker={s.enemy.pokemon.element} defender={s.player.pokemon.element} />
 		{#if s.enemy.statuses.length > 0}

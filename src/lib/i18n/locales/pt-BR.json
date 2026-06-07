@@ -1,0 +1,982 @@
+{
+  "nav": {
+    "map": "Mapa",
+    "jobs": "Jobs",
+    "deck": "Deck",
+    "market": "Mercado",
+    "shop": "Loja"
+  },
+  "hud": {
+    "mercado": "Mercado",
+    "irParaMercado": "Ir para o Mercado",
+    "instalarApp": "Instalar aplicativo",
+    "ativarSom": "Ativar som",
+    "silenciar": "Silenciar",
+    "alternarTema": "Alternar tema",
+    "recolher": "Recolher",
+    "expandir": "Expandir",
+    "instalar": "Instalar app"
+  },
+  "modal": {
+    "fechar": "Fechar"
+  },
+  "menu": {
+    "title": "Menu",
+    "language": "Idioma",
+    "deleteSave": "Apagar save",
+    "confirmDelete": "Tem certeza? Isso apaga todo o progresso.",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar"
+  },
+  "onboarding": {
+    "title": "Pokengu",
+    "subtitle": "Comece sua jornada de treinador.",
+    "seuNome": "Seu nome",
+    "placeholder": "Treinador",
+    "nameHint": "Use entre 2 e 16 caracteres.",
+    "escolhaInicial": "Escolha seu inicial",
+    "criando": "Criando…",
+    "comecar": "Começar aventura",
+    "boaSorte": "Boa sorte, {name}!",
+    "error": "Algo deu errado ao criar o jogador.",
+    "planta": "Planta",
+    "fogo": "Fogo",
+    "agua": "Água",
+    "eletrico": "Elétrico"
+  },
+  "battle": {
+    "hand": {
+      "pileDeck": "Pilha de compra",
+      "pileDiscard": "Pilha de descarte",
+      "pileExhausted": "Cartas exaustas",
+      "endTurn": "Fim de turno",
+      "relics": "Relíquias",
+      "emptyPile": "Nenhuma carta nesta pilha.",
+      "playRelic": "Jogar relíquia (clique direito para inspecionar)",
+      "playCard": "Jogar carta (segure para inspecionar)",
+      "openPile": "Abrir {pile}",
+      "handLabel": "Mão de cartas",
+      "cardLabel": "{count} carta(s)",
+      "cardEffect": "Efeito da Carta"
+    },
+    "logs": {
+      "empty": "Início da batalha..."
+    },
+    "result": {
+      "win": "VITÓRIA!",
+      "boss": "BOSS DERROTADO!",
+      "capture": "CAPTURADO!",
+      "defeat": "DERROTA…",
+      "pillWin": "Pokémon derrotado",
+      "pillBoss": "Chefe de região vencido",
+      "pillCapture": "Pokémon capturado",
+      "pillDefeat": "Seu pokémon caiu",
+      "descWin": "{name} foi derrotado!",
+      "descCapture": "{name} foi capturado!",
+      "descDefeat": "Seu deck ativo foi perdido. Inventário e pokémons continuam com você.",
+      "btnContinue": "Continuar",
+      "btnMap": "Voltar ao mapa",
+      "close": "Fechar",
+      "rewardMoney": "Dinheiro",
+      "rewardCard": "Nova carta",
+      "rewardChoose": "Escolha uma carta",
+      "rewardNewRegion": "Nova região",
+      "rewardPokemon": "Pokémon",
+      "forfeitHint": "Cartas não escolhidas serão perdidas.",
+      "cardRarity": "Raridade",
+      "cardElement": "Elemento",
+      "neutral": "Neutro",
+      "cost": "Custo"
+    },
+    "status": {
+      "scopePlayer": "Jogador",
+      "scopeEnemy": "Inimigo",
+      "decayPermanent": "Batalha",
+      "decayTurnStart": "Início do turno",
+      "decayTurnEnd": "Fim do turno"
+    },
+    "enemyHud": {
+      "intentAttack": "Atacar",
+      "intentDefend": "Defender",
+      "intentBuff": "Buff",
+      "intentPrefix": "Intenção",
+      "blockedAttack": "Ataque bloqueado!",
+      "enemyBlocked": "Inimigo +{block} bloqueio",
+      "enemyPrepared": "Inimigo se preparou"
+    },
+    "playerHud": {
+      "hp": "HP",
+      "mana": "Mana",
+      "block": "Escudo"
+    },
+    "missingno": {
+      "title": "MissingNo.",
+      "pickLabel": "Escolha um Pokémon em risco:",
+      "confirmLabel": "Confirmar",
+      "statusLabel": "Em risco",
+      "atStake": "Em jogo",
+      "exit": "Sair",
+      "exitBtn": "✕ Sair",
+      "pickTitle": "ESCOLHA SEU PRÓXIMO",
+      "pickSubtitle": "Faltam {count} Pokémon",
+      "hpLabel": "HP {hp}",
+      "victoryTitle": "M1SS1NGN0...",
+      "victorySub": "D3F34T3D",
+      "victoryDesc": "Seus Pokémon foram restaurados com a marca Corrompido.",
+      "lossTitle": "D4T4 S4LV4...",
+      "lossSub": "C0RRUPT3D",
+      "lossDesc": "Todos os Pokémon foram perdidos permanentemente.",
+      "shatterText": "D3RROT4D0...",
+      "backToMap": "Voltar ao mapa"
+    }
+  },
+  "typeChart": {
+    "superEffective": "Super efetivo!",
+    "notVery": "Pouco efetivo...",
+    "plus100": "+100% dano",
+    "minus50": "-50% dano",
+    "elementalDanger": "Perigo elemental",
+    "strongAgainst": "{attackerEmoji} {attackerName} é forte contra seu {defenderEmoji} {defenderName}"
+  },
+  "elements": {
+    "fire": "Fogo",
+    "water": "Água",
+    "grass": "Planta",
+    "electric": "Elétrico",
+    "normal": "Normal",
+    "fighting": "Lutador",
+    "psychic": "Psíquico",
+    "rock": "Pedra",
+    "ground": "Terra",
+    "flying": "Voador",
+    "bug": "Inseto",
+    "poison": "Veneno",
+    "ghost": "Fantasma",
+    "ice": "Gelo",
+    "dragon": "Dragão"
+  },
+  "kinds": {
+    "attack": "Ataque",
+    "defense": "Defesa",
+    "heal": "Cura",
+    "capture": "Captura",
+    "buff": "Buff",
+    "power": "Poder",
+    "debuff": "Debuff",
+    "relic": "Relíquia",
+    "energy": "Energia",
+    "combo": "Combo"
+  },
+  "status": {
+    "duplicar": {
+      "label": "Duplicar",
+      "title": "Próxima carta executada duas vezes"
+    },
+    "attack_repeat": {
+      "label": "+{stacks} hit",
+      "title": "Próximo ataque atinge +{stacks} vezes"
+    },
+    "shield_fire_thorns": {
+      "label": "Espinhos",
+      "title": "10 de dano ao atacante ao absorver"
+    },
+    "shield_ice_reflect": {
+      "label": "Reflexo",
+      "title": "Dano absorvido é refletido ao inimigo"
+    },
+    "shield_persist": {
+      "label": "Persiste",
+      "title": "Escudo não decai no próximo turno"
+    },
+    "berserk": {
+      "label": "Fúria",
+      "title": "ATQ×2, DEF÷2 — toda a batalha"
+    },
+    "specialize": {
+      "label": "Especialização",
+      "title": "Cartas starter → tipo do seu Pokémon"
+    },
+    "empowered": {
+      "label": "+{stacks}",
+      "title": "Próximo ataque +{stacks}"
+    },
+    "sequencia": {
+      "label": "Sequência",
+      "title": "Golpes Lutador consecutivos acumulam bônus"
+    },
+    "assombracao": {
+      "label": "Assombração +{stacks}",
+      "title": "Cartas Fantasma +{stacks} dano"
+    },
+    "reflexo": {
+      "label": "Reflexo",
+      "title": "50% do dano absorvido é devolvido"
+    },
+    "revenge_shield": {
+      "label": "Glaciação {stacks}",
+      "title": "Cause {stacks} de dano se escudo destruído"
+    },
+    "ghost_form": {
+      "label": "Fantasma",
+      "title": "Dano máximo 1 neste turno"
+    },
+    "nature_hardy": {
+      "label": "Hardy",
+      "title": "Mão extra"
+    },
+    "nature_lonely": {
+      "label": "Lonely",
+      "title": "Regen +3/turno"
+    },
+    "nature_brave": {
+      "label": "Brave",
+      "title": "Custo alinhado -1"
+    },
+    "nature_adamant": {
+      "label": "Adamant",
+      "title": "Cartas alinhadas primeiro"
+    },
+    "nature_naughty": {
+      "label": "Naughty",
+      "title": "+1 mana inicial"
+    },
+    "nature_bold": {
+      "label": "Bold",
+      "title": "Escudo dobra"
+    },
+    "nature_docile": {
+      "label": "Docile",
+      "title": "+30 HP"
+    },
+    "nature_relaxed": {
+      "label": "Relaxed",
+      "title": "+20 HP, -1 mão"
+    },
+    "nature_lax": {
+      "label": "Lax",
+      "title": "+4 mana, -10 HP"
+    },
+    "nature_timid": {
+      "label": "Timid",
+      "title": "Off-type não exaure"
+    },
+    "nature_serious": {
+      "label": "Serious",
+      "title": "+1 mão (turno 4+)"
+    },
+    "nature_hasty": {
+      "label": "Hasty",
+      "title": "1ª carta grátis"
+    },
+    "nature_quirky": {
+      "label": "Quirky",
+      "title": "3 exaustões = +1 mana"
+    },
+    "nature_sassy": {
+      "label": "Sassy",
+      "title": "Mana → escudo"
+    },
+    "nature_modest": {
+      "label": "Modest",
+      "title": "Mana não gasta vira extra"
+    },
+    "nature_corrompido": {
+      "label": "Corrompido",
+      "title": "Cartas nunca exaurem"
+    },
+    "dragonize": {
+      "label": "Dragão",
+      "title": "Ataques comuns → tipo Dragão"
+    },
+    "carga_dragao": {
+      "label": "Carga {stacks}",
+      "title": "Energia dracônica acumulada: {stacks}"
+    },
+    "furia_double": {
+      "label": "×2",
+      "title": "Fúria do Dragão causa dobro"
+    },
+    "static_shock": {
+      "label": "Choque +{stacks}",
+      "title": "Cada carta jogada causa dano elétrico extra"
+    },
+    "dano_eletrico": {
+      "label": "Elétrico +{stacks}",
+      "title": "Cada carta causa dano elétrico bonus"
+    }
+  },
+  "cards": {
+    "neu_atk_preciso": {
+      "name": "Ataque Preciso",
+      "description": "Cause 4 de dano."
+    },
+    "neu_atk_golpe_direto": {
+      "name": "Golpe Direto",
+      "description": "Cause 8 de dano."
+    },
+    "neu_atk_investida": {
+      "name": "Investida",
+      "description": "Cause 18 de dano."
+    },
+    "neu_def_bloqueio": {
+      "name": "Bloqueio",
+      "description": "Ganha 6 de escudo."
+    },
+    "neu_def_postura": {
+      "name": "Postura Defensiva",
+      "description": "Ganha 10 de escudo."
+    },
+    "neu_def_recuo": {
+      "name": "Recuo Estratégico",
+      "description": "Ganha 20 de escudo."
+    },
+    "pokeball_basic": {
+      "name": "Pokébola",
+      "description": "Tenta capturar o pokémon selvagem."
+    },
+    "water_splash": {
+      "name": "Splash",
+      "description": "Cause 4 de dano. Compre 1 carta."
+    },
+    "water_fluxo": {
+      "name": "Fluxo",
+      "description": "Cause 14 de dano. Compre 2 cartas."
+    },
+    "water_torrent": {
+      "name": "Torrent",
+      "description": "Cause 28 de dano."
+    },
+    "water_tsunami": {
+      "name": "Tsunami",
+      "description": "Cause 40 de dano. Traz todas as suas cartas de Água para a mão."
+    },
+    "fire_chama_ardente": {
+      "name": "Chama Ardente",
+      "description": "Cause 8 de dano. Você sofre 1 de dano."
+    },
+    "fire_incineracao": {
+      "name": "Incineração",
+      "description": "Cause 20 de dano. Você sofre 2 de dano."
+    },
+    "fire_inferno": {
+      "name": "Inferno",
+      "description": "Cause 30 de dano. Você sofre 8 de dano."
+    },
+    "fire_escudo_ardente": {
+      "name": "Escudo Ardente",
+      "description": "Ganha 16 de escudo. Você sofre 4 de dano."
+    },
+    "grass_raiz_profunda": {
+      "name": "Raiz Profunda",
+      "description": "Aplica ENRAIZADO(2) no inimigo. Cartas Grama causam dobro de dano enquanto ativo."
+    },
+    "grass_sementes": {
+      "name": "Sementes de Vida",
+      "description": "Ganha +1 de energia. Compre 1 carta. [EXHAUST_COMBATE]"
+    },
+    "grass_brotos_ofensivos": {
+      "name": "Brotos Ofensivos",
+      "description": "Cause 6 de dano (12 se ENRAIZADO ativo)."
+    },
+    "grass_espinhos": {
+      "name": "Espinhos",
+      "description": "Ganha 12 de escudo. O escudo fornecido reduz -1 permanentemente a cada uso."
+    },
+    "grass_chicote_verde": {
+      "name": "Chicote Verde",
+      "description": "10 de dano. 3x contra inimigo ENRAIZADO."
+    },
+    "dragon_furia": {
+      "name": "Fúria do Dragão",
+      "description": "Cause 10 de dano base + valor total de CARGA_DRAGÃO."
+    },
+    "dragon_bafo": {
+      "name": "Bafo Ancestral",
+      "description": "Compre 1 carta. Adiciona +8 em CARGA_DRAGÃO."
+    },
+    "dragon_choque": {
+      "name": "Choque Dracônico",
+      "description": "Cause 6 de dano. Adiciona +8 em CARGA_DRAGÃO."
+    },
+    "dragon_poder": {
+      "name": "Poder Canalizado",
+      "description": "[POWER] Fúria do Dragão causa o dobro do dano total nesta luta. [EXHAUST_COMBATE]"
+    },
+    "dragon_cauda": {
+      "name": "Cauda do Dragão",
+      "description": "Cause 11 de dano. Descarta a carta mais à esquerda da mão e compra 1. Adiciona +6 em CARGA_DRAGÃO."
+    },
+    "psychic_refluxo": {
+      "name": "Refluxo Mental",
+      "description": "Todo dano sofrido no último turno é causado de volta ao inimigo (máx. 30)."
+    },
+    "psychic_espelho": {
+      "name": "Espelho Psíquico",
+      "description": "Ganha 18 de escudo. [REFLEXO] 50% do dano absorvido é devolvido ao inimigo neste turno."
+    },
+    "psychic_mente": {
+      "name": "Mente Contorcida",
+      "description": "Cause 13 de dano."
+    },
+    "psychic_paradoxo": {
+      "name": "Paradoxo Cerebral",
+      "description": "[DUPLICAR_CARTA] A próxima carta jogada é executada duas vezes. [EXHAUST_COMBATE]"
+    },
+    "psychic_viagem_temporal": {
+      "name": "Viagem Temporal",
+      "description": "[POWER] Traz 3 cartas aleatórias da pilha de exaustas para a pilha de compra. [EXHAUST_COMBATE]"
+    },
+    "ground_imobilizacao": {
+      "name": "Imobilização Total",
+      "description": "Aplica IMOBILIZADO(2) no inimigo (dano reduzido a 50% por 2 turnos)."
+    },
+    "ground_peso": {
+      "name": "Peso da Terra",
+      "description": "Ganha 12 de escudo. Perde 1 de energia neste turno."
+    },
+    "ground_compressao": {
+      "name": "Compressão Terrestre",
+      "description": "[POWER] No próximo turno, comece com +1 de energia adicional."
+    },
+    "ground_prisao": {
+      "name": "Prisão Eterna",
+      "description": "Cause 5 de dano. Se o inimigo estiver IMOBILIZADO, duplica sua duração."
+    },
+    "ground_esmagar": {
+      "name": "Esmagar",
+      "description": "Cause 15 de dano."
+    },
+    "fighting_rajada": {
+      "name": "Rajada de Socos",
+      "description": "Cause 6 de dano. [COPIA_DESCARTE] Cria 1 cópia desta carta no descarte. (Limite: 2)"
+    },
+    "fighting_punho": {
+      "name": "Punho Sincronizado",
+      "description": "[POWER] [SEQUÊNCIA] Cartas Lutador consecutivas acumulam +2 de dano por carta. [EXHAUST_COMBATE]"
+    },
+    "fighting_serie": {
+      "name": "Série de Ataques",
+      "description": "Cause 32 de dano."
+    },
+    "fighting_ritmo": {
+      "name": "Ritmo Implacável",
+      "description": "[POWER] [AUTO_JOGAR] Cartas Lutador na mão são jogadas automaticamente no início do turno. (Limite: 3)"
+    },
+    "flying_chute_aereo": {
+      "name": "Chute Aéreo",
+      "description": "Cause 12 de dano."
+    },
+    "flying_evasao_total": {
+      "name": "Evasão Total",
+      "description": "Termine seu turno imediatamente. Próximo turno: compre +2 cartas e ganha +1 de energia."
+    },
+    "flying_golpe_aereo": {
+      "name": "Golpe Aéreo",
+      "description": "Cause 9 de dano. Se for o primeiro ataque do turno, compre 1 carta."
+    },
+    "flying_evasao": {
+      "name": "Evasão",
+      "description": "Ganha 12 de escudo. Se não sofreu dano neste turno, ganha +4 de escudo adicional."
+    },
+    "flying_mergulho": {
+      "name": "Mergulho",
+      "description": "Cause 20 de dano. Se for a primeira carta jogada no turno, compre 2 cartas."
+    },
+    "bug_picada": {
+      "name": "Picada Rápida",
+      "description": "Cause 5 de dano. [EXHAUST_COMBATE] [PILHA_EXAURIR +1]"
+    },
+    "bug_corte": {
+      "name": "Corte de Tesoura",
+      "description": "Cause 12 de dano. Exaure 1 carta Inseto da mão. [PILHA_EXAURIR +1]"
+    },
+    "bug_nuvem": {
+      "name": "Nuvem de Insetos",
+      "description": "Gere 3 cartas Picada Rápida (custo 0) na sua mão."
+    },
+    "bug_enxame": {
+      "name": "Enxame Voraz",
+      "description": "Cause 2 de dano por cada carta em PILHA_EXAURIR."
+    },
+    "bug_infestacao": {
+      "name": "Infestação",
+      "description": "Cause 14 de dano. Gera 1 carta \"Ovos Podres\" inútil na sua mão."
+    },
+    "poison_intoxicacao": {
+      "name": "Intoxicação",
+      "description": "Cause 5 de dano. [REDUZ_SHIELD] Escudo que o inimigo ganhar neste turno é reduzido a 50%."
+    },
+    "poison_morte_lenta": {
+      "name": "Morte Lenta",
+      "description": "Cause 8 de dano. [REDUZ_BUFF] Buff de dano do inimigo neste turno é reduzido a 50%."
+    },
+    "poison_toxina": {
+      "name": "Toxina Mortífera",
+      "description": "Cause 16 de dano. [AMPLIFICA] Dobra todos os efeitos negativos ativos no inimigo."
+    },
+    "poison_colapso": {
+      "name": "Colapso Tóxico",
+      "description": "Por 5 turnos, o inimigo recebe FRAQUEZA(5) — +25% de dano recebido."
+    },
+    "poison_mordida": {
+      "name": "Mordida",
+      "description": "Cause 7 de dano. Se o inimigo tiver algum efeito negativo, ganha +1 de energia e compra 1 carta."
+    },
+    "ghost_alma_penada": {
+      "name": "Alma Penada",
+      "description": "Reduz dano do inimigo em 1 permanentemente. Exaure 1 carta aleatória da mão. [EXHAUST_RUN desta carta]"
+    },
+    "ghost_espectro": {
+      "name": "Espectro Voraz",
+      "description": "Cause 18 de dano. Reduz seu HP máximo em 4."
+    },
+    "ghost_assombracao": {
+      "name": "Assombração Progressiva",
+      "description": "[POWER] Cartas Fantasma ganham +1 de dano a cada turno desta luta."
+    },
+    "ghost_fantasmagoria": {
+      "name": "Fantasmagoria",
+      "description": "Cause 8 de dano e ganha 8 de escudo."
+    },
+    "ghost_maldicao": {
+      "name": "Maldição Eterna",
+      "description": "Perca 1 de HP máximo. Ganha +1 de energia e compre 1 carta."
+    },
+    "ghost_susto": {
+      "name": "Susto",
+      "description": "Cause 4 de dano. Se o inimigo for atacar, ganha +1 de energia neste turno."
+    },
+    "ice_congelamento": {
+      "name": "Congelamento Progressivo",
+      "description": "[POWER] Cause 3 de dano por cada carta Gelo jogada nesta luta."
+    },
+    "ice_cristal": {
+      "name": "Cristal Imobilizante",
+      "description": "Cause 11 de dano. [DUPLICAR_CARTA] A próxima carta Gelo jogada é executada duas vezes."
+    },
+    "ice_friagem": {
+      "name": "Friagem Cortante",
+      "description": "Cause 14 de dano. Aplica FRAQUEZA(1) no inimigo por 1 turno."
+    },
+    "ice_glaciacao": {
+      "name": "Glaciação",
+      "description": "Ganha 20 de escudo. Se o escudo for completamente destruído, cause 20 de dano ao inimigo."
+    },
+    "ice_espelho": {
+      "name": "Espelho de Gelo",
+      "description": "Ganha escudo igual a 50% do dano pretendido do inimigo. [EXHAUST_COMBATE]"
+    },
+    "electric_sobrecarga": {
+      "name": "Sobrecarga",
+      "description": "Ativa DANO_ELÉTRICO(2): cada carta jogada causa +2 de dano elétrico até o fim do combate."
+    },
+    "electric_descarga": {
+      "name": "Descarga Elétrica",
+      "description": "Descarte todas as cartas da mão e compre o mesmo número. Cause 4 de dano por carta descartada."
+    },
+    "electric_eletrocussao": {
+      "name": "Eletrocussão",
+      "description": "Ganha 8 de escudo. [CANCEL_ESCUDO] Se o inimigo for usar escudo neste turno, cancela sua ação."
+    },
+    "electric_recarga": {
+      "name": "Recarga",
+      "description": "Compre 2 cartas. Ganha +1 de energia. Você perde 5% da vida máxima."
+    },
+    "rock_muralha": {
+      "name": "Muralha de Pedra",
+      "description": "[ESCUDO_PERSISTE] O escudo atual não decai no início do próximo turno. [EXHAUST_COMBATE]"
+    },
+    "rock_barreira": {
+      "name": "Barreira Mineral",
+      "description": "Ganha 8 de escudo. [COPIA_DESCARTE] Cria 1 cópia com -1 de escudo no descarte, até chegar a 0."
+    },
+    "rock_fortaleza": {
+      "name": "Fortaleza de Silex",
+      "description": "Duplica o escudo atual. [EXHAUST_COMBATE]"
+    },
+    "rock_rocha_imovel": {
+      "name": "Rocha Imóvel",
+      "description": "Se você tiver escudo no início do próximo turno, ganha +1 de energia no próximo turno."
+    },
+    "rock_lancar_pedra": {
+      "name": "Lançar Pedra",
+      "description": "Cause 10 de dano. Se o inimigo tiver escudo, ganha +1 de energia e compra 1 carta."
+    },
+    "pokeball_great": {
+      "name": "Great Ball",
+      "description": "Captura com +15% de chance."
+    },
+    "pokeball_ultra": {
+      "name": "Ultra Ball",
+      "description": "Captura com +30% de chance."
+    },
+    "pokeball_master": {
+      "name": "Master Ball",
+      "description": "Captura com +50% de chance."
+    },
+    "bug_picada_token": {
+      "name": "Picada Rápida",
+      "description": "Cause 5 de dano. [EXHAUST_RUN] [PILHA_EXAURIR +1]"
+    },
+    "bug_ovos_podres_token": {
+      "name": "Ovos Podres",
+      "description": "Carta inútil. Gasta 1 de energia e é exaurida."
+    }
+  },
+  "natures": {
+    "hardy": {
+      "name": "Hardy",
+      "description": "Começa com 6 cartas (a extra é de outro tipo)."
+    },
+    "lonely": {
+      "name": "Solitário",
+      "description": "Recupera 3 de HP no início de cada turno."
+    },
+    "brave": {
+      "name": "Bravo",
+      "description": "Cartas do seu tipo custam 1 a menos."
+    },
+    "adamant": {
+      "name": "Adamante",
+      "description": "Cartas do seu tipo são compradas primeiro."
+    },
+    "naughty": {
+      "name": "Travesso",
+      "description": "Começa com +1 de mana."
+    },
+    "bold": {
+      "name": "Ousado",
+      "description": "Escudo dobra; cartas de escudo custam +1."
+    },
+    "docile": {
+      "name": "Dócil",
+      "description": "+30 de HP máximo; começa com 2 de mana."
+    },
+    "relaxed": {
+      "name": "Relaxado",
+      "description": "+20 de HP; mão máxima reduzida em 1."
+    },
+    "lax": {
+      "name": "Folgado",
+      "description": "-10 de HP; começa com +4 de mana."
+    },
+    "timid": {
+      "name": "Tímido",
+      "description": "Cartas de outro tipo custam +1; não exaurem."
+    },
+    "serious": {
+      "name": "Sério",
+      "description": "+1 de Mana máxima a partir do turno 4."
+    },
+    "hasty": {
+      "name": "Apressado",
+      "description": "A 1ª carta jogada na batalha custa 0."
+    },
+    "quirky": {
+      "name": "Excêntrico",
+      "description": "A cada 3 cartas exauridas, +1 de mana."
+    },
+    "sassy": {
+      "name": "Audacioso",
+      "description": "Mana restante vira 5 de escudo no fim do turno."
+    },
+    "modest": {
+      "name": "Modesto",
+      "description": "Mana não gasta vira +1 de mana no turno seguinte."
+    }
+  },
+  "regions": {
+    "verdant_forest": {
+      "name": "Floresta Verdejante",
+      "description": "Árvores antigas e pokémons herbívoros.",
+      "bossName": "Venusaur Ancestral",
+      "bossDesc": "O guardião secular da floresta. Veneno que corrói e raízes que prendem."
+    },
+    "ember_cave": {
+      "name": "Caverna das Brasas",
+      "description": "Calor sufocante e criaturas de fogo e rocha.",
+      "bossName": "Charizard das Profundezas",
+      "bossDesc": "Chamas que derretem pedra. Um rugido que apaga as tochas."
+    },
+    "crystal_lake": {
+      "name": "Lago de Cristal",
+      "description": "Águas claras repletas de pokémons aquáticos.",
+      "bossName": "Blastoise das Marés",
+      "bossDesc": "Senhor das correntes. Canhões que disparam a pressão do oceano."
+    },
+    "thunder_plant": {
+      "name": "Usina Trovão",
+      "description": "Correntes elétricas zunindo entre as máquinas.",
+      "bossName": "Raichu Overcharge",
+      "bossDesc": "Descarga de dez mil volts."
+    },
+    "rocky_ridge": {
+      "name": "Cordilheira Rochosa",
+      "description": "Penhascos de pedra e terra batida.",
+      "bossName": "Golem Titânico",
+      "bossDesc": "Uma montanha que respira."
+    },
+    "psychic_tower": {
+      "name": "Torre Psíquica",
+      "description": "Energia mental e sombras inquietas.",
+      "bossName": "Mewtwo Prime",
+      "bossDesc": "Poder que transcende a matéria."
+    },
+    "missingno": {
+      "name": "???",
+      "description": "Uma distorção nos dados.",
+      "bossName": "MissingNo.",
+      "bossDesc": "Um erro na matrix."
+    }
+  },
+  "challenges": {
+    "arena-lutador": {
+      "name": "Arena dos Lutadores",
+      "desc": "Pokémons de luta dominam cada corredor. Traga o que os neutraliza.",
+      "reward": "Pedra ×200",
+      "deckLabel": "Deck de Psíquico"
+    },
+    "maratona-35": {
+      "name": "Maratona das 35",
+      "desc": "Deck limitado a 35 cartas. Cada slot conta. Nada de gordura.",
+      "reward": "XP Duplo",
+      "deckLabel": "Máx. 35 Cartas"
+    },
+    "purgatorio": {
+      "name": "Purgatório das Chamas",
+      "desc": "Apenas pokémons de fogo. Somente água apaga essa fornalha.",
+      "reward": "Água ×80",
+      "deckLabel": "Deck de Água"
+    },
+    "monotype-psiquico": {
+      "name": "Mente Contra Matéria",
+      "desc": "35 cartas contra puro poder psíquico. Sem margens de erro.",
+      "reward": "Psíquico ×50",
+      "deckLabel": "Máx. 35 Cartas"
+    }
+  },
+  "shop": {
+    "title": "Loja",
+    "platinumShop": "🜲 Loja Platinum",
+    "platinBalance": "Saldo:",
+    "elementPacks": "Pacotes por Elemento ({cost}⬡ · {size} cartas)",
+    "buyPack": "Comprar pacote de {element} (⬡{cost})",
+    "capture": "Capturar (⬡{cost})",
+    "cardUpgradeTitle": "Aprimorar Cartas",
+    "cardUpgradeDesc": "+1 de dano/escudo por nível. Preço sobe na escala Fibonacci.",
+    "noUpgradeCards": "Nenhuma carta de ataque/defesa no inventário.",
+    "upgradeModalTitle": "Aprimorar carta",
+    "upgradeBtn": "Aprimorar (+1)",
+    "permanentUpgrades": "Aprimoramentos Permanentes",
+    "incomeMultiplier": "Multiplicador de Renda",
+    "incomeMultiplierDesc": "+50% ganhos idle",
+    "lv": "Nv.",
+    "vitamins": "Vitaminas {element}",
+    "vitaminsGeneric": "Vitaminas Elementais",
+    "vitaminsDesc": "+20 HP/nível tipo ativo",
+    "vitaminsDisabled": "Selecione um Pokémon",
+    "boosterPacks": "Booster Packs Secretos",
+    "boosterPacksDesc": "1x por dia cada pack",
+    "boosterOnlyGold": "Somente ouro. Não entra no refresh diário.",
+    "boosterBought": "Comprado hoje",
+    "boosterSecretI": "Booster Secreto I",
+    "boosterSecretIDesc": "Abre 1 carta secreta aleatória.",
+    "boosterSecretII": "Booster Secreto II",
+    "boosterSecretIIDesc": "Abre 3 cartas secretas aleatórias.",
+    "naturesTitle": "Naturezas — {name}",
+    "naturesDesc": "Desbloqueie em sequência por {cost} de pontos de {element}.",
+    "naturesActive": "✓ Ativa",
+    "naturesLocked": "🔒 Bloqueada",
+    "naturesUnlockFail": "Não foi possível desbloquear.",
+    "insufficientResources": "Recursos insuficientes.",
+    "upgradeBought": "Aprimoramento {name} comprado!",
+    "natureUnlocked": "Natureza {name} desbloqueada!"
+  },
+  "market": {
+    "title": "Mercado",
+    "howTo": "Como funciona",
+    "platinum": "Platinum",
+    "platinumDiscount": "Platinum em promoção! -{pct}%",
+    "platinumDiscountActive": "✨ {pct}% OFF — promoção ativa!",
+    "minutesLeft": "~{min}min restantes",
+    "priceChart": "Gráfico de Preços (Platinum)",
+    "priceChartCandles": "Gráfico de Preços (velas de 5min)",
+    "carregando": "Carregando...",
+    "carregandoMercado": "Carregando mercado...",
+    "resetIn": "Reset em ~{min}min",
+    "currentPrice": "Preço atual do Platinum",
+    "currentPricePer": "Preço atual por {unit} pontos",
+    "priceImpact": "±2.5%+ por transação (escala com sequência) · reset a cada 2h · taxa 1%",
+    "yourBalance": "Seu saldo",
+    "buy": "Comprar {qty}",
+    "sell": "Vender {qty}",
+    "estimatedImpact": "Impacto estimado: ~{pct}% no preço",
+    "missingMoney": "Faltam 💰 {amount} para comprar",
+    "missingMoneyPlat": "Faltam 💰 {amount} para comprar 1 unidade",
+    "priceRises": "Preço sobe {pct}% a cada compra · sem venda",
+    "totalCost": "Custo total estimado ({qty} unidade{plural})",
+    "unitCostMore": "*Cada unidade custa {pct}% mais que a anterior",
+    "buyPlatinum": "Comprar {qty} Platinum",
+    "surgeEvent": "🔥 ALTA! Preço subindo 3x mais rápido",
+    "crashEvent": "💀 QUEDA! Preço caindo 1.5%/min",
+    "marketCrash": "🚫 MERCADO EM CRASH! {element} congelado",
+    "reopensIn": "Reabre em ~2h",
+    "oracleUp": "🔮 ALTA ↑",
+    "oracleDown": "🔮 BAIXA ↓",
+    "oracleUncertain": "🔮 incerta",
+    "greatBuy": "ÓTIMA COMPRA!",
+    "profit": "LUCRO!",
+    "infoModalTitle": "Como funciona",
+    "infoIntro": "O Mercado de Pontos Elementares funciona como uma bolsa de valores em tempo real:",
+    "infoBuySell": "Compra e venda em lotes de <strong>100 a 100.000 pontos</strong>",
+    "infoBuyImpact": "Cada <strong>compra</strong> aumenta o preço em <strong>2.5%+</strong> (escala com sequência)",
+    "infoSellImpact": "Cada <strong>venda</strong> reduz o preço em <strong>2.5%+</strong> (vendas consecutivas drenam o preço)",
+    "infoReset": "A cada <strong>2 horas</strong> os preços são reajustados com novo patamar",
+    "infoSurge": "<strong>Eventos de ALTA</strong> aceleram o preço 3x por ~10-20min",
+    "infoCrash": "<strong>Eventos de QUEDA</strong> drenam o preço 1.5%/min por ~10-20min",
+    "infoOracle": "<strong>Oráculo</strong> dá dicas sobre a direção do preço (60% precisão)",
+    "infoProfitTip": "Compre durante QUEDA ou venda durante ALTA para <strong>lucro extra!</strong>",
+    "infoPlatinum": "<strong>Platinum</strong> é comprado com dinheiro a preço crescente. Compre na promoção!",
+    "infoFee": "Taxa de <strong>1%</strong> em cada compra e venda (dinheiro destruído)",
+    "infoCandles": "Velas verdes = preço subiu; velas vermelhos = caiu"
+  },
+  "deck": {
+    "tabDeck": "🃏 Meu Deck",
+    "tabCatalog": "📖 Catálogo",
+    "title": "Deck Ativo",
+    "selectedCards": "Cartas selecionadas:",
+    "minDeckWarning": "Mínimo de {min} cartas exigido para batalhar. Faltam {remaining}.",
+    "hint": "💡 <strong>Toque</strong> para adicionar/remover • <strong>Segure</strong> para inspecionar",
+    "emptyDeck": "Seu deck está completamente vazio.",
+    "inventoryTitle": "🎒 Seu Inventário",
+    "filterAllElements": "⭐ Todos elementos",
+    "filterAllKinds": "⚔️ Todos tipos",
+    "filterAllCosts": "💎 Todo custo",
+    "costLabel": "Custo {cost}",
+    "loading": "⏳ Carregando inventário...",
+    "noFiltersMatch": "Nenhuma carta atende aos filtros.",
+    "catalogTitle": "Catálogo",
+    "catalogSubtitle": "Todas as cartas do universo Pokengu.",
+    "catalogFilterElements": "⭐ Elementos",
+    "catalogFilterKinds": "⚔️ Tipos",
+    "catalogFilterCosts": "💎 Custo",
+    "catalogNotFound": "Nenhuma carta encontrada.",
+    "inspectTitle": "Inspecionar Carta",
+    "cardEffect": "Efeito da Carta",
+    "deckFull": "Deck cheio ({max}).",
+    "allCopiesInDeck": "Todas as cópias já estão no deck."
+  },
+  "catalog": {
+    "title": "Glossário",
+    "hint": "💡 Explore todas as cartas que existem no universo de Pokengu. Toque para inspecionar seus detalhes e efeitos.",
+    "filterAllElements": "⭐ Todos elementos",
+    "filterAllKinds": "⚔️ Todos tipos",
+    "filterAllCosts": "💎 Todo custo",
+    "costLabel": "Custo {cost}",
+    "notFound": "Nenhuma carta encontrada para esses filtros.",
+    "inspectTitle": "Inspecionar Carta",
+    "cardEffect": "Efeito da Carta",
+    "cost": "Custo",
+    "rarity": "Raridade",
+    "element": "Elemento",
+    "neutral": "Neutro",
+    "costMp": "{cost} MP"
+  },
+  "jobs": {
+    "title": "Pokémons",
+    "emptyRoster": "Capture pokémons em batalha para colocá-los para trabalhar.",
+    "allWorking": "Todos os pokémons estão trabalhando.",
+    "idle": "ocioso",
+    "main": "⭐ principal",
+    "production": "Produção",
+    "noJobs": "Nenhum job ativo.",
+    "stopLabel": "✕ parar",
+    "stopTitle": "Parar {name}",
+    "setAsMain": "⭐ Definir como principal de batalha",
+    "isMain": "⭐ Pokémon principal atual",
+    "workMoney": "💰 Trabalhar por dinheiro",
+    "workElement": "{emoji} Trabalhar com {element}",
+    "assigned": "{name} agora trabalha em {label}.",
+    "stopped": "{name} parou de trabalhar.",
+    "fainted": "{name} está desmaiado e precisa se recuperar antes de lutar.",
+    "setMainSuccess": "{name} agora é o pokémon principal."
+  },
+  "battleLog": {
+    "carta": "+{count} carta",
+    "hp": "❤ {template} · +{healed} HP",
+    "mana": "⚡ {template} · +{mana} mana",
+    "block": "🛡 {template} · +{block}",
+    "attack": "{emoji} {template} · ⚔{damage}",
+    "attackBlocked": "🛡 Ataque bloqueado!",
+    "enemyBlocked": "🛡 Inimigo +{block} bloqueio",
+    "enemyPrepared": "✨ Inimigo se preparou",
+    "enemyAttack": "{emoji} 🤺 −{damage} HP",
+    "modifierTipo": " · {sign}{modifier} tipo",
+    "turnEnd": "↦ "
+  },
+  "layout": {
+    "loading": "Carregando…",
+    "welcomeBack": "Bem-vindo de volta!",
+    "offlineEarnings": "Você ficou fora por {duration}. Enquanto isso, seus pokémons trabalharam:",
+    "moneyEarned": "💰 <strong>{amount}</strong> de dinheiro",
+    "pointsEarned": "✨ <strong>{amount}</strong> pontos de {element}",
+    "continue": "Continuar"
+  },
+  "map": {
+    "tabExplore": "Explorar",
+    "tabChallenges": "⚠ Desafios",
+    "youAreHere": "▲ você",
+    "zoneActive": "Ativa",
+    "pokemonLabel": "Pokémon",
+    "bossChip": "👑 {emoji} Boss",
+    "enemiesDefeated": "Inimigos Derrotados",
+    "bossRevealed": "Boss revelado — hora do confronto",
+    "enemiesRemaining": "{count} {count === 1 ? 'inimigo' : 'inimigos'} para revelar o boss",
+    "noPokemon": "Sem Pokémon",
+    "cards": "cartas",
+    "battle": "⚔ Batalhar",
+    "fightBossReady": "💥 Fight Boss",
+    "fightBossLocked": "🔒 Fight Boss",
+    "bossCooldown": "Boss em Cooldown",
+    "bossRevealedLabel": "Boss Revelado",
+    "nextRegion": "Próxima Região",
+    "conqueredRegions": "Regiões Conquistadas",
+    "noConquests": "Nenhuma conquista ainda.",
+    "missingnoName": "???",
+    "missingnoDesc": "Uma distorção nos dados.",
+    "challengesTitle": "Desafios",
+    "challengesSubtitle": "Regiões com restrições de deck e maior dificuldade. Recompensas exclusivas.",
+    "challengesEnemies": "Enfrenta",
+    "challengesDeck": "Entra com",
+    "challengesReward": "Recompensa <span>{reward}</span>",
+    "challengesLocked": "🔒 Bloqueado",
+    "challengesEnter": "⚔ Entrar",
+    "challengeUnlock": "🔒 Complete a região anterior",
+    "needMoreDefeats": "Derrote mais inimigos comuns nesta região antes do boss.",
+    "bossCooldownMsg": "Boss em cooldown: {duration}.",
+    "selectPokemonFirst": "Selecione um Pokémon principal na aba Pokémons primeiro.",
+    "pokemonFainted": "Seu Pokémon principal está desmaiado. Selecione outro ou aguarde a recuperação.",
+    "deckTooSmall": "Seu deck precisa de ao menos {min} cartas.",
+    "challengeSoon": "Desafio \"{name}\" em breve!"
+  },
+  "elementMatchup": {
+    "matchupTitle": "Leitura elemental",
+    "matchupDesc": "Ataques deste tipo causam mais dano contra os elementos fortes e menos dano contra os resistentes.",
+    "strongAgainst": "Forte contra",
+    "weakAgainst": "Fraco contra",
+    "noStrengths": "Nenhuma vantagem direta.",
+    "noWeaknesses": "Sem fraquezas cadastradas.",
+    "chipLabel": "tipo"
+  },
+  "corrupted": {
+    "label": "Corrompido"
+  },
+  "natureIcon": {
+    "ariaLabel": "{id} nature icon"
+  },
+  "cardDetails": {
+    "playCard": "Jogar carta",
+    "actionUnavailable": "Acao indisponivel",
+    "priceLabel": "Preco: {price}"
+  }
+}

@@ -6,6 +6,7 @@
 	import { ELEMENT_EMOJI, ELEMENT_LABEL } from '$lib/game/elements';
 	import { formatNumber } from '$lib/utils/math';
 	import type { BattleReward, CapturedPokemon } from '$lib/game/types';
+	import { _ } from 'svelte-i18n';
 
 	function seededRNG(seed: number) {
 		let s = seed >>> 0;
@@ -88,18 +89,18 @@
 	let particles = $derived(genParticles(variant));
 
 	let desc = $derived(
-		variant === 'defeat' ? 'Seu deck ativo foi perdido. Inventário e pokémons continuam com você.'
-		: variant === 'capture' ? `${enemyName} foi capturado!`
-		: `${enemyName} foi derrotado!`
+		variant === 'defeat' ? $_('battle.result.descDefeat')
+		: variant === 'capture' ? $_('battle.result.descCapture', { values: { name: enemyName } })
+		: $_('battle.result.descWin', { values: { name: enemyName } })
 	);
 
-	const VARIANTS = {
+	const VARIANTS = $derived({
 		win: {
-			title: 'VITÓRIA!',
+			title: $_('battle.result.win'),
 			titleSize: 36,
 			titleColor: '#ffd884',
 			titleGrad: null,
-			pillLabel: 'Pokémon derrotado',
+			pillLabel: $_('battle.result.pillWin'),
 			pillColor: '#ffd884',
 			accentColor: '#ffd884',
 			borderColor: 'rgba(255,216,132,.22)',
@@ -108,15 +109,15 @@
 			isBoss: false,
 			btnBg: '#ffd884',
 			btnText: '#0c0a14',
-			btnLabel: 'Continuar',
+			btnLabel: $_('battle.result.btnContinue'),
 			btnShadow: 'rgba(255,216,132,.42)'
 		},
 		boss: {
-			title: 'BOSS DERROTADO!',
+			title: $_('battle.result.boss'),
 			titleSize: 34,
 			titleColor: '#ffd884',
 			titleGrad: 'linear-gradient(180deg, #ffd884, #ff7a3d)',
-			pillLabel: 'Chefe de região vencido',
+			pillLabel: $_('battle.result.pillBoss'),
 			pillColor: '#ff7a3d',
 			accentColor: '#ffd884',
 			borderColor: 'rgba(255,216,132,.28)',
@@ -125,15 +126,15 @@
 			isBoss: true,
 			btnBg: 'linear-gradient(135deg, #ffd884, #ff7a3d)',
 			btnText: '#0c0a14',
-			btnLabel: 'Continuar',
+			btnLabel: $_('battle.result.btnContinue'),
 			btnShadow: 'rgba(255,216,132,.5)'
 		},
 		capture: {
-			title: 'CAPTURADO!',
+			title: $_('battle.result.capture'),
 			titleSize: 36,
 			titleColor: '#c9a3ff',
 			titleGrad: null,
-			pillLabel: 'Pokémon capturado',
+			pillLabel: $_('battle.result.pillCapture'),
 			pillColor: '#c9a3ff',
 			accentColor: '#c9a3ff',
 			borderColor: 'rgba(201,163,255,.22)',
@@ -142,15 +143,15 @@
 			isBoss: false,
 			btnBg: '#c9a3ff',
 			btnText: '#0c0a14',
-			btnLabel: 'Continuar',
+			btnLabel: $_('battle.result.btnContinue'),
 			btnShadow: 'rgba(201,163,255,.42)'
 		},
 		defeat: {
-			title: 'DERROTA…',
+			title: $_('battle.result.defeat'),
 			titleSize: 34,
 			titleColor: '#ff6e6e',
 			titleGrad: null,
-			pillLabel: 'Seu pokémon caiu',
+			pillLabel: $_('battle.result.pillDefeat'),
 			pillColor: '#ff6e6e',
 			accentColor: '#ff6e6e',
 			borderColor: 'rgba(255,110,110,.22)',
@@ -159,10 +160,10 @@
 			isBoss: false,
 			btnBg: '#2b2c38',
 			btnText: '#f3f3f7',
-			btnLabel: 'Voltar ao mapa',
+			btnLabel: $_('battle.result.btnMap'),
 			btnShadow: 'rgba(0,0,0,.4)'
 		}
-	} as const;
+	});
 
 	let cfg = $derived(VARIANTS[variant]);
 
@@ -192,7 +193,7 @@
 			{/each}
 		</div>
 
-		<button class="close-btn" onclick={onDismiss} aria-label="Fechar">✕</button>
+		<button class="close-btn" onclick={onDismiss} aria-label={$_('battle.result.close')}>✕</button>
 
 		{#if cfg.isBoss}
 			<div class="boss-ring-1"></div>
@@ -271,19 +272,19 @@
 				{#if reward}
 					{#if reward.money > 0}
 						<div class="reward-row">
-							<div class="reward-label">💰 Dinheiro</div>
+							<div class="reward-label">💰 {$_( 'battle.result.rewardMoney' )}</div>
 							<div class="reward-value">{formatNumber(reward.money)}</div>
 						</div>
 					{/if}
 					{#if reward.elementPoints.amount > 0}
 						<div class="reward-row">
-							<div class="reward-label">{ELEMENT_EMOJI[reward.elementPoints.type]} {ELEMENT_LABEL[reward.elementPoints.type]}</div>
+							<div class="reward-label">{ELEMENT_EMOJI[reward.elementPoints.type]} {$_('elements.' + reward.elementPoints.type)}</div>
 							<div class="reward-value">+{reward.elementPoints.amount}</div>
 						</div>
 					{/if}
 					{#if reward.cardReward}
 						<div class="reward-row">
-							<div class="reward-label">🃏 Nova carta</div>
+							<div class="reward-label">🃏 {$_( 'battle.result.rewardCard' )}</div>
 							<div class="reward-value">{reward.cardReward.name} ({reward.cardReward.rarity})</div>
 						</div>
 						<div class="reward-card">
@@ -291,7 +292,7 @@
 						</div>
 					{:else if variant !== 'defeat' && reward.cardChoices.length > 0}
 						<div class="reward-row">
-							<div class="reward-label">🃏 Escolha uma carta</div>
+							<div class="reward-label">🃏 {$_( 'battle.result.rewardChoose' )}</div>
 						</div>
 						<div class="card-choices">
 							{#each reward.cardChoices as choice (choice.templateId)}
@@ -320,19 +321,19 @@
 							{/each}
 						</div>
 						{#if claimedId === null}
-							<div class="forfeit-hint">Cartas não escolhidas serão perdidas.</div>
+							<div class="forfeit-hint">{$_( 'battle.result.forfeitHint' )}</div>
 						{/if}
 					{/if}
 					{#if reward.unlockedRegionName}
 						<div class="reward-row highlight">
-							<div class="reward-label">🗺️ Nova região</div>
+							<div class="reward-label">🗺️ {$_( 'battle.result.rewardNewRegion' )}</div>
 							<div class="reward-value">{reward.unlockedRegionName}</div>
 						</div>
 					{/if}
 				{/if}
 				{#if variant === 'capture' && captured}
 					<div class="reward-row highlight">
-						<div class="reward-label">🐾 Pokémon</div>
+						<div class="reward-label">🐾 {$_( 'battle.result.rewardPokemon' )}</div>
 						<div class="reward-value">{captured.name}</div>
 					</div>
 				{/if}

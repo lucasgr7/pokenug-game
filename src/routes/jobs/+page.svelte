@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
+	import { t } from '$lib/i18n';
 	import Hud from '$lib/components/Hud.svelte';
 	import Sprite from '$lib/components/Sprite.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
@@ -45,7 +47,7 @@
 	});
 
 	function jobLabel(type: JobType): string {
-		return type === 'money' ? '💰 Dinheiro' : `${ELEMENT_EMOJI[type as Element]} ${ELEMENT_LABEL[type as Element]}`;
+		return type === 'money' ? `${t('jobs.workMoney')}` : `${ELEMENT_EMOJI[type as Element]} ${ELEMENT_LABEL[type as Element]}`;
 	}
 
 	function jobColor(type: JobType): string {
@@ -72,31 +74,31 @@
 	async function choose(type: JobType) {
 		if (!selected) return;
 		await assignJob(selected.id, type);
-		pushToast(`${selected.name} agora trabalha em ${jobLabel(type)}.`, 'success');
+		pushToast(t('jobs.assigned', { name: selected.name, label: jobLabel(type) }), 'success');
 		selected = null;
 	}
 
 	async function stop() {
 		if (!selected) return;
 		await stopJob(selected.id);
-		pushToast(`${selected.name} parou de trabalhar.`);
+		pushToast(t('jobs.stopped', { name: selected.name }));
 		selected = null;
 	}
 
 	async function removeFromJob(pokemon: CapturedPokemon) {
 		await stopJob(pokemon.id);
-		pushToast(`${pokemon.name} parou de trabalhar.`);
+		pushToast(t('jobs.stopped', { name: pokemon.name }));
 	}
 
 	function chooseAsMain() {
 		if (!selected) return;
 		if (normalizedPokemonHp(selected) <= 0) {
-			pushToast(`${selected.name} está desmaiado e precisa se recuperar antes de lutar.`, 'error');
+			pushToast(t('jobs.fainted', { name: selected.name }), 'error');
 			selected = null;
 			return;
 		}
 		setActivePokemon(selected.id);
-		pushToast(`${selected.name} agora é o pokémon principal.`, 'success');
+		pushToast(t('jobs.setMainSuccess', { name: selected.name }), 'success');
 		selected = null;
 	}
 
@@ -113,12 +115,12 @@
 
 <main class="px-4 py-4">
 	<!-- Idle + principal pokémon -->
-	<h1 class="mb-3 text-xl font-bold">Pokémons</h1>
+	<h1 class="mb-3 text-xl font-bold">{$_('jobs.title')}</h1>
 
 	{#if game.roster.length === 0}
-		<p class="text-sm text-(--text-muted)">Capture pokémons em batalha para colocá-los para trabalhar.</p>
+		<p class="text-sm text-(--text-muted)">{$_('jobs.emptyRoster')}</p>
 	{:else if visibleRoster.length === 0}
-		<p class="text-sm text-(--text-muted)">Todos os pokémons estão trabalhando.</p>
+		<p class="text-sm text-(--text-muted)">{$_('jobs.allWorking')}</p>
 	{:else}
 		<div class="grid grid-cols-3 gap-2">
 			{#each visibleRoster as p (p.id)}
@@ -148,11 +150,11 @@
 					</div>
 					{#if isMain}
 						<span class="mt-0.5 rounded-full bg-(--accent)/15 px-1.5 py-0.5 text-[10px] font-semibold text-(--accent)">
-							⭐ principal
+							{$_('jobs.main')}
 						</span>
 					{:else}
 						<span class="mt-0.5 rounded-full bg-(--surface-2) px-1.5 py-0.5 text-[10px] text-(--text-muted)">
-							ocioso
+							{$_('jobs.idle')}
 						</span>
 					{/if}
 				</button>
@@ -161,9 +163,9 @@
 	{/if}
 
 	<!-- Active jobs -->
-	<h2 class="mb-2 mt-6 text-lg font-bold">Produção</h2>
+	<h2 class="mb-2 mt-6 text-lg font-bold">{$_('jobs.production')}</h2>
 	{#if activeTypes.length === 0}
-		<p class="text-sm text-(--text-muted)">Nenhum job ativo.</p>
+		<p class="text-sm text-(--text-muted)">{$_('jobs.noJobs')}</p>
 	{:else}
 		<div class="space-y-3">
 			{#each activeTypes as type (type)}
@@ -188,12 +190,12 @@
 							{#each workers as w (w.id)}
 								<button
 									class="worker-tile flex flex-col items-center rounded-xl border border-(--border) bg-(--surface-2) px-1.5 py-1 active:scale-95"
-									title="Parar {w.name}"
+									title={$_('jobs.stopTitle', { values: { name: w.name } })}
 									onclick={() => removeFromJob(w)}
 								>
 									<Sprite speciesId={w.speciesId} size={36} alt={w.name} />
 									<span class="mt-0.5 max-w-12 truncate text-[9px] text-(--text-muted)">{w.name}</span>
-									<span class="text-[8px] text-(--danger)">✕ parar</span>
+									<span class="text-[8px] text-(--danger)">{$_('jobs.stopLabel')}</span>
 								</button>
 							{/each}
 						</div>
@@ -232,14 +234,14 @@
 							class:border-(--success)={unlocked}
 							class:opacity-50={!unlocked}
 							onclick={() => (expandedNature = expanded ? null : i)}
-							title={NATURES[id].description}
+							title={$_('natures.' + id + '.description')}
 						>
 							<NatureIcon {id} locked={!unlocked} size={16} />
-							{NATURES[id].namePt}
+							{$_('natures.' + id + '.name')}
 						</button>
 						{#if expanded}
 							<div class="mt-0.5 max-w-48 rounded-md bg-(--surface-2) px-2 py-1 text-[10px] text-(--text-muted)">
-								{NATURES[id].description}
+								{$_('natures.' + id + '.description')}
 							</div>
 						{/if}
 					</div>
@@ -252,19 +254,19 @@
 				disabled={isMain}
 				onclick={chooseAsMain}
 			>
-				⭐ {isMain ? 'Pokémon principal atual' : 'Definir como principal de batalha'}
+				⭐ {isMain ? $_('jobs.isMain') : $_('jobs.setAsMain')}
 			</button>
 			<button
 				class="w-full rounded-xl border border-(--border) px-4 py-3 text-left font-semibold hover:bg-(--surface-2)"
 				onclick={() => choose('money')}
 			>
-				💰 Trabalhar por dinheiro
+				{$_('jobs.workMoney')}
 			</button>
 			<button
 				class="w-full rounded-xl border border-(--border) px-4 py-3 text-left font-semibold hover:bg-(--surface-2)"
 				onclick={() => choose(selected!.element)}
 			>
-				{ELEMENT_EMOJI[selected.element]} Trabalhar com {ELEMENT_LABEL[selected.element]}
+				{$_('jobs.workElement', { values: { emoji: ELEMENT_EMOJI[selected.element], element: $_('elements.' + selected.element) } })}
 			</button>
 		</div>
 	{/if}

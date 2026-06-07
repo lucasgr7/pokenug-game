@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
 	import type { NatureId } from '$lib/game/types';
 
 	let {
@@ -39,7 +40,7 @@
 	class:nature-locked={locked}
 	class:nature-active={!locked}
 	style="--nature-color: {NATURE_COLORS[id]};"
-	aria-label="{id} nature icon"
+	aria-label={$_('natureIcon.ariaLabel', { values: { id: id } })}
 >
 	{#if id === 'hardy'}
 		<rect x="6" y="16" width="20" height="3" rx="1.5" fill="var(--nature-color)" opacity="0.22" />

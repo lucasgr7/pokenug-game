@@ -1,9 +1,10 @@
 <script lang="ts">
 	import type { BattleLogEntry } from '$lib/game/battle-log';
+	import { _ } from 'svelte-i18n';
 
 	let {
 		logs = [],
-		emptyLabel = 'Início da batalha...'
+		emptyLabel = $_('battle.logs.empty')
 	}: {
 		logs?: BattleLogEntry[];
 		emptyLabel?: string;
