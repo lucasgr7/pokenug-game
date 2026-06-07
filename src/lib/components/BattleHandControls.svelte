@@ -97,8 +97,6 @@
 		</div>
 
 
-		<!-- Center: hint -->
-		<span class="hand-hint">Toque para jogar • Segure para inspecionar</span>
 
 		<!-- Right: End turn -->
 		<button
