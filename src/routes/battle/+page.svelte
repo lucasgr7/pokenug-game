@@ -76,57 +76,6 @@
 		prevTurn = turn;
 	});
 
-	// ── Damage / block floats ─────────────────────────────────────────────
-	let enemyDmgFloat = $state<{ id: string; amount: number; block?: boolean } | null>(null);
-	let playerDmgFloat = $state<{ id: string; amount: number; block?: boolean } | null>(null);
-
-	// ── Turn flash ────────────────────────────────────────────────────────
-	let showTurnFlash = $state(false);
-	let prevTurn = $state<'player' | 'enemy' | null>(null);
-
-	$effect(() => {
-		const turn = s?.turn ?? null;
-		if (turn === 'player' && prevTurn === 'enemy') {
-			showTurnFlash = true;
-			setTimeout(() => { showTurnFlash = false; }, 1100);
-		}
-		prevTurn = turn;
-	});
-
-	// ── Damage / block floats ─────────────────────────────────────────────
-	let enemyDmgFloat = $state<{ id: string; amount: number; block?: boolean } | null>(null);
-	let playerDmgFloat = $state<{ id: string; amount: number; block?: boolean } | null>(null);
-
-	// ── Turn flash ────────────────────────────────────────────────────────
-	let showTurnFlash = $state(false);
-	let prevTurn = $state<'player' | 'enemy' | null>(null);
-
-	$effect(() => {
-		const turn = s?.turn ?? null;
-		if (turn === 'player' && prevTurn === 'enemy') {
-			showTurnFlash = true;
-			setTimeout(() => { showTurnFlash = false; }, 1100);
-		}
-		prevTurn = turn;
-	});
-
-	// ── Damage / block floats ─────────────────────────────────────────────
-	let enemyDmgFloat = $state<{ id: string; amount: number; block?: boolean } | null>(null);
-	let playerDmgFloat = $state<{ id: string; amount: number; block?: boolean } | null>(null);
-
-	// ── Turn flash ────────────────────────────────────────────────────────
-	let showTurnFlash = $state(false);
-	let prevTurn = $state<'player' | 'enemy' | null>(null);
-
-	$effect(() => {
-		const turn = s?.turn ?? null;
-		if (turn === 'player' && prevTurn === 'enemy') {
-			showTurnFlash = true;
-			setTimeout(() => { showTurnFlash = false; }, 1100);
-		}
-		prevTurn = turn;
-	});
-
 	let battleLogs = $state<BattleLogEntry[]>([]);
 
 	function addLog(line: LogPart[]) {
