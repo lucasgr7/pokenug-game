@@ -14,7 +14,7 @@
 		<div class="mb-1 flex items-center justify-between gap-1">
 			<span class="truncate text-xs font-bold">{s.player.pokemon.name}</span>
 			<div class="flex items-center gap-1">
-				<ManaCrystal mana={s.player.mana} max={s.player.maxMana} />
+				<ManaCrystal mana={s.player.mana} max={s.player.maxMana > s.player.mana ? s.player.maxMana : s.player.mana} />
 			</div>
 		</div>
 		<HpBar hp={hpReveal ? s.player.hp : 0} maxHp={s.player.pokemon.maxHp} block={s.player.block} />
