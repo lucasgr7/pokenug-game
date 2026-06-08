@@ -9,6 +9,8 @@ import { now } from '$lib/utils/time';
 import { ensurePokemonNatures } from '$lib/data/natures';
 import { applyElementalHpBonusToPokemon, applyThemeToDom, game } from './state.svelte';
 import type { Card, CapturedPokemon, Player } from './types';
+import { browser } from '$app/environment';
+import posthog from 'posthog-js';
 
 function buildStarterDeck(): Card[] {
 	const cards: Card[] = [];
@@ -78,4 +80,12 @@ export async function createPlayer(name: string, starter: StarterDef): Promise<v
 	game.player = player;
 	game.roster = [pokemon];
 	applyThemeToDom(player.theme);
+
+	if (browser) {
+		posthog.identify(player.id, { name: player.name });
+		posthog.capture('player_created', {
+			starter_name: starter.name,
+			starter_element: starter.element
+		});
+	}
 }

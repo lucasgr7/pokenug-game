@@ -8,6 +8,7 @@
 	import { getTemplate } from '$lib/data/cards';
 	import { isUpgradeable, cardUpgradeCost, canAffordUpgrade, upgradeCardCopy } from '$lib/game/upgrades.svelte';
 	import { ELEMENT_EMOJI } from '$lib/game/elements';
+	import posthog from 'posthog-js';
 	import { formatNumber } from '$lib/utils/math';
 	import { pushToast } from '$lib/stores/toast.svelte';
 	import type { Card as CardT, CardTemplate } from '$lib/game/types';
@@ -47,9 +48,15 @@
 	async function doUpgrade() {
 		if (!selected) return;
 		const id = selected.id;
+		const tpl = getTemplate(selected.templateId);
 		const res = await upgradeCardCopy(id);
 		if (res == null) { pushToast(t('shop.insufficientResources'), 'error'); return; }
-		pushToast(t('shop.upgradeBought', { name: 'Carta' }), 'success');
+		posthog.capture('card_upgraded', {
+			template_id: selected.templateId,
+			card_name: tpl?.name,
+			new_level: res,
+			element: tpl?.element ?? null
+		});
 		await reload();
 		selected = cards.find((c) => c.id === id) ?? null;
 	}

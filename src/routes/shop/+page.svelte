@@ -24,6 +24,7 @@
 	import { pushToast } from '$lib/stores/toast.svelte';
 	import PlatinumShop from '$lib/components/marketplace/PlatinumShop.svelte';
 	import CorruptedBadge from '$lib/components/CorruptedBadge.svelte';
+	import posthog from 'posthog-js';
 
 	let inspectingCard: string | null = $state(null);
 
@@ -34,6 +35,13 @@
 			const id = p?.natures?.assigned[index];
 			const name = id ? t('natures.' + id + '.name') : '';
 			pushToast(t('shop.natureUnlocked', { name }), 'success');
+
+			// posthog telemetry
+			const natureName = p?.natures?.assigned[index] ? NATURES[p.natures.assigned[index]].namePt : '';
+			posthog.capture('nature_unlocked', {
+				nature_name: natureName,
+				pokemon_element: p?.element
+			});
 		} else {
 			pushToast(t('shop.naturesUnlockFail'), 'error');
 		}
@@ -42,9 +50,17 @@
 	async function performNguBuy(action: () => Promise<boolean>, name: string) {
 		const ok = await action();
 		if (!ok) pushToast(t('shop.insufficientResources'), 'error');
+		if (ok) {
+			posthog.capture('income_multiplier_purchased', {
+				upgrade_name: name,
+				new_level: game.player?.ngu.moneyMultiplierLevel
+			});
+			pushToast(t('shop.upgradePurchased', { name }), 'success');
+		}
 	}
 
 	async function buyPack(packId: (typeof BOOSTER_PACKS)[number]['id']) {
+		const pack = BOOSTER_PACKS.find((p) => p.id === packId);
 		const rewards = await buyBoosterPack(packId);
 		if (!rewards) {
 			if (hasPurchasedBoosterToday()) {
@@ -54,6 +70,12 @@
 			}
 			return;
 		}
+		posthog.capture('booster_pack_purchased', {
+			pack_id: packId,
+			pack_name: pack?.name,
+			price: pack?.price,
+			cards_received: rewards.map((c) => c.name)
+		});
 		pushToast(`Pack aberto: ${rewards.map((card) => card.name).join(', ')}`, 'success');
 	}
 

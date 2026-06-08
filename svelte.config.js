@@ -13,7 +13,10 @@ const config = {
 			assets: 'build',
 			precompress: false,
 			strict: false
-		})
+		}),
+		paths: {
+			relative: false
+		}
 	}
 };
 

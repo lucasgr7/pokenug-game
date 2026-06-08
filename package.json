@@ -26,6 +26,8 @@
 	"dependencies": {
 		"@vercel/analytics": "^2.0.1",
 		"idb": "^8.0.3",
-		"svelte-i18n": "^4.0.1"
+		"svelte-i18n": "^4.0.1",
+		"posthog-js": "^1.382.0",
+		"posthog-node": "^5.36.4"
 	}
 }

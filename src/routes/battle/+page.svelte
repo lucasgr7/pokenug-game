@@ -30,6 +30,7 @@
 	import { startMissingNo, mn } from '$lib/game/missingno.svelte';
 	import MissingNoOverlay from '$lib/components/battle/MissingNoOverlay.svelte';
 	import type { BattleMode } from '$lib/game/types';
+	import posthog from 'posthog-js';
 
 	let loading = $state(true);
 	let error = $state<string | null>(null);
@@ -98,6 +99,14 @@
 			} else {
 				await goto('/');
 				return;
+			}
+			if (battle.state) {
+				posthog.capture('battle_started', {
+					region_id: battle.state.regionId,
+					mode: battle.state.mode,
+					player_element: battle.state.player.pokemon.element,
+					enemy_element: battle.state.enemy.pokemon.element
+				});
 			}
 		} catch (e) {
 			console.error(e);

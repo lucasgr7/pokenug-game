@@ -1,5 +1,7 @@
 import { addToInventory, getActiveDeck, getInventory, removeFromDeck, removeFromInventory } from '$lib/db/cards';
 import { resetDeckToStarters } from '$lib/db/cards';
+import { browser } from '$app/environment';
+import posthog from 'posthog-js';
 import { addPokemon } from '$lib/db/pokemon';
 import {
 	canFightBoss,
@@ -1026,6 +1028,15 @@ export async function finalizeBattle(): Promise<void> {
 			}
 		}
 		await resetDeckToStarters();
+		if (browser) {
+			posthog.capture('battle_lost', {
+				region_id: s.regionId,
+				mode: s.mode,
+				turn_number: s.turnNumber,
+				player_element: s.player.pokemon.element,
+				enemy_element: s.enemy.pokemon.element
+			});
+		}
 		return;
 	}
 
@@ -1083,6 +1094,28 @@ export async function finalizeBattle(): Promise<void> {
 		cardReward: null,
 		cardChoices
 	};
+
+	if (browser) {
+		if (s.status === 'captured') {
+			posthog.capture('pokemon_captured', {
+				pokemon_name: s.enemy.pokemon.name,
+				pokemon_element: s.enemy.pokemon.element,
+				region_id: s.regionId
+			});
+		} else {
+			posthog.capture('battle_won', {
+				region_id: s.regionId,
+				mode: s.mode,
+				turn_number: s.turnNumber,
+				player_element: s.player.pokemon.element,
+				enemy_element: s.enemy.pokemon.element,
+				money_earned: money
+			});
+		}
+		if (unlockedRegionName) {
+			posthog.capture('region_unlocked', { region_name: unlockedRegionName });
+		}
+	}
 }
 
 export async function claimRewardCard(templateId: string): Promise<void> {

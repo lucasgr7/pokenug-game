@@ -27,6 +27,7 @@
 	import { game, getElementPoints } from '$lib/game/state.svelte';
 	import { pushToast } from '$lib/stores/toast.svelte';
 	import { notifyHudTrade } from '$lib/stores/hud.svelte';
+	import posthog from 'posthog-js';
 
 	// ---- State ----
 	let selectedCommodity = $state<Element | 'platinum'>('fire');
@@ -84,6 +85,11 @@
 			const result = await buyElementPoints(el, tradeQty);
 			if (!result.success) pushToast(result.message, 'error');
 			if (result.success) {
+				posthog.capture('element_points_purchased', {
+					element: el,
+					quantity: tradeQty,
+					great_deal: result.greatDeal ?? false
+				});
 				notifyHudTrade(el, 'buy');
 				if (result.greatDeal) {
 					burstMessage = t('market.greatBuy');
