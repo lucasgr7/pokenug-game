@@ -2,15 +2,15 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json .npmrc ./
-RUN npm install
+COPY package.json yarn.lock .npmrc ./
+RUN yarn install --frozen-lockfile
 
 COPY src ./src
 COPY static ./static
 COPY public ./public
 COPY tsconfig.json vite.config.ts svelte.config.js ./
 
-RUN npm run build
+RUN yarn build
 
 FROM nginx:1.27-alpine AS runtime
 
