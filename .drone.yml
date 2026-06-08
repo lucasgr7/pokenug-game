@@ -5,13 +5,23 @@ name: default
 steps:
   - name: validate
     image: node:20-alpine
+    environment:
+      PUBLIC_POSTHOG_PROJECT_TOKEN:
+        from_secret: PUBLIC_POSTHOG_PROJECT_TOKEN
+      PUBLIC_POSTHOG_HOST:
+        from_secret: PUBLIC_POSTHOG_HOST
     commands:
-      - npm install
-      - npm run check
-      - npm run build
+      - yarn install --frozen-lockfile
+      - yarn check
+      - yarn build
 
   - name: deploy
     image: docker:27-cli
+    environment:
+      PUBLIC_POSTHOG_PROJECT_TOKEN:
+        from_secret: PUBLIC_POSTHOG_PROJECT_TOKEN
+      PUBLIC_POSTHOG_HOST:
+        from_secret: PUBLIC_POSTHOG_HOST
     volumes:
       - name: docker-socket
         path: /var/run/docker.sock
