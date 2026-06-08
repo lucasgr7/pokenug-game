@@ -33,6 +33,29 @@ steps:
       event:
         - push
 
+  - name: push-to-github
+    image: alpine/git
+    failure: ignore
+    environment:
+      GITHUB_TOKEN:
+        from_secret: github_token
+    commands:
+      - |
+        if [ -z "$GITHUB_TOKEN" ]; then
+          echo ":: GITHUB_TOKEN secret not found — skipping GitHub push ::"
+          exit 0
+        fi
+        git config user.name "Drone CI"
+        git config user.email "drone@anomalyco.dev"
+        git remote add github "https://lucasgr7:${GITHUB_TOKEN}@github.com/lucasgr7/pokenug-game.git"
+        git fetch github main
+        git push github "HEAD:main"
+    when:
+      branch:
+        - main
+      event:
+        - push
+
 volumes:
   - name: docker-socket
     host:
