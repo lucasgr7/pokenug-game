@@ -10,6 +10,11 @@ COPY static ./static
 COPY public ./public
 COPY tsconfig.json vite.config.ts svelte.config.js ./
 
+ARG PUBLIC_POSTHOG_PROJECT_TOKEN
+ARG PUBLIC_POSTHOG_HOST
+ENV PUBLIC_POSTHOG_PROJECT_TOKEN=$PUBLIC_POSTHOG_PROJECT_TOKEN
+ENV PUBLIC_POSTHOG_HOST=$PUBLIC_POSTHOG_HOST
+
 RUN yarn build
 
 FROM nginx:1.27-alpine AS runtime

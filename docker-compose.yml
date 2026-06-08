@@ -5,6 +5,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - PUBLIC_POSTHOG_PROJECT_TOKEN
+        - PUBLIC_POSTHOG_HOST
     ports:
       - "${WEB_PORT:-3030}:80"
     restart: unless-stopped
