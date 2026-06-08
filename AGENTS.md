@@ -5,6 +5,7 @@
 - Node 20+. **Node 18 crashes Vite 8** (`CustomEvent is not defined`).
 - Yarn classic.
 
+test
 ## Commands
 
 | Command | Purpose |
