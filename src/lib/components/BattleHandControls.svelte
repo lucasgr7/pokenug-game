@@ -239,15 +239,6 @@
 		background: rgba(40, 40, 52, 0.9);
 	}
 
-	/* hint text */
-	.hand-hint {
-		font-size: 11px;
-		font-weight: 600;
-		color: var(--txt-dim, #9a9bab);
-		text-align: center;
-		white-space: nowrap;
-	}
-
 	/* end turn button */
 	.endturn {
 		display: flex;

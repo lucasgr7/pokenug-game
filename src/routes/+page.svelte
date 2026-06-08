@@ -1020,11 +1020,7 @@
 		font-size: 17px;
 		transition: all 0.4s;
 	}
-	.bg-locked-wrap.traces .bg-lock-icon {
-		border-color: color-mix(in oklch, var(--zc) 30%, transparent);
-	}
 	.bg-locked-wrap.approaching .bg-lock-icon {
-		border-color: color-mix(in oklch, var(--zc) 55%, transparent);
 		box-shadow: 0 0 14px color-mix(in oklch, var(--zc) 28%, transparent);
 	}
 	.bg-locked-info {
@@ -1037,9 +1033,6 @@
 		color: var(--txt-dim);
 		margin-bottom: 2px;
 		transition: color 0.4s;
-	}
-	.bg-locked-wrap.approaching .bg-l-title {
-		color: var(--zc);
 	}
 	.bg-l-sub {
 		font-size: 10px;
@@ -1458,10 +1451,6 @@
 		font-size: 10px;
 		font-weight: 700;
 		color: var(--txt-mute);
-	}
-	.ch-reward span {
-		color: var(--cta);
-		font-weight: 800;
 	}
 	.ch-btn {
 		border-radius: 8px;
