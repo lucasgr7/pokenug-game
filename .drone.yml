@@ -11,9 +11,9 @@ steps:
       PUBLIC_POSTHOG_HOST:
         from_secret: PUBLIC_POSTHOG_HOST
     commands:
-      - yarn install --frozen-lockfile
-      - yarn check
-      - yarn build
+      - npm install
+      - npm run check
+      - npm run build
 
   - name: deploy
     image: docker:27-cli
