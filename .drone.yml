@@ -45,8 +45,8 @@ steps:
           echo ":: GITHUB_TOKEN secret not found — skipping GitHub push ::"
           exit 0
         fi
-        git config user.name "Drone CI"
-        git config user.email "drone@anomalyco.dev"
+        git config user.name "Lucas Ribeiro"
+        git config user.email "lucasgr7@gmail.com"
         git remote add github "https://lucasgr7:${GITHUB_TOKEN}@github.com/lucasgr7/pokenug-game.git"
         git fetch github main
         git push github "HEAD:main"
