@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getTemplate } from '$lib/data/cards';
+	import { getCardArt } from '$lib/data/card-art';
 	import { ELEMENT_COLOR, ELEMENT_LABEL } from '$lib/game/elements';
 	import CardKindIcon from './CardKindIcon.svelte';
 	import type { Element } from '$lib/game/types';
@@ -78,6 +79,7 @@
 	}
 
 	let tpl = $derived(getTemplate(templateId));
+	let artUrl = $derived(tpl ? getCardArt(tpl) : null);
 
 	let elementColor = $derived(
 		tpl?.element ? ELEMENT_COLOR[tpl.element as Element] : tpl?.kind === 'power' ? '#f59e0b' : '#9ca3af'
@@ -161,11 +163,16 @@
 
 				<!-- ART WINDOW -->
 				<div class="c-art">
-					<div class="art-halo" style="background: radial-gradient(circle at 50% 42%, {elementColor}cc, {elementColor}33 55%, transparent 72%);"></div>
-					<div class="art-ring" style="border-color: {elementColor};"></div>
-					<div class="art-glyph">
-						<CardKindIcon id={tpl.id} kind={tpl.kind} element={tpl.element} color={elementColor} size={iconSize} />
-					</div>
+					{#if artUrl}
+						<img class="art-img" src={artUrl} alt={tpl.name} draggable="false" />
+						<div class="art-img-fade"></div>
+					{:else}
+						<div class="art-halo" style="background: radial-gradient(circle at 50% 42%, {elementColor}cc, {elementColor}33 55%, transparent 72%);"></div>
+						<div class="art-ring" style="border-color: {elementColor};"></div>
+						<div class="art-glyph">
+							<CardKindIcon id={tpl.id} kind={tpl.kind} element={tpl.element} color={elementColor} size={iconSize} />
+						</div>
+					{/if}
 					{#if statValue !== null && statValue !== undefined}
 						<div class="stat-badge {statKind}">
 							{#if statKind === 'atk'}
@@ -471,6 +478,25 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+	}
+	.art-img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		z-index: 1;
+		user-select: none;
+		-webkit-user-drag: none;
+	}
+	/* Bottom fade so the stat badge / type chip stay readable over art. */
+	.art-img-fade {
+		position: absolute;
+		inset: auto 0 0 0;
+		height: 45%;
+		z-index: 2;
+		pointer-events: none;
+		background: linear-gradient(180deg, transparent, rgba(8, 8, 12, 0.72));
 	}
 	.card-root.power-card .art-glyph {
 		filter: drop-shadow(0 0 14px color-mix(in srgb, var(--elem-color) 42%, transparent));

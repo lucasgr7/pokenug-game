@@ -303,7 +303,17 @@
     "dano_eletrico": {
       "label": "Electric +{stacks}",
       "title": "Each card deals bonus electric damage"
-    }
+    },
+    "imobilizado":      { "label": "Immobilized {stacks}", "title": "Enemy immobilized: attack damage halved. Expires in {stacks} turn(s)." },
+    "fraqueza":         { "label": "Weakness {stacks}",    "title": "Enemy weakened: takes +25% damage per stack. Expires in {stacks} turn(s)." },
+    "intimidate":       { "label": "Intimidated {stacks}", "title": "Enemy intimidated: attack damage reduced. Expires in {stacks} turn(s)." },
+    "shield_cancelled": { "label": "Shield denied {stacks}", "title": "Enemy's next shield is cancelled. Lasts {stacks} turn(s)." },
+    "shield_reduced":   { "label": "Weak shield {stacks}", "title": "Enemy shield halved. Lasts {stacks} turn(s)." },
+    "buff_reduced":     { "label": "Weak buff {stacks}",   "title": "Enemy damage buff halved. Lasts {stacks} turn(s)." },
+    "enraizado":        { "label": "Rooted {stacks}",      "title": "Enemy rooted: takes double damage from Grass attacks. Expires in {stacks} turn(s)." },
+    "next_turn_bonus":  { "label": "Next-turn bonus",      "title": "Next turn you gain extra cards/mana." },
+    "rocha_imovel":     { "label": "Immovable rock",       "title": "Your shield does not reset at end of turn." },
+    "auto_jogar":       { "label": "Auto-play",            "title": "A card is played automatically." }
   },
   "cards": {
     "neu_atk_preciso": {

@@ -303,7 +303,17 @@
     "dano_eletrico": {
       "label": "Elétrico +{stacks}",
       "title": "Cada carta causa dano elétrico bonus"
-    }
+    },
+    "imobilizado":      { "label": "Imobilizado {stacks}", "title": "Inimigo imobilizado: dano de ataque reduzido pela metade. Some em {stacks} turno(s)." },
+    "fraqueza":         { "label": "Fraqueza {stacks}",     "title": "Inimigo fragilizado: recebe +25% de dano por acúmulo. Some em {stacks} turno(s)." },
+    "intimidate":       { "label": "Intimidado {stacks}",   "title": "Inimigo intimidado: dano de ataque reduzido. Some em {stacks} turno(s)." },
+    "shield_cancelled": { "label": "Escudo anulado {stacks}", "title": "O próximo escudo do inimigo será anulado. Dura {stacks} turno(s)." },
+    "shield_reduced":   { "label": "Escudo fraco {stacks}", "title": "Escudo do inimigo reduzido pela metade. Dura {stacks} turno(s)." },
+    "buff_reduced":     { "label": "Buff fraco {stacks}",   "title": "Aumento de dano do inimigo reduzido pela metade. Dura {stacks} turno(s)." },
+    "enraizado":        { "label": "Enraizado {stacks}",    "title": "Inimigo enraizado: recebe o dobro de dano de ataques de Planta. Some em {stacks} turno(s)." },
+    "next_turn_bonus":  { "label": "Bônus próximo turno",   "title": "No próximo turno você ganha cartas/mana extra." },
+    "rocha_imovel":     { "label": "Rocha imóvel",          "title": "Seu escudo não zera no fim do turno." },
+    "auto_jogar":       { "label": "Auto-jogar",            "title": "Uma carta é jogada automaticamente." }
   },
   "cards": {
     "neu_atk_preciso": {

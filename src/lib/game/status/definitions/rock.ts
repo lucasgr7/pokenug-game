@@ -39,6 +39,13 @@ defineStatus({
       if (ctx.s.player.block > 0) {
         addStatus(ctx.s.player, 'next_turn_bonus', 1, { mana: 1 });
       }
-    }
+    },
+    emblem: () => ({
+      icon: '🪨',
+      label: statusLabel('rocha_imovel'),
+      title: statusTitle('rocha_imovel'),
+      color: '#a8a29e',
+      bg: 'rgba(168,162,158,0.15)'
+    })
   }
 });

@@ -133,6 +133,7 @@
 	);
 	let isBossBattle = $derived(s?.mode === 'boss');
 	let isMissingNo = $derived(s?.mode === 'missingno');
+	const enemyDebuffed = $derived(!!s && s.enemy.statuses.length > 0);
 
 	function canPlay(card: { templateId: string }): boolean {
 		if (!s || s.turn !== 'player' || s.status !== 'active') return false;
@@ -286,7 +287,7 @@
 				{#key introKey}
 					<div class="platform"></div>
 					{#key battle.enemyHurt}
-						<div class="shake-host hit-host" class:sprite-intro={showIntro}>
+						<div class="shake-host hit-host" class:sprite-intro={showIntro} class:enemy-debuffed={enemyDebuffed}>
 							<Sprite speciesId={s.enemy.pokemon.speciesId} size={120} alt={s.enemy.pokemon.name} />
 						</div>
 					{/key}
@@ -601,5 +602,20 @@
 		0%   { transform: scale(0.4) rotate(-8deg); opacity: 0; }
 		70%  { transform: scale(1.12) rotate(2deg);  opacity: 1; }
 		100% { transform: scale(1) rotate(0);        opacity: 1; }
+	}
+
+	/* ── Enemy debuff overlay ────────────────────────────────────────────── */
+	.enemy-debuffed :global(img) {
+		animation: debuff-pulse 1.6s ease-in-out infinite;
+		filter: saturate(0.7) brightness(0.9) drop-shadow(0 0 6px rgba(148, 163, 184, 0.55));
+	}
+
+	@keyframes debuff-pulse {
+		0%, 100% {
+			filter: saturate(0.7) brightness(0.9) drop-shadow(0 0 5px rgba(148, 163, 184, 0.45));
+		}
+		50% {
+			filter: saturate(0.6) brightness(0.85) drop-shadow(0 0 9px rgba(148, 163, 184, 0.7));
+		}
 	}
 </style>

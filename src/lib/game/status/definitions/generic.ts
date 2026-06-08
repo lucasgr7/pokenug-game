@@ -40,7 +40,14 @@ defineStatus({
       const mana = ctx.self.data?.mana ?? 0;
       if (draw > 0) ctx.draw(draw);
       if (mana > 0) ctx.s.player.mana = Math.min(ctx.s.player.mana + mana, 6);
-    }
+    },
+    emblem: () => ({
+      icon: '🎁',
+      label: statusLabel('next_turn_bonus'),
+      title: statusTitle('next_turn_bonus'),
+      color: '#34d399',
+      bg: 'rgba(52,211,153,0.15)'
+    })
   }
 });
 

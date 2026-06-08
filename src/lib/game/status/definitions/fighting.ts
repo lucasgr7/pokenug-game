@@ -1,4 +1,5 @@
 import { defineStatus } from '../registry';
+import { statusLabel, statusTitle } from '$lib/i18n/game';
 import { getTemplate } from '$lib/data/cards';
 import { applyCardEffect } from '../../cards/apply';
 
@@ -37,7 +38,14 @@ defineStatus({
         played++;
       }
       ctx.self.data = { used: played };
-    }
+    },
+    emblem: () => ({
+      icon: '🤖',
+      label: statusLabel('auto_jogar'),
+      title: statusTitle('auto_jogar'),
+      color: '#f472b6',
+      bg: 'rgba(244,114,182,0.15)'
+    })
   }
 });
 
