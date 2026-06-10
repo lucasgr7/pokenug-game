@@ -54,7 +54,7 @@ export const STARTER_DECK: Array<[string, number]> = [
 	['neu_atk_preciso', 5],
 	['neu_def_bloqueio', 4],
 	['heal_spray_cura', 2],
-	['pokeball_basic', 2]
+	['pokeball_basic', 1]
 ];
 
 // ---- Catálogo comprável (GDD cards.md) ----
