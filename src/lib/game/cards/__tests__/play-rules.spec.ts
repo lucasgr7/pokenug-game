@@ -9,16 +9,16 @@ import { card, testBattle } from '$lib/testing/battle';
 
 describe('custo de mana', () => {
 	it('recusa a jogada sem mana suficiente', () => {
-		const b = testBattle({ hand: ['neu_atk_investida'], player: { mana: 1 } }); // custo 2
-		const r = b.tryPlay('neu_atk_investida');
+		const b = testBattle({ hand: ['heal_spray_cura'], player: { mana: 1 } }); // custo 2
+		const r = b.tryPlay('heal_spray_cura');
 		expect(r.played).toBe(false);
-		expect(b.hand).toContain('neu_atk_investida');
+		expect(b.hand).toContain('heal_spray_cura');
 		expect(b.player.mana).toBe(1);
 	});
 
 	it('deduz exatamente o custo da carta', () => {
-		const b = testBattle({ hand: ['neu_atk_investida'], player: { mana: 3 } });
-		b.play('neu_atk_investida');
+		const b = testBattle({ hand: ['heal_spray_cura'], player: { mana: 3 } });
+		b.play('heal_spray_cura');
 		expect(b.player.mana).toBe(1);
 	});
 
@@ -50,14 +50,14 @@ describe('POWER — uma vez por combate', () => {
 describe('DUPLICAR_CARTA', () => {
 	it('psychic_paradoxo: a próxima carta é executada duas vezes', () => {
 		const b = testBattle({
-			hand: ['psychic_paradoxo', 'neu_atk_golpe_direto'],
+			hand: ['psychic_paradoxo', 'neu_atk_preciso'],
 			player: { mana: 6 }
 		});
 		b.play('psychic_paradoxo');
 		expect(b.player.has('duplicar')).toBe(true);
 
-		b.play('neu_atk_golpe_direto'); // 8 de dano × 2
-		expect(b.enemy.damageTaken).toBe(16);
+		b.play('neu_atk_preciso'); // 4 de dano × 2
+		expect(b.enemy.damageTaken).toBe(8);
 		expect(b.player.has('duplicar')).toBe(false);
 	});
 
@@ -152,11 +152,11 @@ describe('statuses genéricos de ataque', () => {
 
 	it('BERSERK dobra o ataque e corta o escudo pela metade', () => {
 		const b = testBattle({
-			hand: ['neu_atk_golpe_direto', 'neu_def_bloqueio'],
+			hand: ['neu_atk_preciso', 'neu_def_bloqueio'],
 			player: { statuses: ['berserk'], mana: 6 }
 		});
-		b.play('neu_atk_golpe_direto');
-		expect(b.enemy.damageTaken).toBe(16); // 8 × 2
+		b.play('neu_atk_preciso');
+		expect(b.enemy.damageTaken).toBe(8); // 4 × 2
 
 		const r = b.play('neu_def_bloqueio');
 		expect(r.blocked).toBe(3); // floor(6 / 2)
@@ -196,11 +196,11 @@ describe('statuses genéricos de ataque', () => {
 
 	it('FRAQUEZA no inimigo aumenta o dano recebido em 25% por stack', () => {
 		const b = testBattle({
-			hand: ['neu_atk_golpe_direto'],
+			hand: ['neu_atk_preciso'],
 			enemy: { statuses: [['fraqueza', 1]] }
 		});
-		b.play('neu_atk_golpe_direto');
-		expect(b.enemy.damageTaken).toBe(10); // floor(8 × 1.25)
+		b.play('neu_atk_preciso');
+		expect(b.enemy.damageTaken).toBe(5); // floor(4 × 1.25)
 	});
 
 	it('STATIC_SHOCK causa dano elétrico a cada carta jogada', () => {
@@ -252,8 +252,8 @@ describe('efetividade de tipos', () => {
 
 describe('fim de batalha por dano', () => {
 	it('reduzir o HP do inimigo a 0 vence a batalha', () => {
-		const b = testBattle({ hand: ['neu_atk_golpe_direto'], enemy: { hp: 5 } });
-		b.play('neu_atk_golpe_direto');
+		const b = testBattle({ hand: ['neu_atk_preciso'], enemy: { hp: 3 } });
+		b.play('neu_atk_preciso');
 		expect(b.status).toBe('victory');
 	});
 });

@@ -21,9 +21,8 @@ const KNOWN_ORPHAN_HOOKS = [
 	'power_specialize'
 ].sort();
 
-// BUG conhecido: o deck inicial referencia um template inexistente.
-// As 2 cópias de neu_sup_respiro são deletadas silenciosamente no 1º combate.
-const KNOWN_MISSING_STARTER_DECK_IDS = ['neu_sup_respiro'].sort();
+// Corrigido em 2026-06: neu_sup_respiro foi substituído por heal_spray_cura.
+const KNOWN_MISSING_STARTER_DECK_IDS: string[] = [];
 
 describe('integridade do catálogo', () => {
 	it('ids de template são únicos', () => {

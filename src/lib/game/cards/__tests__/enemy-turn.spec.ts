@@ -146,7 +146,7 @@ describe('ciclo de turno', () => {
 	it('reseta mana, limpa escudo, compra 5 cartas e avança o turno', () => {
 		const b = testBattle({
 			player: { mana: 0, block: 7 },
-			deck: ['neu_atk_preciso', 'neu_atk_preciso', 'neu_def_bloqueio', 'pokeball_basic', 'neu_atk_investida', 'neu_atk_preciso'],
+			deck: ['neu_atk_preciso', 'neu_atk_preciso', 'neu_def_bloqueio', 'pokeball_basic', 'heal_spray_cura', 'neu_atk_preciso'],
 			enemy: { intent: { kind: 'defend', block: 0 } }
 		});
 		expect(b.state.turnNumber).toBe(1);
@@ -167,6 +167,29 @@ describe('ciclo de turno', () => {
 		// sem deck: as cartas descartadas são reembaralhadas e recompradas
 		expect(b.state.hand).toHaveLength(2);
 		expect(b.state.discard).toHaveLength(0);
+	});
+
+	it('emite evento reshuffle quando o descarte volta ao deck', () => {
+		const b = testBattle({
+			hand: ['neu_atk_preciso'],
+			discard: ['neu_def_bloqueio', 'pokeball_basic'],
+			enemy: { intent: { kind: 'defend', block: 0 } }
+		});
+		const r = b.endTurn();
+		// 1 da mão descartada + 2 já no descarte → 3 cartas reembaralhadas
+		expect(r.events).toContainEqual({ kind: 'reshuffle', source: 'discard', count: 3 });
+		expect(b.state.hand).toHaveLength(3);
+	});
+
+	it('emite evento reshuffle ao reciclar exaustas quando o descarte está vazio', () => {
+		const b = testBattle({
+			exhausted: ['neu_atk_preciso', 'neu_def_bloqueio'],
+			enemy: { intent: { kind: 'defend', block: 0 } }
+		});
+		const r = b.endTurn();
+		expect(r.events).toContainEqual({ kind: 'reshuffle', source: 'exhausted', count: 2 });
+		expect(b.state.hand).toHaveLength(2);
+		expect(b.exhaustedPile).toHaveLength(0);
 	});
 
 	it('statuses com decay turnStart somem no início do turno seguinte', () => {

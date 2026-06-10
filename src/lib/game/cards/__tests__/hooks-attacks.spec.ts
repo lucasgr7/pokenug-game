@@ -94,12 +94,12 @@ describe('dragon_cauda — Cauda do Dragão', () => {
 	it('descarta a carta mais à esquerda da mão e compra 1', () => {
 		const b = testBattle({
 			hand: ['dragon_cauda', 'neu_atk_preciso', 'neu_def_bloqueio'],
-			deck: ['neu_atk_investida']
+			deck: ['heal_spray_cura']
 		});
 		b.play('dragon_cauda');
 		expect(b.enemy.damageTaken).toBe(11);
 		expect(b.discardPile).toContain('neu_atk_preciso'); // a mais à esquerda após jogar
-		expect(b.hand).toEqual(['neu_def_bloqueio', 'neu_atk_investida']);
+		expect(b.hand).toEqual(['neu_def_bloqueio', 'heal_spray_cura']);
 	});
 });
 

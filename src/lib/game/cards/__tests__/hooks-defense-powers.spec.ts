@@ -125,7 +125,7 @@ describe('psychic_viagem_temporal — Viagem Temporal', () => {
 		try {
 			const b = testBattle({
 				hand: ['psychic_viagem_temporal'],
-				exhausted: ['neu_atk_preciso', 'neu_def_bloqueio', 'neu_atk_investida', 'pokeball_basic']
+				exhausted: ['neu_atk_preciso', 'neu_def_bloqueio', 'heal_spray_cura', 'pokeball_basic']
 			});
 			b.play('psychic_viagem_temporal');
 			expect(b.deck).toHaveLength(3);

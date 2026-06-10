@@ -12,7 +12,8 @@ export type StatusDecay = 'permanent' | 'turnStart' | 'turnEnd';
 
 export type BattleEvent =
   | { kind: 'bonus_dmg'; source: string; amount: number }
-  | { kind: 'status_applied'; id: string; target: StatusScope; stacks: number };
+  | { kind: 'status_applied'; id: string; target: StatusScope; stacks: number }
+  | { kind: 'reshuffle'; source: 'discard' | 'exhausted'; count: number };
 
 export interface Emblem {
   icon: string; label: string; title: string; color: string; bg: string;

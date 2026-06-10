@@ -24,10 +24,13 @@
 		claimRewardCard
 	} from '$lib/game/battle.svelte';
 	import { buildEndTurnLog, buildPlayLog, type BattleLogEntry, type LogPart } from '$lib/game/battle-log';
+	import { elementalHitFx, reshuffleFx } from '$lib/fx/battle-fx';
+	import type { BattleEvent } from '$lib/game/status/types';
 	import { getTemplate } from '$lib/data/cards';
 	import { toggleMusicMute, isMusicMuted, stopMusic } from '$lib/game/music.svelte';
 	import { interactionLabel } from '$lib/game/type-chart';
 	import { startMissingNo, mn } from '$lib/game/missingno.svelte';
+	import { _ } from 'svelte-i18n';
 	import MissingNoOverlay from '$lib/components/battle/MissingNoOverlay.svelte';
 	import type { BattleMode } from '$lib/game/types';
 	import posthog from 'posthog-js';
@@ -61,8 +64,21 @@
 	});
 
 	// ── Damage / block floats ─────────────────────────────────────────────
-	let enemyDmgFloat = $state<{ id: string; amount: number; block?: boolean } | null>(null);
-	let playerDmgFloat = $state<{ id: string; amount: number; block?: boolean } | null>(null);
+	interface DmgFloat {
+		id: string;
+		amount: number;
+		block?: boolean;
+		effectiveness?: number;
+	}
+	let enemyDmgFloat = $state<DmgFloat | null>(null);
+	let playerDmgFloat = $state<DmgFloat | null>(null);
+
+	function floatColor(f: DmgFloat): string {
+		if (f.block) return '#6fe6d4';
+		if (f.effectiveness && f.effectiveness > 1) return '#fbbf24';
+		if (f.effectiveness && f.effectiveness < 1) return '#94a3b8';
+		return '#ff6e5a';
+	}
 
 	// ── Turn flash ────────────────────────────────────────────────────────
 	let showTurnFlash = $state(false);
@@ -164,6 +180,10 @@
 		setTimeout(() => { if (playedFx?.id === fxId) playedFx = null; }, 620);
 	}
 
+	function runFxEvents(events?: BattleEvent[]) {
+		if (events?.some((e) => e.kind === 'reshuffle')) reshuffleFx();
+	}
+
 	function onPlay(cardId: string, templateId: string) {
 		const res = playCard(cardId);
 		if (!res.played) return;
@@ -176,10 +196,15 @@
 			if (playedFx?.id === fxId) playedFx = null;
 		}, 620);
 
+		if (res.kind === 'attack') {
+			elementalHitFx('enemy', res.element ?? null);
+		}
+		runFxEvents(res.events);
+
 		// Damage float on enemy sprite
 		if (res.damage && res.damage > 0) {
 			const floatId = crypto.randomUUID();
-			enemyDmgFloat = { id: floatId, amount: res.damage };
+			enemyDmgFloat = { id: floatId, amount: res.damage, effectiveness: res.effectiveness };
 			setTimeout(() => { if (enemyDmgFloat?.id === floatId) enemyDmgFloat = null; }, 1000);
 		}
 	}
@@ -188,10 +213,14 @@
 		const res = endTurn();
 		if (res) {
 			addLog(buildEndTurnLog(res));
+			if (res.kind === 'attack') {
+				elementalHitFx('player', res.element ?? null);
+			}
+			runFxEvents(res.events);
 			// Damage float on player sprite
 			if (res.damage && res.damage > 0) {
 				const floatId = crypto.randomUUID();
-				playerDmgFloat = { id: floatId, amount: res.damage };
+				playerDmgFloat = { id: floatId, amount: res.damage, effectiveness: res.effectiveness };
 				setTimeout(() => { if (playerDmgFloat?.id === floatId) playerDmgFloat = null; }, 1000);
 			} else if (res.absorbed && res.absorbed > 0 && (!res.damage || res.damage === 0)) {
 				const floatId = crypto.randomUUID();
@@ -292,7 +321,7 @@
 			<EnemyHud {s} hpReveal={hpReveal} />
 
 			<!-- SPRITE INIMIGO (canto superior direito) -->
-			<div class="absolute right-1 top-12 z-0">
+			<div class="absolute right-1 top-12 z-0" data-fx="sprite-enemy">
 				{#key introKey}
 					<div class="platform"></div>
 					{#key battle.enemyHurt}
@@ -303,15 +332,20 @@
 				{/key}
 				{#if enemyDmgFloat}
 					{#key enemyDmgFloat.id}
-						<div class="dmg-float" style="color: #ff6e5a; right: 10px; top: 20px;">
-							{enemyDmgFloat.amount}
+						<div class="dmg-float" style="color: {floatColor(enemyDmgFloat)}; right: 10px; top: 20px;">
+							{#if enemyDmgFloat.effectiveness && enemyDmgFloat.effectiveness > 1}💥{/if}{enemyDmgFloat.amount}
+							{#if enemyDmgFloat.effectiveness && enemyDmgFloat.effectiveness > 1}
+								<span class="dmg-sub">{$_('typeChart.superEffective')}</span>
+							{:else if enemyDmgFloat.effectiveness && enemyDmgFloat.effectiveness < 1}
+								<span class="dmg-sub">{$_('typeChart.notVery')}</span>
+							{/if}
 						</div>
 					{/key}
 				{/if}
 			</div>
 
 			<!-- SPRITE JOGADOR (canto inferior esquerdo) -->
-			<div class="absolute bottom-1 left-1 z-0">
+			<div class="absolute bottom-1 left-1 z-0" data-fx="sprite-player">
 				{#key introKey}
 					<div class="platform"></div>
 					{#key battle.playerHurt}
@@ -324,9 +358,14 @@
 					{#key playerDmgFloat.id}
 						<div
 							class="dmg-float"
-							style="color: {playerDmgFloat.block ? '#6fe6d4' : '#ff6e5a'}; left: 10px; top: 20px;"
+							style="color: {floatColor(playerDmgFloat)}; left: 10px; top: 20px;"
 						>
-							{#if playerDmgFloat.block}BLOQUEADO{:else}{playerDmgFloat.amount}{/if}
+							{#if playerDmgFloat.block}BLOQUEADO{:else}{#if playerDmgFloat.effectiveness && playerDmgFloat.effectiveness > 1}💥{/if}{playerDmgFloat.amount}{/if}
+							{#if !playerDmgFloat.block && playerDmgFloat.effectiveness && playerDmgFloat.effectiveness > 1}
+								<span class="dmg-sub">{$_('typeChart.superEffective')}</span>
+							{:else if !playerDmgFloat.block && playerDmgFloat.effectiveness && playerDmgFloat.effectiveness < 1}
+								<span class="dmg-sub">{$_('typeChart.notVery')}</span>
+							{/if}
 						</div>
 					{/key}
 				{/if}
@@ -438,6 +477,13 @@
 		animation: dmgFloat 1s ease forwards;
 		text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
 		white-space: nowrap;
+		text-align: center;
+	}
+	.dmg-sub {
+		display: block;
+		font-size: 12px;
+		letter-spacing: 0.5px;
+		margin-top: 2px;
 	}
 	@keyframes dmgFloat {
 		0%   { opacity: 0; transform: translateY(0) scale(0.6); }

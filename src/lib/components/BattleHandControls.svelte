@@ -3,6 +3,7 @@
 	import Modal from '$lib/components/Modal.svelte';
 	import CardDetailsModal from '$lib/components/CardDetailsModal.svelte';
 	import { effectiveCardCost } from '$lib/game/battle.svelte';
+	import { dealFromDeck, discardHandToPile } from '$lib/fx/battle-fx';
 	import type { Card as BattleCard, BattleState } from '$lib/game/types';
 	import { _ } from 'svelte-i18n';
 
@@ -23,6 +24,24 @@
 	} = $props();
 
 	type PileKind = 'deck' | 'discard' | 'exhausted';
+
+	let handFanEl = $state<HTMLElement | null>(null);
+	// Bloqueia interações enquanto a animação de descarte roda.
+	let fxBusy = $state(false);
+
+	async function handleEndTurnClick() {
+		if (fxBusy || ended || battleState.turn !== 'player') return;
+		fxBusy = true;
+		try {
+			const cards = handFanEl
+				? Array.from(handFanEl.querySelectorAll<HTMLElement>('.hand-card'))
+				: [];
+			await discardHandToPile(cards);
+		} finally {
+			fxBusy = false;
+		}
+		onEndTurn();
+	}
 
 	let openPile: PileKind | null = $state(null);
 	let inspecting: { templateId: string; cardId?: string } | null = $state(null);
@@ -58,7 +77,7 @@
 
 	function handleHandClick(card: BattleCard) {
 		if (wasLongPress) { wasLongPress = false; return; }
-		if (ended) return;
+		if (ended || fxBusy) return;
 		if (canPlay(card)) {
 			onPlayCard(card.id, card.templateId);
 		} else {
@@ -89,6 +108,7 @@
 				<button
 					type="button"
 					class="chip"
+					data-fx="pile-{pile}"
 					onclick={() => (openPile = pile)}
 					aria-label={$_('battle.hand.openPile', { values: { pile: PILE_META[pile].label } })}
 				>
@@ -100,9 +120,9 @@
 		<!-- Right: End turn -->
 		<button
 			class="endturn"
-			class:dim={battleState.turn !== 'player' || ended}
-			disabled={battleState.turn !== 'player' || ended}
-			onclick={onEndTurn}
+			class:dim={battleState.turn !== 'player' || ended || fxBusy}
+			disabled={battleState.turn !== 'player' || ended || fxBusy}
+			onclick={handleEndTurnClick}
 		>
 			{$_( 'battle.hand.endTurn' )} ↦
 		</button>
@@ -132,7 +152,7 @@
 	{/if}
 
 	<!-- Hand fan -->
-	<div class="hand-fan" 		role="group" aria-label={$_('battle.hand.handLabel')}>
+	<div class="hand-fan" bind:this={handFanEl} role="group" aria-label={$_('battle.hand.handLabel')}>
 		{#each battleState.hand as card, i (card.id)}
 			{@const n = battleState.hand.length || 1}
 			{@const mid = (n - 1) / 2}
@@ -147,6 +167,7 @@
 				class="hand-card"
 				class:hand-card--muted={!playable}
 				style="left: calc(50% + {xPos}px - 65px); --angle: {angle}deg; z-index: {i + 1};"
+				use:dealFromDeck={i}
 				onpointerdown={() => handlePointerDown(card)}
 				onpointerup={handlePointerUp}
 				onpointercancel={handlePointerUp}
@@ -155,7 +176,7 @@
 				onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleHandClick(card); }}
 				aria-label={$_('battle.hand.playCard')}
 			>
-				<Card templateId={card.templateId} compact={true} flip playable={playable} upgradeLevel={card.upgrades ?? 0} costOverride={effectiveCardCost(battleState, card)} dealDelay={i * 55} />
+				<Card templateId={card.templateId} compact={true} playable={playable} upgradeLevel={card.upgrades ?? 0} costOverride={effectiveCardCost(battleState, card)} />
 			</div>
 		{/each}
 	</div>
@@ -282,7 +303,8 @@
 		bottom: 24px;
 		width: 130px;
 		max-width: 30vh;
-		transition: filter 180ms ease-out;
+		/* `left` anima o reposicionamento do leque quando uma carta sai */
+		transition: filter 180ms ease-out, left 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 		cursor: pointer;
 		background: none;
 		border: none;

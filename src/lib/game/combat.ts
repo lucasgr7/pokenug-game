@@ -126,6 +126,7 @@ function reshuffleDiscardIntoDeck(s: BattleState): boolean {
 	if (s.discard.length === 0) return false;
 	s.deck = shuffle(s.discard);
 	s.discard = [];
+	logEvent({ kind: 'reshuffle', source: 'discard', count: s.deck.length });
 	return s.deck.length > 0;
 }
 
@@ -147,6 +148,7 @@ function recycleBattleExhaustedIntoDeck(s: BattleState): boolean {
 	const recycledIds = new Set(recyclable.map((card) => card.id));
 	s.exhausted = s.exhausted.filter((card) => !recycledIds.has(card.id));
 	s.deck = shuffle(recyclable);
+	logEvent({ kind: 'reshuffle', source: 'exhausted', count: s.deck.length });
 	return s.deck.length > 0;
 }
 
@@ -503,5 +505,9 @@ export function endTurnOn(
 	s.player.mana = START_MANA;
 	s.turn = 'player';
 	drawCards(s, HAND_SIZE, true);
+	// Eventos emitidos durante a compra do turno (reshuffle, hooks de
+	// turnStart) pertencem a ESTE resultado — sem isso vazariam para a
+	// próxima ação.
+	turnResult.events = [...(turnResult.events ?? []), ...drainEvents()];
 	return turnResult;
 }

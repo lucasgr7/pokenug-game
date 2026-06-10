@@ -36,6 +36,8 @@ export function appendEvents(parts: LogPart[], events?: BattleEvent[]): LogPart[
 		} else if (e.kind === 'status_applied') {
 			const g = EVENT_GLYPH[e.id] ?? { glyph: '+', color: '#a8a29e' };
 			parts.push({ text: ` · +${g.glyph}${e.stacks > 1 ? e.stacks : ''}`, color: g.color });
+		} else if (e.kind === 'reshuffle') {
+			parts.push({ text: ` · ♻${e.count}`, color: '#67e8f9' });
 		}
 	}
 	return parts;
@@ -58,24 +60,16 @@ function buildAttackPlayLog(result: PlayCardResult, templateName: string): LogPa
 		parts.push({ text: ` · ⚔${result.damage}`, color: '#f87171' });
 	}
 
-	if (result.effectiveness !== undefined) {
-		if (result.effectiveness > 1) parts.push({ text: ' 💥', color: '#fbbf24' });
-		if (result.effectiveness < 1) parts.push({ text: ' 🫤', color: '#94a3b8' });
-	}
-
 	return parts;
 }
 
-function appendMatchupDamage(parts: LogPart[], modifier?: number): LogPart[] {
-	if (!modifier) return parts;
-	const positive = modifier > 0;
-	return [
-		...parts,
-		{
-			text: t('battleLog.modifierTipo', { sign: positive ? '+' : '', modifier }),
-			color: positive ? '#fbbf24' : '#94a3b8'
-		}
-	];
+/** Rótulo clássico de efetividade ("Super efetivo!" / "Pouco efetivo..."). */
+function appendEffectiveness(parts: LogPart[], effectiveness?: number): LogPart[] {
+	if (effectiveness === undefined || effectiveness === 1) return parts;
+	if (effectiveness > 1) {
+		return [...parts, { text: ` · 💥 ${t('typeChart.superEffective')}`, color: '#fbbf24' }];
+	}
+	return [...parts, { text: ` · 🫤 ${t('typeChart.notVery')}`, color: '#94a3b8' }];
 }
 
 export function buildPlayLog(result: PlayCardResult, templateName: string): LogPart[] {
@@ -83,7 +77,7 @@ export function buildPlayLog(result: PlayCardResult, templateName: string): LogP
 	switch (result.kind) {
 		case 'attack':
 			parts = buildAttackPlayLog(result, templateName);
-			parts = appendMatchupDamage(parts, result.damageModifier);
+			parts = appendEffectiveness(parts, result.effectiveness);
 			if (result.drawCount) {
 				const cnt = result.drawCount;
 				parts = [...parts, { text: t('battleLog.carta', { count: cnt }), color: '#7dd3fc' }];
@@ -138,7 +132,7 @@ export function buildEndTurnLog(result: EnemyTurnResult): LogPart[] {
 		} else {
 			parts.push({ text: t('battleLog.attackBlocked'), color: '#60a5fa' });
 		}
-		parts = appendMatchupDamage(parts, result.damageModifier);
+		parts = appendEffectiveness(parts, result.effectiveness);
 		return appendEvents(parts, result.events);
 	}
 
