@@ -1,4 +1,4 @@
-import { addToInventory, getActiveDeck, getInventory, removeFromDeck, removeFromInventory } from '$lib/db/cards';
+import { addToInventory, getActiveDeck, getInventory, removeFromInventory } from '$lib/db/cards';
 import { resetDeckToStarters } from '$lib/db/cards';
 import { browser } from '$app/environment';
 import posthog from 'posthog-js';
@@ -16,34 +16,20 @@ import { savePlayer } from '$lib/db/player';
 import { getRegion, nextRegion, getRegionScaling } from '$lib/data/regions';
 import { fetchPokemon } from '$lib/api/pokeapi';
 import { ensurePokemonNatures } from '$lib/data/natures';
-import { applyCardEffect } from './cards/apply';
-import { isPermanentlyConsumed, resolveTypedDamage } from './damage';
-import { enemyAttackDamageAfterDebuffs } from './enemy-intent';
-import type { CardEffectCtx } from './cards/types';
 import {
-	addStatus,
-	hasStatus,
-	removeStatus,
-	getStatus,
-	collectEmblems,
-	setMutationApi,
-	setBattleState,
-	runIncomingDamage,
-	dispatchOnCardPlayed,
-	dispatchOnTurnStart,
-	dispatchOnTurnEnd,
-	dispatchOnBattleStart,
-	dispatchOnBattleStartAfterDraw,
-	runCardCost,
-	runModifyHandSize,
-	runShouldExhaust,
-	dispatchOnCardExhausted,
-	decayStatuses,
-	logEvent,
-	drainEvents
-} from './status/pipeline';
-import { getStatusDef } from './status';
-import type { ActiveStatus, BattleEvent } from './status/types';
+	HAND_SIZE,
+	START_MANA,
+	drawCards,
+	endTurnOn,
+	playCardOn,
+	playRelicOn,
+	sanitizeBattleStateCards,
+	wireCombat,
+	type CombatIO,
+	type EnemyTurnResult,
+	type PlayCardResult
+} from './combat';
+import { dispatchOnBattleStart, dispatchOnBattleStartAfterDraw } from './status/pipeline';
 import { pick, randomInt, shuffle, weightedPick } from '$lib/utils/rng';
 import { now } from '$lib/utils/time';
 import {
@@ -64,8 +50,6 @@ import type {
 	BossCardReward,
 	BattleReward,
 	BattleState,
-	Card,
-	CardKind,
 	CardRarity,
 	CardTemplate,
 	CapturedPokemon,
@@ -75,6 +59,11 @@ import type {
 } from './types';
 import { ELEMENTS } from './types';
 import { MISSINGNO_MAX_HP, MISSINGNO_ACT1_DAMAGE, MISSINGNO_TURN_DAMAGE } from '$lib/data/missingno';
+
+// The combat engine itself lives in `./combat.ts` (pure, unit-testable).
+// This module wraps it with the Svelte store, persistence and analytics.
+export { effectiveCardCost } from './combat';
+export type { EnemyTurnResult, PlayCardResult } from './combat';
 
 // Callback hook for MissingNo mode — called when player HP hits 0 instead of defeat.
 let onPlayerDefeatedInMissingNo: (() => void) | null = null;
@@ -101,42 +90,24 @@ export const battle = $state<BattleStore>({
 	introPending: false
 });
 
-const HAND_SIZE = 5;
-const START_MANA = 3;
+// Engine side effects bound to the UI store.
+const uiIO: CombatIO = {
+	onEnemyHurt: () => battle.enemyHurt++,
+	onPlayerHurt: () => battle.playerHurt++,
+	onPlayerDefeated: () => {
+		const s = battle.state;
+		if (s?.mode === 'missingno' && onPlayerDefeatedInMissingNo) {
+			onPlayerDefeatedInMissingNo();
+			return true;
+		}
+		return false;
+	}
+};
+
 const ELEMENT_POINTS_PER_MAX_HP = 15; // floor(enemyMaxHp / this) = element points awarded
 const BOSS_HP_MULTIPLIER = 3;
 
 type BossRewardBucket = 'common' | 'rare' | 'epicPlus';
-
-export interface PlayCardResult {
-	played: boolean;
-	exhausted: boolean;
-	kind: CardKind;
-	// populated on a successful play:
-	element?: Element | null;
-	damage?: number;        // net HP damage dealt to enemy
-	effectiveness?: number; // type multiplier (0.5 | 1 | 2 …)
-	damageModifier?: number;
-	damageModifierText?: string;
-	healed?: number;        // HP restored to player
-	blocked?: number;       // block gained by player this play
-	manaGained?: number;    // mana recovered (energy cards)
-	drawCount?: number;     // cards drawn immediately after the card resolves
-	events?: BattleEvent[];
-}
-
-export interface EnemyTurnResult {
-	kind: 'attack' | 'defend' | 'buff';
-	element?: Element;
-	damage?: number;     // net HP damage dealt to player (after block)
-	absorbed?: number;   // damage absorbed by player block
-	effectiveness?: number;
-	damageModifier?: number;
-	damageModifierText?: string;
-	enemyBlock?: number; // block the enemy gained
-	buffAmount?: number; // next-damage bonus added
-	events?: BattleEvent[];
-}
 
 // ── Enemy intent ──────────────────────────────────────────────────────────
 
@@ -153,183 +124,10 @@ function rollIntent(enemyHp: number, enemyMaxHp: number, turnNumber: number, sca
 	return { kind: 'buff', nextDamage: Math.ceil(randomInt(3, 6) * scaling) };
 }
 
-// ── Card draw ─────────────────────────────────────────────────────────────
-
-function dropInvalidCards(cards: Card[]): { validCards: Card[]; removedCount: number } {
-	const validCards: Card[] = [];
-	let removedCount = 0;
-
-	for (const card of cards) {
-		if (getTemplate(card.templateId)) {
-			validCards.push(card);
-			continue;
-		}
-
-		removedCount++;
-		void removeFromDeck(card.id);
-		void removeFromInventory(card.id);
-	}
-
-	return { validCards, removedCount };
-}
-
-function sanitizeBattleStateCards(s: BattleState): { removedFromHand: number; changed: boolean } {
-	let changed = false;
-
-	const hand = dropInvalidCards(s.hand);
-	if (hand.removedCount > 0) {
-		s.hand = hand.validCards;
-		changed = true;
-	}
-
-	for (const pile of ['deck', 'discard', 'exhausted', 'relicSlots'] as const) {
-		const sanitized = dropInvalidCards(s[pile]);
-		if (sanitized.removedCount > 0) {
-			s[pile] = sanitized.validCards;
-			changed = true;
-		}
-	}
-
-	return { removedFromHand: hand.removedCount, changed };
-}
-
-function reshuffleDiscardIntoDeck(s: BattleState): boolean {
-	if (s.discard.length === 0) return false;
-	s.deck = shuffle(s.discard);
-	s.discard = [];
-	return s.deck.length > 0;
-}
-
-function isExhaustCombatOnly(card: Card, s: BattleState): boolean {
-	const tpl = getTemplate(card.templateId);
-	if (!tpl) return false;
-	if (tpl.exhaust === 'combat') return true;
-	// Misalignment → EXHAUST_COMBATE (returns next combat, not this one)
-	if (tpl.element !== null && tpl.element !== s.player.pokemon.element) return true;
-	return false;
-}
-
-function recycleBattleExhaustedIntoDeck(s: BattleState): boolean {
-	const recyclable = s.exhausted.filter(
-		(card) => !isPermanentlyConsumed(getTemplate(card.templateId)) && !isExhaustCombatOnly(card, s)
-	);
-	if (recyclable.length === 0) return false;
-
-	const recycledIds = new Set(recyclable.map((card) => card.id));
-	s.exhausted = s.exhausted.filter((card) => !recycledIds.has(card.id));
-	s.deck = shuffle(recyclable);
-	return s.deck.length > 0;
-}
-
-function drawCards(count: number, turnStart = false): void {
-	const s = battle.state;
-	if (!s) return;
-
-	if (turnStart) {
-		// Reset per-turn tracking flags
-		s.player.turnFlags.firstAttackThisTurn = true;
-		s.player.turnFlags.damageSufferedThisTurn = false;
-		s.player.turnFlags.damageReceivedLastTurn = 0;
-		s.player.turnFlags.cardsPlayedThisTurn = 0;
-
-		// Dispatch onTurnStart for status hooks (assombracao++, next_turn_bonus, auto_jogar, etc.)
-		dispatchOnTurnStart(s);
-
-		// Decay turnStart statuses (reflexo, next_turn_bonus, enraizado, fraqueza)
-		decayStatuses(s, 'turnStart');
-	}
-
-	const { removedFromHand } = sanitizeBattleStateCards(s);
-	const maxHand = runModifyHandSize(s, HAND_SIZE);
-	const targetHandSize = Math.min(maxHand, s.hand.length + Math.max(0, count) + removedFromHand);
-	while (s.hand.length < targetHandSize) {
-		if (s.deck.length === 0) {
-			const recycledDiscard = reshuffleDiscardIntoDeck(s);
-			const recycledExhausted = recycledDiscard ? false : recycleBattleExhaustedIntoDeck(s);
-			if (!recycledDiscard && !recycledExhausted) break;
-		}
-
-		const card = s.deck.pop();
-		if (!card) break;
-		if (!getTemplate(card.templateId)) {
-			void removeFromDeck(card.id);
-			void removeFromInventory(card.id);
-			continue;
-		}
-		s.hand.push(card);
-	}
-}
-
-// ── Damage ────────────────────────────────────────────────────────────────
-
-function dealToEnemy(amount: number): void {
-	const e = battle.state!.enemy;
-	const afterBlock = amount - e.block;
-	e.block = Math.max(0, e.block - amount);
-	if (afterBlock > 0) {
-		e.hp = Math.max(0, e.hp - afterBlock);
-		battle.enemyHurt++;
-	}
-}
-
-function dealToPlayer(amount: number): number {
-	const s = battle.state!;
-	const p = s.player;
-	amount = runIncomingDamage(s, amount);
-	const blockBefore = p.block;
-	const afterBlock = amount - p.block;
-	p.block = Math.max(0, p.block - amount);
-	const absorbed = Math.min(blockBefore, amount);
-
-	// REFLEXO (ART-09): reflect 50% of absorbed damage to enemy (via status check)
-	if (hasStatus(p, 'reflexo') && absorbed > 0) {
-		const reflected = Math.floor(absorbed * 0.5);
-		dealToEnemy(reflected);
-		logEvent({ kind: 'bonus_dmg', source: 'reflexo', amount: reflected });
-	}
-
-	// GLACIAÇÃO (revenge_shield): deal damage to enemy when shield fully destroyed
-	if (hasStatus(p, 'revenge_shield') && blockBefore > 0 && p.block === 0) {
-		const revengeSt = getStatus(p, 'revenge_shield')!;
-		dealToEnemy(revengeSt.stacks);
-		logEvent({ kind: 'bonus_dmg', source: 'revenge_shield', amount: revengeSt.stacks });
-		removeStatus(p, 'revenge_shield');
-	}
-
-	// Shield effects (fire_thorns / ice_reflect)
-	if (absorbed > 0) {
-		if (hasStatus(p, 'shield_fire_thorns')) {
-			dealToEnemy(10);
-			logEvent({ kind: 'bonus_dmg', source: 'shield_fire_thorns', amount: 10 });
-		} else if (hasStatus(p, 'shield_ice_reflect')) {
-			dealToEnemy(absorbed);
-			logEvent({ kind: 'bonus_dmg', source: 'shield_ice_reflect', amount: absorbed });
-		}
-	}
-
-	if (afterBlock > 0) {
-		p.hp = Math.max(0, p.hp - afterBlock);
-		p.turnFlags.damageSufferedThisTurn = true;
-		p.turnFlags.damageReceivedLastTurn += afterBlock;
-		battle.playerHurt++;
-	}
-	return absorbed;
-}
-
-function createCtx(s: BattleState): CardEffectCtx {
-	// Wire the pipeline mutation API so status hooks can call dealToEnemy/dealToPlayer/draw
-	setMutationApi(
-		(amount) => dealToEnemy(amount),
-		(amount) => dealToPlayer(amount),
-		(count) => drawCards(count)
-	);
-	setBattleState(s);
-	return {
-		s,
-		dealToEnemy: (amount) => dealToEnemy(amount),
-		dealToPlayer: (amount) => dealToPlayer(amount),
-		draw: (count) => drawCards(count)
-	};
+function nextIntentFor(s: BattleState): EnemyIntent {
+	if (s.mode === 'missingno') return { kind: 'attack', damage: MISSINGNO_TURN_DAMAGE };
+	const scaling = getRegionScaling(s.regionId);
+	return rollIntent(s.enemy.hp, s.enemy.pokemon.maxHp, s.turnNumber, scaling, s.enemy.pokemon.element);
 }
 
 // ── Nature statuses ──────────────────────────────────────────────────────
@@ -345,50 +143,6 @@ function applyNatureStatuses(s: BattleState): void {
 	if (s.player.pokemon.corrupted) {
 		s.player.statuses.push({ defId: 'nature_corrompido', stacks: 1, data: {} });
 	}
-}
-
-export function effectiveCardCost(s: BattleState, card: { templateId: string }): number {
-	const tpl = getTemplate(card.templateId);
-	if (!tpl) return 0;
-	return Math.max(0, runCardCost(s, tpl.cost, tpl, card as Card));
-}
-
-// ── Card exhaustion ───────────────────────────────────────────────────────
-
-function shouldExhaust(card: Card): boolean {
-	const s = battle.state!;
-	if (s.player.pokemon.corrupted) return false;
-	const tpl = getTemplate(card.templateId);
-	if (!tpl) return false;
-	// Explicit exhaust tag on card
-	if (tpl.exhaust === 'combat' || tpl.exhaust === 'run') return true;
-	// Non-starter pokéballs are single-use
-	if (tpl.kind === 'capture' && tpl.rarity !== 'starter') return true;
-	// Misalignment: off-element → EXHAUST_COMBATE (returns next combat, no permanent deletion)
-	let result = tpl.element !== null && tpl.element !== s.player.pokemon.element;
-	return runShouldExhaust(s, card, tpl, result);
-}
-
-function discardOrExhaust(card: Card): boolean {
-	const s = battle.state!;
-	if (shouldExhaust(card)) {
-		s.exhausted.push(card);
-		const tpl = getTemplate(card.templateId);
-		if (tpl) dispatchOnCardExhausted(s, card, tpl);
-		if (isPermanentlyConsumed(tpl)) {
-			void removeFromDeck(card.id);
-			void removeFromInventory(card.id);
-		}
-		return true;
-	}
-	s.discard.push(card);
-	return false;
-}
-
-function discardHand(s: BattleState): void {
-	if (s.hand.length === 0) return;
-	s.discard.push(...s.hand);
-	s.hand = [];
 }
 
 // ── Persistence ───────────────────────────────────────────────────────────
@@ -425,7 +179,7 @@ export function repairActiveBattleState(): void {
 		changed = true;
 	}
 	if (s.turn === 'player' && removedFromHand > 0) {
-		drawCards(removedFromHand);
+		drawCards(s, removedFromHand);
 	}
 
 	if (!s.player.statuses) {
@@ -584,11 +338,6 @@ export async function startBattle(regionId: string, mode: BattleMode = 'normal')
 		capturedAt: now()
 	};
 
-	setMutationApi(
-		(amount) => dealToEnemy(amount),
-		(amount) => dealToPlayer(amount),
-		(count) => drawCards(count)
-	);
 	battle.state = {
 		regionId,
 		mode,
@@ -625,7 +374,7 @@ export async function startBattle(regionId: string, mode: BattleMode = 'normal')
 		bannedTemplateIds: [...(game.player?.bannedTemplateIds ?? [])],
 		pilhaExaurir: game.player?.pilhaExaurir ?? 0
 	};
-	setBattleState(battle.state);
+	wireCombat(battle.state, uiIO);
 	battle.reward = null;
 	battle.settled = false;
 	battle.enemyHurt = 0;
@@ -634,7 +383,7 @@ export async function startBattle(regionId: string, mode: BattleMode = 'normal')
 	applyNatureStatuses(battle.state);
 	dispatchOnBattleStart(battle.state);
 
-	drawCards(HAND_SIZE);
+	drawCards(battle.state, HAND_SIZE);
 	dispatchOnBattleStartAfterDraw(battle.state);
 	battle.introPending = true;
 	void persistBattle();
@@ -651,11 +400,6 @@ export async function startMissingNoBattle(initialPkm: CapturedPokemon): Promise
 		capturedAt: 0
 	};
 
-	setMutationApi(
-		(amount) => dealToEnemy(amount),
-		(amount) => dealToPlayer(amount),
-		(count) => drawCards(count)
-	);
 	battle.state = {
 		regionId: 'missingno',
 		mode: 'missingno',
@@ -692,7 +436,7 @@ export async function startMissingNoBattle(initialPkm: CapturedPokemon): Promise
 		bannedTemplateIds: [...(game.player?.bannedTemplateIds ?? [])],
 		pilhaExaurir: game.player?.pilhaExaurir ?? 0
 	};
-	setBattleState(battle.state);
+	wireCombat(battle.state, uiIO);
 	battle.reward = null;
 	battle.settled = false;
 	battle.enemyHurt = 0;
@@ -701,7 +445,7 @@ export async function startMissingNoBattle(initialPkm: CapturedPokemon): Promise
 	applyNatureStatuses(battle.state);
 	dispatchOnBattleStart(battle.state);
 
-	drawCards(HAND_SIZE);
+	drawCards(battle.state, HAND_SIZE);
 	dispatchOnBattleStartAfterDraw(battle.state);
 }
 
@@ -726,7 +470,7 @@ export async function swapActiveFighter(pkm: CapturedPokemon): Promise<void> {
 	applyNatureStatuses(s);
 	dispatchOnBattleStart(s);
 
-	drawCards(HAND_SIZE);
+	drawCards(s, HAND_SIZE);
 	dispatchOnBattleStartAfterDraw(s);
 
 	s.enemy.block = 0;
@@ -738,7 +482,7 @@ export async function swapActiveFighter(pkm: CapturedPokemon): Promise<void> {
 	s.turn = 'player';
 	s.turnNumber = 1;
 
-	setBattleState(s);
+	wireCombat(s, uiIO);
 	void persistBattle();
 }
 
@@ -746,12 +490,7 @@ export async function enterBattle(regionId: string, mode: BattleMode = 'normal')
 	const saved = await getSavedBattle();
 	if (saved?.state.status === 'active') {
 		battle.state = saved.state;
-		setMutationApi(
-			(amount) => dealToEnemy(amount),
-			(amount) => dealToPlayer(amount),
-			(count) => drawCards(count)
-		);
-		setBattleState(battle.state);
+		wireCombat(battle.state, uiIO);
 		battle.reward = saved.reward
 			? { ...saved.reward, cardReward: saved.reward.cardReward ?? null, cardChoices: saved.reward.cardChoices ?? [] }
 			: null;
@@ -782,86 +521,19 @@ export async function endBattleCleanup(): Promise<void> {
 
 export function playCard(cardId: string): PlayCardResult {
 	const s = battle.state;
-	if (!s || s.status !== 'active' || s.turn !== 'player') {
-		return { played: false, exhausted: false, kind: 'attack' };
-	}
-	const idx = s.hand.findIndex((c) => c.id === cardId);
-	if (idx < 0) return { played: false, exhausted: false, kind: 'attack' };
+	if (!s) return { played: false, exhausted: false, kind: 'attack' };
 
-	const card = s.hand[idx];
-	const tpl = getTemplate(card.templateId);
-	if (!tpl) return { played: false, exhausted: false, kind: 'attack' };
-	const cost = effectiveCardCost(s, card);
-	if (s.player.mana < cost) return { played: false, exhausted: false, kind: 'attack' };
+	// Snapshot the template before the engine moves the card out of the hand.
+	const templateId = s.hand.find((c) => c.id === cardId)?.templateId;
 
-	// ART-03 POWER: can only be played once per combat
-	if (tpl.isPower) {
-		if (s.usedPowerIds.includes(tpl.id)) return { played: false, exhausted: false, kind: tpl.kind };
-		s.usedPowerIds.push(tpl.id);
-	}
+	const result = playCardOn(s, cardId, uiIO);
+	if (!result.played) return result;
 
-	s.player.mana -= cost;
-	s.hand.splice(idx, 1);
-	const attackElement = tpl.kind === 'attack' ? (() => {
-		let el = tpl.element;
-		if (hasStatus(s.player, 'dragonize') && (!el || el === 'normal')) el = 'dragon';
-		if (hasStatus(s.player, 'specialize') && tpl.rarity === 'starter' && !el)
-			el = s.player.pokemon.element;
-		return el;
-	})() : null;
-
-	// Snapshot pre-effect state for delta logging
-	const enemyHpBefore = s.enemy.hp;
-	const playerHpBefore = s.player.hp;
-	const playerBlockBefore = s.player.block;
-	const duplicarWasActive = hasStatus(s.player, 'duplicar');
-
-	const ctx = createCtx(s);
-	applyCardEffect(ctx, tpl, card);
-
-	// ART-10 DUPLICAR_CARTA: execute effect again if flag was active before this card
-	const isDuplicarCard = tpl.id === 'psychic_paradoxo' || tpl.id === 'ice_cristal';
-	if (duplicarWasActive && !tpl.isPower && !isDuplicarCard) {
-		removeStatus(s.player, 'duplicar');
-		applyCardEffect(ctx, tpl, card);
-	} else if (duplicarWasActive && isDuplicarCard) {
-		// Playing a duplicar card while another is active: consume both but don't double
-		removeStatus(s.player, 'duplicar');
-	}
-
-	// Dispatch onCardPlayed for status hooks (static_shock, dano_eletrico, etc.)
-	dispatchOnCardPlayed(s, tpl, card);
-
-	s.player.turnFlags.cardsPlayedThisTurn++;
-
-	const exhausted = discardOrExhaust(card);
-
-	// Build enriched result
-	const result: PlayCardResult = { played: true, exhausted, kind: tpl.kind };
-	if (tpl.kind === 'attack' && ctx.lastAttackSummary) {
-		result.element = attackElement;
-		result.damage = Math.max(0, enemyHpBefore - s.enemy.hp);
-		result.effectiveness = ctx.lastAttackSummary.effectiveness;
-		if (ctx.lastAttackSummary.modifierAmount !== 0) {
-			result.damageModifier = ctx.lastAttackSummary.modifierAmount * (ctx.lastAttackSummary.hits ?? 1);
-			result.damageModifierText = ctx.lastAttackSummary.modifierText;
-		}
-	} else if (tpl.kind === 'heal') {
-		result.healed = Math.max(0, s.player.hp - playerHpBefore);
-	} else if (tpl.kind === 'defense') {
-		result.blocked = Math.max(0, s.player.block - playerBlockBefore);
-	} else if (tpl.kind === 'energy') {
-		result.manaGained = tpl.manaGain;
-	}
-	if ((tpl.drawCount ?? 0) > 0) result.drawCount = tpl.drawCount;
-
-	result.events = drainEvents();
-
-	if (s.enemy.hp <= 0 && s.status === 'active') s.status = 'victory';
-	if (tpl.kind === 'heal') void syncPlayerHp();
+	if (result.kind === 'heal') void syncPlayerHp();
 
 	// endsTurn (Evasão Total): trigger enemy turn immediately
-	if (tpl.endsTurn && s.status === 'active') {
+	const tpl = templateId ? getTemplate(templateId) : null;
+	if (tpl?.endsTurn && s.status === 'active') {
 		void persistBattle();
 		endTurn();
 		return result;
@@ -873,124 +545,23 @@ export function playCard(cardId: string): PlayCardResult {
 
 export function playRelicCard(cardId: string): PlayCardResult {
 	const s = battle.state;
-	if (!s || s.status !== 'active' || s.turn !== 'player') {
-		return { played: false, exhausted: false, kind: 'relic' };
-	}
-	const idx = s.relicSlots.findIndex((c) => c.id === cardId);
-	if (idx < 0) return { played: false, exhausted: false, kind: 'relic' };
+	if (!s) return { played: false, exhausted: false, kind: 'relic' };
 
-	const card = s.relicSlots[idx];
-	const tpl = getTemplate(card.templateId);
-	if (!tpl) return { played: false, exhausted: false, kind: 'relic' };
-
-	s.relicSlots.splice(idx, 1);
-	applyCardEffect(createCtx(s), tpl);
-	dispatchOnCardPlayed(s, tpl, card);
-	void removeFromInventory(card.id);
-	if (s.enemy.hp <= 0 && s.status === 'active') s.status = 'victory';
-
-	void persistBattle();
-	return { played: true, exhausted: true, kind: 'relic' };
+	const result = playRelicOn(s, cardId, uiIO);
+	if (result.played) void persistBattle();
+	return result;
 }
 
 export function endTurn(): EnemyTurnResult | null {
 	const s = battle.state;
-	if (!s || s.status !== 'active' || s.turn !== 'player') return null;
+	if (!s) return null;
 
-	// Dispatch onTurnEnd for status hooks (rocha_imovel, shield_persist)
-	dispatchOnTurnEnd(s);
+	const result = endTurnOn(s, nextIntentFor, uiIO);
+	if (!result) return null;
 
-	discardHand(s);
-	s.turn = 'enemy';
-	s.enemy.block = 0;
-
-	// Reset per-turn damage tracking (the old value is in turnFlags)
-	s.player.turnFlags.damageReceivedLastTurn = 0;
-
-	const intent = s.enemy.intent;
-	let turnResult: EnemyTurnResult;
-
-	if (intent.kind === 'attack') {
-		const attackElement = intent.element ?? s.enemy.pokemon.element;
-		const dmg = enemyAttackDamageAfterDebuffs(s);
-		const typedDamage = resolveTypedDamage(dmg, attackElement, s.player.pokemon.element);
-		s.enemy.nextDamageBonus = 0;
-		const absorbed = dealToPlayer(typedDamage.damage);
-		turnResult = {
-			kind: 'attack',
-			element: attackElement,
-			damage: Math.max(0, typedDamage.damage - absorbed),
-			absorbed,
-			effectiveness: typedDamage.effectiveness,
-			damageModifier: typedDamage.modifierAmount,
-			damageModifierText: typedDamage.modifierText
-		};
-		if (s.enemy.hp <= 0 && s.status === 'active') {
-			s.status = 'victory';
-			void persistBattle();
-			return turnResult;
-		}
-	} else if (intent.kind === 'defend') {
-		// CANCEL_ESCUDO (ART-12): cancel enemy shield action
-		if (hasStatus(s.enemy, 'shield_cancelled')) {
-			turnResult = { kind: 'defend', enemyBlock: 0 };
-		} else {
-			let blockGain = intent.block;
-			// REDUZ_SHIELD (ART-13): halve enemy block gain
-			if (hasStatus(s.enemy, 'shield_reduced')) blockGain = Math.floor(blockGain * 0.5);
-			s.enemy.block += blockGain;
-			turnResult = { kind: 'defend', enemyBlock: blockGain };
-		}
-	} else {
-		let buffAmount = intent.nextDamage;
-		// REDUZ_BUFF (ART-14): halve enemy buff
-		if (hasStatus(s.enemy, 'buff_reduced')) buffAmount = Math.floor(buffAmount * 0.5);
-		s.enemy.nextDamageBonus += buffAmount;
-		turnResult = { kind: 'buff', buffAmount };
-	}
-
-	if (intent.kind === 'attack') {
-		s.player.turnFlags.damageSufferedThisTurn = true;
-	}
-	else{
-		s.player.turnFlags.damageSufferedThisTurn = false;
-	}
-
-	turnResult.events = drainEvents();
-
-	if (s.player.hp <= 0) {
-		if (s.mode === 'missingno' && onPlayerDefeatedInMissingNo) {
-			onPlayerDefeatedInMissingNo();
-			void persistBattle();
-			return turnResult;
-		}
-		s.status = 'defeat';
-		void setPokemonCurrentHp(s.player.pokemon.id, 0);
-		void persistBattle();
-		return turnResult;
-	}
-
-	// Decay turnEnd statuses (imobilizado, intimidate, ghost_form, shield_fire_thorns, etc.)
-	decayStatuses(s, 'turnEnd');
-
-	if (s.mode === 'missingno') {
-		s.enemy.intent = { kind: 'attack', damage: MISSINGNO_TURN_DAMAGE };
-	} else {
-		const scaling = getRegionScaling(s.regionId);
-		s.enemy.intent = rollIntent(s.enemy.hp, s.enemy.pokemon.maxHp, s.turnNumber, scaling, s.enemy.pokemon.element);
-	}
-	s.turnNumber++;
-
-	// ESCUDO_PERSISTE (ART-08): don't clear player block if shieldPersists
-	if (!hasStatus(s.player, 'shield_persist')) {
-		s.player.block = 0;
-	}
-
-	s.player.mana = START_MANA;
-	s.turn = 'player';
-	drawCards(HAND_SIZE, true);
+	if (s.status === 'defeat') void setPokemonCurrentHp(s.player.pokemon.id, 0);
 	void persistBattle();
-	return turnResult;
+	return result;
 }
 
 

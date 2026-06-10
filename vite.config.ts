@@ -2,6 +2,8 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
+// Unit tests são configurados em vitest.config.ts (o vitest o prioriza).
+
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 	server: {

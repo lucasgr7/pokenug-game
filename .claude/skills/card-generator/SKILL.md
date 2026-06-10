@@ -119,7 +119,7 @@ export const KIND_EMITTERS: Record<CardKind, KindHandler> = {
 ```
 
 ### 4. Add exhaustion rule
-If your kind needs a special exhaust rule, add it in `shouldExhaust()` at `src/lib/game/battle.svelte.ts:315`:
+If your kind needs a special exhaust rule, add it in `shouldExhaust()` in `src/lib/game/combat.ts`:
 ```ts
 if (tpl.kind === 'YOUR_KIND') return true;   // always exhausted
 ```
@@ -282,7 +282,54 @@ When a card is played, `applyCardEffect` (in `game/cards/apply.ts`) runs in this
 
 ---
 
-## Step 7 — Validation
+## Step 7 — Unit test (MANDATORY)
+
+Every new card ships with a spec. The combat engine is pure (`src/lib/game/combat.ts`) and is driven in tests through the harness `$lib/testing/battle` — never re-implement engine logic in a test.
+
+**Where:**
+- Stat-only cards: they are covered automatically by the table-driven spec `src/lib/game/cards/__tests__/catalog.spec.ts` (it iterates the whole catalog). Just run the suite and confirm the new card's generated tests pass.
+- Cards with `CARD_HOOKS` or non-trivial interactions: add a dedicated `describe` block to `hooks-attacks.spec.ts` or `hooks-defense-powers.spec.ts` (same `__tests__` folder), one test per sentence of the card description.
+
+**Harness cheat-sheet (`$lib/testing/battle`):**
+
+```ts
+import { card, stubRandom, testBattle } from '$lib/testing/battle';
+
+const b = testBattle({
+  hand: ['your_card_id', 'neu_atk_preciso'],   // strings or card('id', { upgrades: 2 })
+  deck: ['neu_atk_preciso'],                    // also: discard, exhausted, relics
+  player: { mana: 6, statuses: [['empowered', 5]] },  // element auto-derived from 1st hand card
+  enemy: { element: 'normal', block: 4, intent: { kind: 'attack', damage: 10 } }
+});
+
+const r = b.play('your_card_id');  // throws with a readable reason if refused
+b.tryPlay('id');                   // returns { played: false } instead of throwing
+b.endTurn();                       // resolves the enemy turn (deterministic next intent)
+
+// Assertions — read game state through the views:
+b.enemy.damageTaken / b.enemy.block / b.enemy.has('fraqueza') / b.enemy.stacks('fraqueza')
+b.player.mana / b.player.hp / b.player.block / b.player.has('berserk')
+b.hand / b.deck / b.discardPile / b.exhaustedPile   // template ids
+b.status                                            // 'active' | 'victory' | 'defeat' | 'captured'
+stubRandom(0.99)                                    // determinize Math.random (returns restore fn)
+```
+
+**Test-design rules (DX/readability):**
+- One `describe` per card, titled `'card_id — Nome da Carta'`; test names in PT-BR describing the behavior ("causa 10 de dano sem CARGA_DRAGÃO").
+- Default matchup is neutral (1×): `damageTaken === tpl.damage`. Set `enemy.element` explicitly only when testing effectiveness.
+- Assert exact numbers, not `toBeGreaterThan`, unless the value is genuinely random.
+- Remember stacking: `fraqueza`/`enraizado`/`berserk` on either side change attack math — account for them or don't add them.
+- If you discover the implementation doesn't match the card description, write the DESIRED behavior with `it.fails(...)` + a `// BUG:` comment explaining the divergence, and tell the user.
+
+Run the suite:
+
+```bash
+yarn test          # vitest run (must be 100% green)
+```
+
+---
+
+## Step 8 — Validation
 
 Run static validation after the change:
 

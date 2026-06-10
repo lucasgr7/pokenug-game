@@ -11,11 +11,14 @@ Pokengu is a browser-based, offline-first Pokémon card-battler + idle game: Sve
 | `yarn dev` | Dev server at `http://localhost:5173` |
 | `yarn build` | Static SPA build → `build/` |
 | `yarn check` | Type-check via `svelte-check`. **The CI gate — must report 0 errors before any PR.** |
+| `yarn test` | Vitest unit tests (combat engine + every card). **Must be 100% green before any PR.** |
+| `yarn test:watch` | Vitest in watch mode |
 | `yarn preview` | Preview the production build |
 | `yarn prepare` | `svelte-kit sync` — regenerates `$lib`/route types. Run after pulling or switching branches. |
 
 - **Node 20+ required. Node 18 crashes Vite 8** (`CustomEvent is not defined`).
-- There is **no unit-test framework**. The only automated test is a Playwright smoke driver inside the `run-pokengu` skill (separate `node_modules`): `node .claude/skills/run-pokengu/driver.mjs smoke`. Visual/runtime smoke tests are optional — run only when explicitly requested.
+- Unit tests use **Vitest** (`vitest.config.ts`, NOT in `vite.config.ts` — vitest 3 / vite 8 type clash). Specs live in `src/lib/game/cards/__tests__/*.spec.ts` and drive the pure engine through the harness **`$lib/testing/battle`** (`testBattle(...)`, `b.play(id)`, `b.enemy.damageTaken`, …). IndexedDB adapters are mocked in `src/lib/testing/setup.ts`. Known engine/design bugs are documented as `it.fails(...)` tests — don't "fix" a red `it.fails` by deleting it.
+- There is also a Playwright smoke driver inside the `run-pokengu` skill (separate `node_modules`): `node .claude/skills/run-pokengu/driver.mjs smoke`. Visual/runtime smoke tests are optional — run only when explicitly requested.
 - CI (Drone): `yarn check && yarn build`, then `docker compose up --build -d` on `main`.
 
 ## Architecture
@@ -36,9 +39,11 @@ Pokengu is a browser-based, offline-first Pokémon card-battler + idle game: Sve
 - One adapter file per bounded context (`player.ts`, `cards.ts`, `pokemon.ts`, `jobs.ts`, `market.ts`, …).
 - The schema and **`DB_VERSION`** live in `src/lib/db/index.ts`. Bumping the version runs the `upgrade()` migration (e.g. v4 wiped `cardInventory`/`activeDeck` for a new card catalog). Add new stores there.
 
-### Battle engine (`src/lib/game/battle.svelte.ts`)
+### Battle engine (`src/lib/game/combat.ts` + `src/lib/game/battle.svelte.ts`)
 
-The full combat loop. When a card is played, `applyCardEffect` (`game/cards/apply.ts`) runs in order:
+The combat core is **pure and unit-testable** in `combat.ts`: `playCardOn(state, cardId, io)`, `endTurnOn(state, nextIntent, io)`, `dealToEnemy`/`dealToPlayer`/`drawCards` — all operate on an explicit `BattleState` plus a small `CombatIO` callback interface (hurt animations, MissingNo defeat). `battle.svelte.ts` is the thin wrapper that owns the `battle` $state store, IndexedDB persistence, PostHog and enemy-intent rolling. Put game rules in `combat.ts` (testable), side effects in `battle.svelte.ts`.
+
+When a card is played, `applyCardEffect` (`game/cards/apply.ts`) runs in order:
 1. `KIND_EMITTERS[tpl.kind]` — generic per-kind handler (`game/cards/kinds.ts`)
 2. Resource effects (mana, draw, selfDamage)
 3. `appliesStatuses` — declarative status application
@@ -51,7 +56,7 @@ The full combat loop. When a card is played, `applyCardEffect` (`game/cards/appl
 
 - Card definitions are `CardTemplate`s in `src/lib/data/cards.ts` (catalog + pricing). `CardKind` and `CardTemplate` types are in `src/lib/game/types.ts`.
 - Template IDs are snake_case, prefixed by kind: `atk_`, `def_`, `heal_`, `buff_`, `cap_`, `energy_`, `combo_`, `power_`, `relic_`.
-- To add a card, use the **`card-generator` skill** — it covers kind selection, balance reference, catalog wiring, the `CardKindIcon.svelte` SVG, and battle-rule validation.
+- To add a card, use the **`card-generator` skill** — it covers kind selection, balance reference, catalog wiring, the `CardKindIcon.svelte` SVG, the mandatory unit-test spec, and battle-rule validation.
 
 ### Status system — circular-dependency hazard (`src/lib/game/status/`)
 

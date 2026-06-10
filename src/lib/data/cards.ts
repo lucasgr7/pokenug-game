@@ -13,26 +13,6 @@ export const STARTER_TEMPLATES: CardTemplate[] = [
 		rarity: 'starter',
 		damage: 4
 	},
-	{
-		id: 'neu_atk_golpe_direto',
-		name: 'Golpe Direto',
-		description: 'Cause 8 de dano.',
-		cost: 1,
-		kind: 'attack',
-		element: null,
-		rarity: 'starter',
-		damage: 8
-	},
-	{
-		id: 'neu_atk_investida',
-		name: 'Investida',
-		description: 'Cause 18 de dano.',
-		cost: 2,
-		kind: 'attack',
-		element: null,
-		rarity: 'starter',
-		damage: 18
-	},
 	// Defesas neutras
 	{
 		id: 'neu_def_bloqueio',
@@ -44,25 +24,17 @@ export const STARTER_TEMPLATES: CardTemplate[] = [
 		rarity: 'starter',
 		block: 6
 	},
+	// Cura inicial
 	{
-		id: 'neu_def_postura',
-		name: 'Postura Defensiva',
-		description: 'Ganha 10 de escudo.',
-		cost: 1,
-		kind: 'defense',
-		element: null,
-		rarity: 'starter',
-		block: 10
-	},
-	{
-		id: 'neu_def_recuo',
-		name: 'Recuo Estratégico',
-		description: 'Ganha 20 de escudo.',
+		id: 'heal_spray_cura',
+		name: 'Spray de Cura',
+		description: 'Recupera 25 de HP.',
 		cost: 2,
-		kind: 'defense',
+		kind: 'heal',
 		element: null,
 		rarity: 'starter',
-		block: 20
+		healHp: 25,
+		exhaust: 'combat'
 	},
 	// Pokébola inicial
 	{
@@ -81,7 +53,7 @@ export const STARTER_TEMPLATES: CardTemplate[] = [
 export const STARTER_DECK: Array<[string, number]> = [
 	['neu_atk_preciso', 5],
 	['neu_def_bloqueio', 4],
-	['neu_sup_respiro', 2],
+	['heal_spray_cura', 2],
 	['pokeball_basic', 2]
 ];
 

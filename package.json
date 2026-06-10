@@ -9,7 +9,9 @@
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-static": "^3.0.10",
@@ -21,13 +23,14 @@
 		"svelte-check": "^4.4.6",
 		"tailwindcss": "^4.3.0",
 		"typescript": "^6.0.2",
-		"vite": "^8.0.7"
+		"vite": "^8.0.7",
+		"vitest": "^3.2.0"
 	},
 	"dependencies": {
 		"@vercel/analytics": "^2.0.1",
 		"idb": "^8.0.3",
-		"svelte-i18n": "^4.0.1",
 		"posthog-js": "^1.382.0",
-		"posthog-node": "^5.36.4"
+		"posthog-node": "^5.36.4",
+		"svelte-i18n": "^4.0.1"
 	}
 }
