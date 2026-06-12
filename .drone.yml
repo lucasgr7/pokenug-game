@@ -41,16 +41,16 @@ steps:
         from_secret: github_token
     commands:
       - |
-        if [ -z "$GITHUB_TOKEN" ]; then
+        if [ -z "$$GITHUB_TOKEN" ]; then
           echo ":: GITHUB_TOKEN secret not found — skipping GitHub push ::"
           exit 0
         fi
-        BRANCH="${DRONE_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}"
+        BRANCH="$${DRONE_BRANCH:-$$(git rev-parse --abbrev-ref HEAD)}"
         git config user.name "Lucas Ribeiro"
         git config user.email "lucasgr7@gmail.com"
         git remote remove github 2>/dev/null || true
-        git remote add github "https://lucasgr7:${GITHUB_TOKEN}@github.com/lucasgr7/pokenug-game.git"
-        git push --force github "HEAD:${BRANCH}"
+        git remote add github "https://lucasgr7:$$GITHUB_TOKEN@github.com/lucasgr7/pokenug-game.git"
+        git push --force github "HEAD:$$BRANCH"
     when:
       event:
         - push
