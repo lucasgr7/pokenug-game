@@ -5,14 +5,16 @@
   "rewrites": [
     {
       "source": "/ingest/static/:path*",
-      "destination": "https://us-assets.i.posthog.com/static/:path*"
+      "destination": "https://us-assets.i.posthog.com/static/:path*",
+      "methods": ["GET", "POST"]
     },
     {
       "source": "/ingest/:path*",
-      "destination": "https://us.i.posthog.com/:path*"
+      "destination": "https://us.i.posthog.com/:path*",
+      "methods": ["GET", "POST"]
     },
     {
-      "source": "/((?!.*\\.).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
