@@ -627,15 +627,15 @@
       "description": "Cause 10 de dano. Se o inimigo tiver escudo, ganha +1 de energia e compra 1 carta."
     },
     "pokeball_great": {
-      "name": "Great Ball",
+      "name": "Super Bola",
       "description": "Captura com +15% de chance."
     },
     "pokeball_ultra": {
-      "name": "Ultra Ball",
+      "name": "Hiper Bola",
       "description": "Captura com +30% de chance."
     },
     "pokeball_master": {
-      "name": "Master Ball",
+      "name": "Bola Master",
       "description": "Captura com +50% de chance."
     },
     "bug_picada_token": {

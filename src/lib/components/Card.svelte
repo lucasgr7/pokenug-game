@@ -5,6 +5,7 @@
 	import CardKindIcon from './CardKindIcon.svelte';
 	import type { Element } from '$lib/game/types';
 	import { activePokemon, getElementalDamageLevel } from '$lib/game/state.svelte';
+	import { _ } from 'svelte-i18n';
 
 	let {
 		templateId,
@@ -92,6 +93,9 @@
 	let iconSize = $derived(showcase ? (compact ? 62 : 80) : compact ? 44 : 58);
 	let activePkm = $derived(activePokemon());
 
+	let cardName = $derived($_('cards.' + templateId + '.name'));
+	let cardDesc = $derived($_('cards.' + templateId + '.description'));
+
 	// Primary stat for the art badge
 	let statKind = $derived(
 		tpl?.kind === 'attack' || tpl?.damage ? 'atk'
@@ -159,12 +163,12 @@
 				</div>
 
 				<!-- NAME -->
-				<div class="c-name">{tpl.name}</div>
+				<div class="c-name">{cardName}</div>
 
 				<!-- ART WINDOW -->
 				<div class="c-art">
 					{#if artUrl}
-						<img class="art-img" src={artUrl} alt={tpl.name} draggable="false" />
+						<img class="art-img" src={artUrl} alt={cardName} draggable="false" />
 						<div class="art-img-fade"></div>
 					{:else}
 						<div class="art-halo" style="background: radial-gradient(circle at 50% 42%, {elementColor}cc, {elementColor}33 55%, transparent 72%);"></div>
@@ -189,9 +193,9 @@
 					{/if}
 				</div>
 
-				{#if tpl.description != null && tpl.description.trim() !== '' && !compact}
+				{#if cardDesc && cardDesc.trim() !== '' && !cardDesc.startsWith('cards.') && !compact}
 				<div class="p-4 text-sm text-center text-(--text-muted) line-clamp-4">
-					{tpl.description}
+					{cardDesc}
 				</div>
 				{/if}
 

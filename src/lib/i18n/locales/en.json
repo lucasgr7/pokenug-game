@@ -736,6 +736,50 @@
       "deckLabel": "Max 35 Cards"
     }
   },
+  "regions": {
+    "verdant_forest": {
+      "name": "Verdant Forest",
+      "description": "Ancient trees and herbivore Pokémon.",
+      "bossName": "Ancient Venusaur",
+      "bossDesc": "The forest's age-old guardian. Poison that corrodes and roots that bind."
+    },
+    "ember_cave": {
+      "name": "Ember Cave",
+      "description": "Suffocating heat and fire-and-rock creatures.",
+      "bossName": "Depths Charizard",
+      "bossDesc": "Flames that melt stone. A roar that snuffs the torches."
+    },
+    "crystal_lake": {
+      "name": "Crystal Lake",
+      "description": "Clear waters teeming with aquatic Pokémon.",
+      "bossName": "Tidal Blastoise",
+      "bossDesc": "Lord of the currents. Cannons that fire ocean pressure."
+    },
+    "thunder_plant": {
+      "name": "Thunder Plant",
+      "description": "Electric currents humming through the machines.",
+      "bossName": "Raichu Overcharge",
+      "bossDesc": "Ten-thousand-volt discharge."
+    },
+    "rocky_ridge": {
+      "name": "Rocky Ridge",
+      "description": "Stone cliffs and hard-packed earth.",
+      "bossName": "Titanic Golem",
+      "bossDesc": "A mountain that breathes."
+    },
+    "psychic_tower": {
+      "name": "Psychic Tower",
+      "description": "Mental energy and restless shadows.",
+      "bossName": "Mewtwo Prime",
+      "bossDesc": "Power that transcends matter."
+    },
+    "missingno": {
+      "name": "???",
+      "description": "A distortion in the data.",
+      "bossName": "MissingNo.",
+      "bossDesc": "An error in the matrix."
+    }
+  },
   "shop": {
     "title": "Shop",
     "platinumShop": "🜲 Platinum Shop",

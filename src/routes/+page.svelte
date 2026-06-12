@@ -231,7 +231,7 @@
 				>
 					<div class="zp-you">{zs === 'active' ? $_('map.youAreHere') : ''}</div>
 					<div class="zp-circle">{region.emoji}</div>
-					<div class="zp-label">{region.name}</div>
+					<div class="zp-label">{$_('regions.' + region.id + '.name')}</div>
 				</button>
 				{#if i < REGIONS.length - 1}
 					{@const lineClass = i < activeZoneIdx ? 'done' : i === activeZoneIdx ? 'active-to-next' : 'ghost'}
@@ -260,14 +260,14 @@
 				<div class="zh-atmosphere"></div>
 				<div class="zh-inner">
 					<div class="zh-toprow">
-						<div class="zh-badge">{ar.emoji} {ar.name.split(' ')[0].toUpperCase()}</div>
+						<div class="zh-badge">{ar.emoji} {$_('regions.' + ar.id + '.name').split(' ')[0].toUpperCase()}</div>
 						<div class="zh-status">
 							<div class="zh-dot"></div>
 							{$_('map.zoneActive')}
 						</div>
 					</div>
-					<div class="zh-name">{ar.name}</div>
-					<div class="zh-desc">{ar.description}</div>
+					<div class="zh-name">{$_('regions.' + ar.id + '.name')}</div>
+					<div class="zh-desc">{$_('regions.' + ar.id + '.description')}</div>
 					<div class="zh-types">
 						<span class="zh-types-label">{$_('map.pokemonLabel')}</span>
 						{#each ar.types as t}
@@ -365,8 +365,8 @@
 							<div class="bg-dot"></div>
 							<span class="bg-eyebrow-txt">{$_('map.bossRevealedLabel')}</span>
 						</div>
-						<div class="bg-boss-name">{ar.emoji} {ar.bossName}</div>
-						<div class="bg-boss-desc">{ar.bossDesc}</div>
+						<div class="bg-boss-name">{ar.emoji} {$_('regions.' + ar.id + '.bossName')}</div>
+						<div class="bg-boss-desc">{$_('regions.' + ar.id + '.bossDesc')}</div>
 					</div>
 				{/if}
 			</div>
@@ -378,7 +378,7 @@
 					<div class="nt-icon">{nextReg.emoji}</div>
 					<div class="nt-info">
 						<div class="nt-label">{$_('map.nextRegion')}</div>
-						<div class="nt-name">{nextReg.name}</div>
+						<div class="nt-name">{$_('regions.' + nextReg.id + '.name')}</div>
 					</div>
 					<span class="nt-lock">🔒</span>
 				</div>
@@ -399,7 +399,7 @@
 								<div class="trophy-ambient"></div>
 								<div class="trophy-seal">★</div>
 								<div class="trophy-emoji">{region.emoji}</div>
-								<div class="trophy-name">{region.name}</div>
+								<div class="trophy-name">{$_('regions.' + region.id + '.name')}</div>
 								<div class="trophy-badge" class:ok={!isCd} class:cd={isCd}>
 									{isCd ? `↺ ${formatDuration(bossCooldownMs(region.id))}` : '✓'}
 								</div>
@@ -485,9 +485,8 @@
 						</div>
 					</div>
 					{#if locked}
-						{@const unlockReg = getRegion(c.unlockRegionId!)}
 						<div class="ch-lock-banner">
-							🔒 <span>{unlockReg?.name ?? $_('map.challengeUnlock')}</span>
+							🔒 <span>{$_('regions.' + c.unlockRegionId + '.name')}</span>
 						</div>
 					{/if}
 					<div class="ch-footer">
