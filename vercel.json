@@ -2,19 +2,18 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "outputDirectory": "build",
-  "routes": [
+  "rewrites": [
     {
-      "src": "/ingest/static/(.*)",
-      "dest": "https://us-assets.i.posthog.com/static/$1"
+      "source": "/ingest/static/:path*",
+      "destination": "https://us-assets.i.posthog.com/static/:path*"
     },
     {
-      "src": "/ingest/(.*)",
-      "dest": "https://us.i.posthog.com/$1"
+      "source": "/ingest/:path*",
+      "destination": "https://us.i.posthog.com/:path*"
     },
-    { "handle": "filesystem" },
     {
-      "src": "/.*",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
