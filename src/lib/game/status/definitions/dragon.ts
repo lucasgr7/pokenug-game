@@ -20,15 +20,6 @@ defineStatus({
   id: 'carga_dragao',
   scope: 'player',
   hooks: {
-    onApply: (ctx) => {
-      const newGrants = Math.floor(ctx.self.stacks / 4);
-      const prevGrants = ctx.self.data?.granted ?? 0;
-      if (newGrants > prevGrants) {
-        const diff = newGrants - prevGrants;
-        ctx.s.player.mana = Math.min(ctx.s.player.mana + diff * 2, 6);
-        ctx.self.data = { ...ctx.self.data, granted: newGrants };
-      }
-    },
     emblem: (self) => ({
       icon: '🐉',
       label: statusLabel('carga_dragao', { stacks: self.stacks }),

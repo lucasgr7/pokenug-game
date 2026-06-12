@@ -11,6 +11,7 @@ import {
 	hasStatus,
 	removeStatus,
 	getStatus,
+	addStatus,
 	setMutationApi,
 	setBattleState,
 	runIncomingDamage,
@@ -358,6 +359,14 @@ export function playCardOn(s: BattleState, cardId: string, io: CombatIO = {}): P
 		removeStatus(s.player, 'duplicar');
 	}
 
+	// FÚRIA (power fire_furia): replay fire cards when HP ≤ 50% (stackable)
+	const fireFurySt = hasStatus(s.player, 'fire_fury') ? getStatus(s.player, 'fire_fury')! : null;
+	if (fireFurySt && !tpl.isPower && tpl.element === 'fire' && s.player.hp <= s.player.pokemon.maxHp * 0.5) {
+		for (let i = 0; i < fireFurySt.stacks; i++) {
+			applyCardEffect(ctx, tpl, card);
+		}
+	}
+
 	// Dispatch onCardPlayed for status hooks (static_shock, dano_eletrico, etc.)
 	dispatchOnCardPlayed(s, tpl, card);
 
@@ -474,6 +483,15 @@ export function endTurnOn(
 		if (hasStatus(s.enemy, 'buff_reduced')) buffAmount = Math.floor(buffAmount * 0.5);
 		s.enemy.nextDamageBonus += buffAmount;
 		turnResult = { kind: 'buff', buffAmount };
+	}
+
+	// Rocha Imóvel: se ativada neste turno, concede +1 mana no próximo se ainda tiver escudo após o dano
+	if (hasStatus(s.player, 'rocha_imovel')) {
+		if (s.player.block > 0) {
+			addStatus(s.player, 'next_turn_bonus', 1, { mana: 1 });
+			logEvent({ kind: 'rocha_imovel_ativada' });
+		}
+		removeStatus(s.player, 'rocha_imovel');
 	}
 
 	if (intent.kind === 'attack') {

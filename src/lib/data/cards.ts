@@ -758,7 +758,7 @@ export const CATALOG: CardTemplate[] = [
 		id: 'electric_sobrecarga',
 		name: 'Sobrecarga',
 		description: 'Ativa DANO_ELÉTRICO(2): cada carta jogada causa +2 de dano elétrico até o fim do combate.',
-		cost: 3,
+		cost: 1,
 		kind: 'power',
 		element: 'electric',
 		rarity: 'epic',
@@ -854,6 +854,32 @@ export const CATALOG: CardTemplate[] = [
 		rarity: 'rare',
 		damage: 10,
 		price: { money: 90 }
+	},
+
+	// ── Fogo (Powers) ─────────────────────────────────────
+	{
+		id: 'fire_furia',
+		name: 'Fúria',
+		description: '[POWER] Se HP ≤ 50%, cartas de Fogo são jogadas duas vezes. Acumulável.',
+		cost: 2,
+		kind: 'power',
+		element: 'fire',
+		rarity: 'epic',
+		isPower: true,
+		appliesStatuses: [{ id: 'fire_fury', stacks: 1 }],
+		price: { money: 200, element: { type: 'fire', amount: 60 } }
+	},
+	{
+		id: 'fire_aproximacao',
+		name: 'Aproximação',
+		description: '[POWER] Todo auto-dano causado por cartas é refletido para o inimigo.',
+		cost: 1,
+		kind: 'power',
+		element: 'fire',
+		rarity: 'rare',
+		isPower: true,
+		appliesStatuses: [{ id: 'aproximacao', stacks: 1 }],
+		price: { money: 120, element: { type: 'fire', amount: 30 } }
 	},
 
 	// ── Pokébolas aprimoradas ─────────────────────────────

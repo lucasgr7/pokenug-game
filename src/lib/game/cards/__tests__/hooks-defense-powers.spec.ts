@@ -49,15 +49,26 @@ describe('rock_fortaleza — Fortaleza de Silex', () => {
 });
 
 describe('rock_rocha_imovel — Rocha Imóvel', () => {
-	it('com escudo no fim do turno: +1 de energia no próximo turno', () => {
+	it('com escudo após dano do inimigo: +1 de energia no próximo turno', () => {
 		const b = testBattle({
 			hand: ['rock_rocha_imovel'],
-			player: { block: 5 },
-			enemy: { intent: { kind: 'defend', block: 0 } }
+			player: { block: 15 },
+			enemy: { intent: { kind: 'attack', damage: 10 } }
 		});
 		b.play('rock_rocha_imovel');
 		b.endTurn();
 		expect(b.player.mana).toBe(4); // 3 base + 1 do bônus
+	});
+
+	it('escudo consumido pelo dano: sem bônus', () => {
+		const b = testBattle({
+			hand: ['rock_rocha_imovel'],
+			player: { block: 5 },
+			enemy: { intent: { kind: 'attack', damage: 10 } }
+		});
+		b.play('rock_rocha_imovel');
+		b.endTurn();
+		expect(b.player.mana).toBe(3);
 	});
 
 	it('sem escudo no fim do turno: energia normal', () => {
@@ -68,6 +79,18 @@ describe('rock_rocha_imovel — Rocha Imóvel', () => {
 		b.play('rock_rocha_imovel');
 		b.endTurn();
 		expect(b.player.mana).toBe(3);
+	});
+
+	it('status é removido após ativar (só uma vez)', () => {
+		const b = testBattle({
+			hand: ['rock_rocha_imovel'],
+			player: { block: 15 },
+			enemy: { intent: { kind: 'attack', damage: 2 } }
+		});
+		b.play('rock_rocha_imovel');
+		expect(b.player.has('rocha_imovel')).toBe(true);
+		b.endTurn();
+		expect(b.player.has('rocha_imovel')).toBe(false);
 	});
 });
 
@@ -314,5 +337,107 @@ describe('fighting_ritmo — Ritmo Implacável (AUTO_JOGAR)', () => {
 		b.endTurn();
 		// desejado: rajadas compradas seriam auto-jogadas causando dano
 		expect(b.enemy.damageTaken).toBeGreaterThan(0); // real: 0
+	});
+});
+
+describe('fire_furia — Fúria', () => {
+	it('aplica status FURIA no jogador', () => {
+		const b = testBattle({ hand: ['fire_furia'], player: { mana: 3, maxHp: 100 } });
+		b.play('fire_furia');
+		expect(b.player.has('fire_fury')).toBe(true);
+		expect(b.player.stacks('fire_fury')).toBe(1);
+	});
+
+	it('com HP ≤ 50%: carta de Fogo é jogada duas vezes', () => {
+		const b = testBattle({
+			hand: ['fire_furia', 'fire_chama_ardente'],
+			player: { mana: 6, hp: 40, maxHp: 100 }
+		});
+		b.play('fire_furia');
+		b.play('fire_chama_ardente');
+		// chama_ardente: 8 de dano base, selfDamage 1
+		// 2× = 16 de dano, 2 de selfDamage (não refletido sem aproximacao)
+		expect(b.enemy.damageTaken).toBe(16);
+		expect(b.player.hp).toBe(38); // 40 - 2 de selfDamage
+	});
+
+	it('com HP > 50%: carta de Fogo é jogada só uma vez', () => {
+		const b = testBattle({
+			hand: ['fire_furia', 'fire_chama_ardente'],
+			player: { mana: 6, hp: 70, maxHp: 100 }
+		});
+		b.play('fire_furia');
+		b.play('fire_chama_ardente');
+		expect(b.enemy.damageTaken).toBe(8);
+		expect(b.player.hp).toBe(69); // 70 - 1 de selfDamage
+	});
+
+	it('cartas de outros elementos não são afetadas', () => {
+		const b = testBattle({
+			hand: ['fire_furia', 'water_splash'],
+			player: { mana: 6, hp: 30, maxHp: 100, element: 'fire' },
+			enemy: { element: 'normal' }
+		});
+		b.play('fire_furia');
+		b.play('water_splash');
+		// water_splash: 4 de dano (água vs normal = 1×, sem repetição)
+		expect(b.enemy.damageTaken).toBe(4);
+	});
+
+	it('status acumulável: 2 stacks = 3 repetições', () => {
+		const b = testBattle({
+			hand: ['fire_furia', 'fire_chama_ardente'],
+			player: { mana: 6, hp: 30, maxHp: 100 }
+		});
+		b.play('fire_furia'); // stacks = 1
+		// adiciona +1 stack manualmente (simula 2 uses)
+		b.addPlayerStatus('fire_fury', 1);
+		expect(b.player.stacks('fire_fury')).toBe(2);
+		b.play('fire_chama_ardente');
+		// chama_ardente: 8 de dano × 3 repetições (1 original + 2 do fury)
+		expect(b.enemy.damageTaken).toBe(24);
+	});
+});
+
+describe('fire_aproximacao — Aproximação', () => {
+	it('aplica status APROXIMAÇÃO no jogador', () => {
+		const b = testBattle({ hand: ['fire_aproximacao'], player: { mana: 3 } });
+		b.play('fire_aproximacao');
+		expect(b.player.has('aproximacao')).toBe(true);
+	});
+
+	it('auto-dano de carta de Fogo é refletido para o inimigo', () => {
+		const b = testBattle({
+			hand: ['fire_aproximacao', 'fire_chama_ardente'],
+			player: { mana: 6, hp: 50, maxHp: 100 }
+		});
+		b.play('fire_aproximacao');
+		b.play('fire_chama_ardente');
+		// chama_ardente: 8 de dano + 1 refletido = 9
+		expect(b.enemy.damageTaken).toBe(9);
+		// jogador não sofre selfDamage
+		expect(b.player.hp).toBe(50);
+	});
+
+	it('auto-dano de cartas de outros elementos também é refletido', () => {
+		const b = testBattle({
+			hand: ['fire_aproximacao', 'fire_inferno'],
+			player: { mana: 6, hp: 80, maxHp: 100 }
+		});
+		b.play('fire_aproximacao');
+		b.play('fire_inferno');
+		// inferno: 30 de dano + 8 refletido = 38
+		expect(b.enemy.damageTaken).toBe(38);
+		expect(b.player.hp).toBe(80);
+	});
+
+	it('sem o status: auto-dano funciona normalmente', () => {
+		const b = testBattle({
+			hand: ['fire_chama_ardente'],
+			player: { hp: 50, maxHp: 100 }
+		});
+		b.play('fire_chama_ardente');
+		expect(b.enemy.damageTaken).toBe(8);
+		expect(b.player.hp).toBe(49); // 50 - 1
 	});
 });

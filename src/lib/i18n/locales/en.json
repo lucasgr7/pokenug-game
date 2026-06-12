@@ -313,7 +313,9 @@
     "enraizado":        { "label": "Rooted {stacks}",      "title": "Enemy rooted: takes double damage from Grass attacks. Expires in {stacks} turn(s)." },
     "next_turn_bonus":  { "label": "Next-turn bonus",      "title": "Next turn you gain extra cards/mana." },
     "rocha_imovel":     { "label": "Immovable rock",       "title": "Your shield does not reset at end of turn." },
-    "auto_jogar":       { "label": "Auto-play",            "title": "A card is played automatically." }
+    "auto_jogar":       { "label": "Auto-play",            "title": "A card is played automatically." },
+    "aproximacao":      { "label": "Approach",             "title": "Self-damage is reflected to the enemy." },
+    "fire_fury":        { "label": "Fury +{stacks}",        "title": "Fire cards are played twice if HP ≤ 50%." }
   },
   "cards": {
     "neu_atk_preciso": {
@@ -375,6 +377,14 @@
     "fire_escudo_ardente": {
       "name": "Blazing Shield",
       "description": "Gain 16 shield. Take 4 damage."
+    },
+    "fire_furia": {
+      "name": "Fury",
+      "description": "[POWER] If HP ≤ 50%, Fire cards are played twice. Stackable."
+    },
+    "fire_aproximacao": {
+      "name": "Approach",
+      "description": "[POWER] All self-damage from cards is reflected to the enemy."
     },
     "grass_raiz_profunda": {
       "name": "Deep Root",

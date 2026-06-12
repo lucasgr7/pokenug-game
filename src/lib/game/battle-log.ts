@@ -38,6 +38,8 @@ export function appendEvents(parts: LogPart[], events?: BattleEvent[]): LogPart[
 			parts.push({ text: ` · +${g.glyph}${e.stacks > 1 ? e.stacks : ''}`, color: g.color });
 		} else if (e.kind === 'reshuffle') {
 			parts.push({ text: ` · ♻${e.count}`, color: '#67e8f9' });
+		} else if (e.kind === 'rocha_imovel_ativada') {
+			parts.push({ text: ' · Rocha Imóvel ativada', color: '#a8a29e' });
 		}
 	}
 	return parts;

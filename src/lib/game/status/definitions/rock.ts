@@ -35,11 +35,6 @@ defineStatus({
   id: 'rocha_imovel',
   scope: 'player',
   hooks: {
-    onTurnEnd: (ctx) => {
-      if (ctx.s.player.block > 0) {
-        addStatus(ctx.s.player, 'next_turn_bonus', 1, { mana: 1 });
-      }
-    },
     emblem: () => ({
       icon: '🪨',
       label: statusLabel('rocha_imovel'),

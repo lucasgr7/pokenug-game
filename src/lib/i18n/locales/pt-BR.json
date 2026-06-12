@@ -313,7 +313,9 @@
     "enraizado":        { "label": "Enraizado {stacks}",    "title": "Inimigo enraizado: recebe o dobro de dano de ataques de Planta. Some em {stacks} turno(s)." },
     "next_turn_bonus":  { "label": "Bônus próximo turno",   "title": "No próximo turno você ganha cartas/mana extra." },
     "rocha_imovel":     { "label": "Rocha imóvel",          "title": "Seu escudo não zera no fim do turno." },
-    "auto_jogar":       { "label": "Auto-jogar",            "title": "Uma carta é jogada automaticamente." }
+    "auto_jogar":       { "label": "Auto-jogar",            "title": "Uma carta é jogada automaticamente." },
+    "aproximacao":      { "label": "Aproximação",           "title": "Auto-dano é refletido para o inimigo." },
+    "fire_fury":        { "label": "Fúria +{stacks}",        "title": "Cartas de Fogo são jogadas duas vezes se HP ≤ 50%." }
   },
   "cards": {
     "neu_atk_preciso": {
@@ -375,6 +377,14 @@
     "fire_escudo_ardente": {
       "name": "Escudo Ardente",
       "description": "Ganha 16 de escudo. Você sofre 4 de dano."
+    },
+    "fire_furia": {
+      "name": "Fúria",
+      "description": "[POWER] Se HP ≤ 50%, cartas de Fogo são jogadas duas vezes. Acumulável."
+    },
+    "fire_aproximacao": {
+      "name": "Aproximação",
+      "description": "[POWER] Todo auto-dano causado por cartas é refletido para o inimigo."
     },
     "grass_raiz_profunda": {
       "name": "Raiz Profunda",

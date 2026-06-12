@@ -6,6 +6,7 @@ import './fighting';
 import './electric';
 import './rock';
 import './grass';
+import './fire';
 import './enemy-debuffs';
 import './generic';
 import './natures';

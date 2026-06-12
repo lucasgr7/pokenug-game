@@ -1,6 +1,6 @@
 import type { Card, CardKind, CardTemplate } from '$lib/game/types';
 import type { CardEffectCtx } from './types';
-import { addStatus } from '$lib/game/status/pipeline';
+import { addStatus, hasStatus } from '$lib/game/status/pipeline';
 import { clamp } from '$lib/utils/math';
 import { KIND_EMITTERS } from './kinds';
 import { CARD_HOOKS } from './card-hooks';
@@ -15,7 +15,13 @@ function applyResourceEffects(ctx: CardEffectCtx, tpl: CardTemplate): void {
 	const { s } = ctx;
 	if (tpl.manaGain) s.player.mana = clamp(s.player.mana + tpl.manaGain, 0, 6);
 	if ((tpl.drawCount ?? 0) > 0) ctx.draw(tpl.drawCount ?? 0);
-	if (tpl.selfDamage) s.player.hp = Math.max(0, s.player.hp - tpl.selfDamage);
+	if (tpl.selfDamage) {
+		if (hasStatus(s.player, 'aproximacao')) {
+			ctx.dealToEnemy(tpl.selfDamage);
+		} else {
+			s.player.hp = Math.max(0, s.player.hp - tpl.selfDamage);
+		}
+	}
 	if (tpl.selfMaxHpReduction) {
 		s.player.pokemon.maxHp = Math.max(1, s.player.pokemon.maxHp - tpl.selfMaxHpReduction);
 		s.player.hp = Math.min(s.player.hp, s.player.pokemon.maxHp);
