@@ -26,7 +26,11 @@
     "deleteSave": "Delete save",
     "confirmDelete": "Are you sure? This deletes all progress.",
     "cancel": "Cancel",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "about": "About",
+    "aboutName": "Lucas Ribeiro",
+    "aboutRepo": "View on GitHub",
+    "aboutRepoUrl": "https://github.com/lucasgr7/pokenug-game"
   },
   "onboarding": {
     "title": "Pokengu",
@@ -705,50 +709,7 @@
       "description": "Unspent mana becomes +1 mana next turn."
     }
   },
-  "regions": {
-    "verdant_forest": {
-      "name": "Verdant Forest",
-      "description": "Ancient trees and herbivorous Pokémon.",
-      "bossName": "Ancestral Venusaur",
-      "bossDesc": "The centuries-old forest guardian. Corroding poison and trapping roots."
-    },
-    "ember_cave": {
-      "name": "Ember Cave",
-      "description": "Suffocating heat and creatures of fire and rock.",
-      "bossName": "Charizard of the Depths",
-      "bossDesc": "Flames that melt stone. A roar that extinguishes the torches."
-    },
-    "crystal_lake": {
-      "name": "Crystal Lake",
-      "description": "Clear waters teeming with aquatic Pokémon.",
-      "bossName": "Blastoise of the Tides",
-      "bossDesc": "Lord of currents. Cannons that fire with the pressure of the ocean."
-    },
-    "thunder_plant": {
-      "name": "Thunder Plant",
-      "description": "Electric currents crackling through the machinery.",
-      "bossName": "Raichu Overcharge",
-      "bossDesc": "Discharge of ten thousand volts."
-    },
-    "rocky_ridge": {
-      "name": "Rocky Ridge",
-      "description": "Cliffs of stone and packed earth.",
-      "bossName": "Titanic Golem",
-      "bossDesc": "A mountain that breathes."
-    },
-    "psychic_tower": {
-      "name": "Psychic Tower",
-      "description": "Mental energy and restless shadows.",
-      "bossName": "Mewtwo Prime",
-      "bossDesc": "Power that transcends matter."
-    },
-    "missingno": {
-      "name": "???",
-      "description": "A distortion in the data.",
-      "bossName": "MissingNo.",
-      "bossDesc": "An error in the matrix."
-    }
-  },
+
   "challenges": {
     "arena-lutador": {
       "name": "Fighter Arena",

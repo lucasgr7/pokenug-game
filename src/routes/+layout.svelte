@@ -25,8 +25,12 @@
 
 	let initialized = $state(false);
 	let offline = $state<OfflineSummary | null>(null);
+	let showDisclaimer = $state(false);
 
 	onMount(async () => {
+		if (!localStorage.getItem('pokengu-disclaimer-seen')) {
+			showDisclaimer = true;
+		}
 		injectAnalytics();
 		await waitLocale();
 		const res = await initApp();
@@ -50,9 +54,14 @@
 
 	onDestroy(() => stopTicker());
 
+	function dismissDisclaimer() {
+		localStorage.setItem('pokengu-disclaimer-seen', '1');
+		showDisclaimer = false;
+	}
+
 	// Guarda de rota: sem player vai para onboarding; com player sai do onboarding.
 	$effect(() => {
-		if (!initialized) return;
+		if (!initialized || showDisclaimer) return;
 		const path = page.url.pathname;
 		if (!game.player && path !== '/onboarding') goto('/onboarding');
 		else if (game.player && path === '/onboarding') goto('/');
@@ -110,6 +119,22 @@
 			{$_( 'layout.continue' )}
 		</button>
 	{/if}
+</Modal>
+
+<Modal open={showDisclaimer} title="Aviso Legal" onclose={dismissDisclaimer}>
+	<p class="text-sm leading-relaxed text-(--text-dim)">
+		Pokengu is a fan-made indie project created for learning purposes.
+		It is not affiliated with, endorsed by, or connected to Nintendo,
+		Game Freak, or The Pokémon Company. All Pokémon-related names and
+		concepts belong to their respective owners. This game is free,
+		non-commercial, and made out of love for the genre.
+	</p>
+	<button
+		class="mt-5 w-full rounded-xl bg-(--accent) py-2.5 font-semibold text-(--accent-text)"
+		onclick={dismissDisclaimer}
+	>
+		Entendi
+	</button>
 </Modal>
 
 <!-- 🛠 Dev debug menu (yarn dev only) -->

@@ -19,6 +19,7 @@
 			await deleteDB('pokengu');
 			localStorage.removeItem('pokengu-deck');
 			localStorage.removeItem('pokengu-hud-trades');
+			localStorage.removeItem('pokengu-disclaimer-seen');
 			location.reload();
 		} catch (e) {
 			console.error('Failed to delete save:', e);
@@ -47,6 +48,19 @@
 				🇺🇸 English
 			</button>
 			</div>
+		</div>
+
+		<div class="border-t border-(--border) pt-4 space-y-1">
+			<p class="text-sm font-medium text-(--text-dim)">{$_( 'menu.about' )}</p>
+			<p class="text-sm">{$_( 'menu.aboutName' )}</p>
+			<a
+				href={$_('menu.aboutRepoUrl')}
+				target="_blank"
+				rel="noopener noreferrer"
+				class="text-sm text-(--accent) underline"
+			>
+				{$_( 'menu.aboutRepo' )}
+			</a>
 		</div>
 
 		<div class="border-t border-(--border) pt-4">

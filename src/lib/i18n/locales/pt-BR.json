@@ -26,7 +26,11 @@
     "deleteSave": "Apagar save",
     "confirmDelete": "Tem certeza? Isso apaga todo o progresso.",
     "cancel": "Cancelar",
-    "confirm": "Confirmar"
+    "confirm": "Confirmar",
+    "about": "Sobre",
+    "aboutName": "Lucas Ribeiro",
+    "aboutRepo": "Ver no GitHub",
+    "aboutRepoUrl": "https://github.com/lucasgr7/pokenug-game"
   },
   "onboarding": {
     "title": "Pokengu",
@@ -347,7 +351,7 @@
       "description": "Tenta capturar o pokémon selvagem."
     },
     "water_splash": {
-      "name": "Splash",
+      "name": "Esguicho",
       "description": "Cause 4 de dano. Compre 1 carta."
     },
     "water_fluxo": {
@@ -355,7 +359,7 @@
       "description": "Cause 14 de dano. Compre 2 cartas."
     },
     "water_torrent": {
-      "name": "Torrent",
+      "name": "Torrente",
       "description": "Cause 28 de dano."
     },
     "water_tsunami": {
@@ -705,50 +709,7 @@
       "description": "Mana não gasta vira +1 de mana no turno seguinte."
     }
   },
-  "regions": {
-    "verdant_forest": {
-      "name": "Floresta Verdejante",
-      "description": "Árvores antigas e pokémons herbívoros.",
-      "bossName": "Venusaur Ancestral",
-      "bossDesc": "O guardião secular da floresta. Veneno que corrói e raízes que prendem."
-    },
-    "ember_cave": {
-      "name": "Caverna das Brasas",
-      "description": "Calor sufocante e criaturas de fogo e rocha.",
-      "bossName": "Charizard das Profundezas",
-      "bossDesc": "Chamas que derretem pedra. Um rugido que apaga as tochas."
-    },
-    "crystal_lake": {
-      "name": "Lago de Cristal",
-      "description": "Águas claras repletas de pokémons aquáticos.",
-      "bossName": "Blastoise das Marés",
-      "bossDesc": "Senhor das correntes. Canhões que disparam a pressão do oceano."
-    },
-    "thunder_plant": {
-      "name": "Usina Trovão",
-      "description": "Correntes elétricas zunindo entre as máquinas.",
-      "bossName": "Raichu Overcharge",
-      "bossDesc": "Descarga de dez mil volts."
-    },
-    "rocky_ridge": {
-      "name": "Cordilheira Rochosa",
-      "description": "Penhascos de pedra e terra batida.",
-      "bossName": "Golem Titânico",
-      "bossDesc": "Uma montanha que respira."
-    },
-    "psychic_tower": {
-      "name": "Torre Psíquica",
-      "description": "Energia mental e sombras inquietas.",
-      "bossName": "Mewtwo Prime",
-      "bossDesc": "Poder que transcende a matéria."
-    },
-    "missingno": {
-      "name": "???",
-      "description": "Uma distorção nos dados.",
-      "bossName": "MissingNo.",
-      "bossDesc": "Um erro na matrix."
-    }
-  },
+
   "challenges": {
     "arena-lutador": {
       "name": "Arena dos Lutadores",
