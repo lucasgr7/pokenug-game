@@ -23,6 +23,9 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
+	// Não intercepta a API do Ollama — deixa ir direto à rede (proxy do nginx).
+	if (e.request.url.includes('/ollama/')) return;
+
 	if (e.request.url.includes('/mp3/')) {
 		e.respondWith(
 			caches.match(e.request).then((cached) => {
