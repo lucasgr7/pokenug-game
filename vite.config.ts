@@ -11,6 +11,13 @@ export default defineConfig({
 		// connections. This blocks the dev WebSocket when accessed through
 		// VS Code's Simple Browser, browser extensions, or any proxy.
 		// Setting allowedHosts to true disables the check for local dev.
-		allowedHosts: true
+		allowedHosts: true,
+		proxy: {
+			'/ollama': {
+				target: 'http://192.168.100.81:11434',
+				rewrite: (p) => p.replace(/^\/ollama/, ''),
+				changeOrigin: true
+			}
+		}
 	}
 });

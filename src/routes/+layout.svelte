@@ -15,6 +15,8 @@
 	import { formatNumber } from '$lib/utils/math';
 	import Toast from '$lib/components/Toast.svelte';
 	import MusicController from '$lib/components/MusicController.svelte';
+	import RelationshipDock from '$lib/components/RelationshipDock.svelte';
+	import FledModal from '$lib/components/FledModal.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import BottomNav from '$lib/components/BottomNav.svelte';
 	import { injectAnalytics } from '@vercel/analytics/sveltekit';
@@ -79,6 +81,8 @@
 
 <Toast />
 <MusicController />
+<RelationshipDock />
+<FledModal />
 
 <div id="app-shell" class="flex min-h-[100dvh] flex-col">
 	<div class="flex min-h-0 flex-1 flex-col">

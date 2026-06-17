@@ -214,15 +214,61 @@ async function doInit(): Promise<InitResult> {
 		await Promise.all(game.roster.map((p) => addPokemon($state.snapshot(p))));
 	}
 
+	let relationshipChanged = false;
+	for (const p of game.roster) {
+		const { ensureRelationship } = await import('./memory');
+		if (ensureRelationship(p)) relationshipChanged = true;
+	}
+	for (const p of game.roster) {
+		const { ensureBaseMaxHp } = await import('./relationship.svelte');
+		if (ensureBaseMaxHp(p)) relationshipChanged = true;
+	}
+	if (relationshipChanged) {
+		await Promise.all(game.roster.map((p) => addPokemon($state.snapshot(p))));
+	}
+
 	applyThemeToDom(player.theme);
 
 	player.lastSeenAt ??= now();
 
+	// ── Exhaustion: work state backfill ──
+	let workChanged = false;
+	for (const p of game.roster) {
+		const { ensureWorkState } = await import('./jobs.svelte');
+		if (ensureWorkState(p)) workChanged = true;
+	}
+	if (workChanged) {
+		await Promise.all(game.roster.map((p) => addPokemon($state.snapshot(p))));
+	}
+
 	// Progresso offline é calculado no módulo de jobs (carregado dinamicamente
 	// para evitar dependência circular em tempo de avaliação).
-	const { applyOfflineProgress, applyOfflineHpRecovery } = await import('./jobs.svelte');
+	const { applyOfflineProgress, applyOfflineHpRecovery, applyOfflineExhaustion } = await import('./jobs.svelte');
 	const offline = await applyOfflineProgress();
+	const fled = await applyOfflineExhaustion();
 	await applyOfflineHpRecovery();
+
+	// Flee summary for the return popup — the fled list is available via getAllFled()
+
+	// ── Relationship: newDay trigger ──
+	const todayKey = new Date().toISOString().slice(0, 10);
+	if (player.lastDayKey !== todayKey) {
+		player.lastDayKey = todayKey;
+		const relMod = await import('./relationship.svelte');
+		const activePkm = activePokemon();
+		if (activePkm) relMod.maybeRollEvent('newDay', activePkm);
+		for (const p of game.roster) {
+			if (relMod.relationshipState.events.length >= 3) break;
+			if (p.id !== player.activePokemonId) {
+				relMod.maybeRollEvent('newDay', p);
+			}
+		}
+		await savePlayer($state.snapshot(player));
+	}
+
+	// ── Start relationship ticker ──
+	const relMod2 = await import('./relationship.svelte');
+	relMod2.startRelationshipTicker();
 
 	game.ready = true;
 	return { hasPlayer: true, offline };

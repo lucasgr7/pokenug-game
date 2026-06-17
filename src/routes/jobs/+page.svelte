@@ -21,9 +21,18 @@
 	import type { CapturedPokemon, JobType } from '$lib/game/types';
 	import { pushToast } from '$lib/stores/toast.svelte';
 	import { onMount } from 'svelte';
+	import { getAllFled, removeFled } from '$lib/db/fled';
+	import { capacityMs, stepWork } from '$lib/game/exhaustion';
+	import type { FledPokemon } from '$lib/game/types';
 
 	let selected = $state<CapturedPokemon | null>(null);
 	let expandedNature = $state<number | null>(null);
+	let showHelp = $state(false);
+	let fledList = $state<FledPokemon[]>([]);
+
+	onMount(async () => {
+		fledList = await getAllFled();
+	});
 
 	// Smooth progress animation via requestAnimationFrame
 	let smooth = $state<Record<string, number>>({});
@@ -108,6 +117,23 @@
 	function healsPassively(pokemon: CapturedPokemon): boolean {
 		return !jobForPokemon(pokemon.id) && normalizedPokemonHp(pokemon) < pokemon.maxHp;
 	}
+
+	function exhaustionPercent(p: CapturedPokemon): number {
+		if (!p.work) return 100;
+		const cap = capacityMs(p);
+		return cap > 0 ? (p.work.exhaustionRemainingMs / cap) * 100 : 0;
+	}
+
+	function ragePercent(p: CapturedPokemon): number {
+		if (!p.work || p.work.phase !== 'rage') return 0;
+		const cap = capacityMs(p);
+		return cap > 0 ? (p.work.rageRemainingMs / cap) * 100 : 0;
+	}
+
+	async function handleRemoveFled(id: string) {
+		await removeFled(id);
+		fledList = fledList.filter((f) => f.id !== id);
+	}
 </script>
 
 <Hud />
@@ -162,7 +188,13 @@
 	{/if}
 
 	<!-- Active jobs -->
-	<h2 class="mb-2 mt-6 text-lg font-bold">{$_('jobs.production')}</h2>
+	<div class="mb-2 mt-6 flex items-center gap-2">
+		<h2 class="text-lg font-bold">{$_('jobs.production')}</h2>
+		<button
+			class="help-btn flex h-5 w-5 items-center justify-center rounded-full border border-(--text-muted) text-[10px] font-bold text-(--text-muted)"
+			onclick={() => (showHelp = true)}
+		>?</button>
+	</div>
 	{#if activeTypes.length === 0}
 		<p class="text-sm text-(--text-muted)">{$_('jobs.noJobs')}</p>
 	{:else}
@@ -195,6 +227,24 @@
 									<Sprite speciesId={w.speciesId} size={36} alt={w.name} />
 									<span class="mt-0.5 max-w-12 truncate text-[9px] text-(--text-muted)">{w.name}</span>
 									<span class="text-[8px] text-(--danger)">{$_('jobs.stopLabel')}</span>
+									{#if w.work}
+										<div class="mt-1 w-full px-0.5">
+											<div class="h-1 w-full overflow-hidden rounded-full bg-(--surface)">
+												<div
+													class="h-full rounded-full transition-[width] duration-500"
+													style="width: {exhaustionPercent(w)}%; background: {w.work.phase === 'rage' ? '#ef4444' : 'linear-gradient(90deg, #6366f1, #8b5cf6)'};"
+												></div>
+											</div>
+											{#if w.work.phase === 'rage'}
+												<div class="mt-0.5 h-1 w-full overflow-hidden rounded-full bg-(--surface)">
+													<div
+														class="h-full rounded-full transition-[width] duration-500"
+														style="width: {ragePercent(w)}%; background: #ef4444; animation: pulse-bar 0.8s ease-in-out infinite;"
+													></div>
+												</div>
+											{/if}
+										</div>
+									{/if}
 								</button>
 							{/each}
 						</div>
@@ -203,7 +253,48 @@
 			{/each}
 		</div>
 	{/if}
+
+	<!-- Fugiram section -->
+	{#if fledList.length > 0}
+		<h2 class="mb-2 mt-6 text-lg font-bold">Fugiram</h2>
+		<div class="flex flex-wrap gap-2">
+			{#each fledList as f (f.id)}
+				<div class="flex items-center gap-2 rounded-xl border border-(--danger)/30 bg-(--surface) px-3 py-2">
+					<Sprite speciesId={f.speciesId} size={32} alt={f.name} />
+					<div class="flex flex-col">
+						<span class="text-xs font-bold text-(--txt-main)">{f.name}</span>
+						<span class="text-[10px] text-(--text-muted)">{new Date(f.fledAt).toLocaleDateString('pt-BR')}</span>
+					</div>
+					<button
+						class="ml-2 rounded-lg bg-(--danger)/15 px-2 py-1 text-[10px] font-semibold text-(--danger)"
+						onclick={() => handleRemoveFled(f.id)}
+					>Remover</button>
+				</div>
+			{/each}
+		</div>
+	{/if}
 </main>
+
+<!-- Help legend modal -->
+<Modal open={showHelp} title="Exaustão" onclose={() => (showHelp = false)}>
+	<div class="space-y-3 text-sm leading-relaxed text-(--text-dim)">
+		<p class="flex items-center gap-2">
+			<span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #8b5cf6);"></span>
+			<strong>Roxo = Cansaço:</strong> tempo restante de trabalho. Quando acaba, o Pokémon entra em fúria.
+		</p>
+		<p class="flex items-center gap-2">
+			<span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #ef4444;"></span>
+			<strong>Vermelho = Fúria:</strong> se esvaziar completamente, o Pokémon foge. Tire-o do trabalho para acalmá-lo.
+		</p>
+		<p class="flex items-center gap-2">
+			<span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #22c55e;"></span>
+			<strong>Verde = Descanso:</strong> Pokémon fora do trabalho recuperam o cansaço automaticamente.
+		</p>
+		<p class="mt-2 text-[11px] text-(--text-muted)">
+			Natureza boa (primeira) = 3× mais tempo de trabalho. Natureza ruim = metade do tempo.
+		</p>
+	</div>
+</Modal>
 
 <!-- Assignment modal -->
 <Modal open={!!selected} title={selected?.name ?? ''} onclose={() => (selected = null)}>
@@ -286,5 +377,15 @@
 	}
 	.worker-tile:active {
 		opacity: 0.7;
+	}
+	.help-btn {
+		transition: background 0.15s;
+	}
+	.help-btn:hover {
+		background: var(--surface-2);
+	}
+	@keyframes pulse-bar {
+		0%, 100% { opacity: 0.5; }
+		50% { opacity: 1; }
 	}
 </style>

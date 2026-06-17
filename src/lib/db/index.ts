@@ -4,6 +4,7 @@ import type {
 	Card,
 	CapturedPokemon,
 	CardTemplate,
+	FledPokemon,
 	Player,
 	SavedBattle
 } from '$lib/game/types';
@@ -56,10 +57,14 @@ export interface PokenguDB extends DBSchema {
 		key: string;
 		value: SavedBattle;
 	};
+	fled: {
+		key: string;
+		value: FledPokemon;
+	};
 }
 
 const DB_NAME = 'pokengu';
-const DB_VERSION = 6; // v6: removed market store entirely
+const DB_VERSION = 7; // v7: added fled store (exhaustion mechanic)
 
 let dbPromise: Promise<IDBPDatabase<PokenguDB>> | null = null;
 
@@ -98,6 +103,11 @@ export function getDb(): Promise<IDBPDatabase<PokenguDB>> {
 					if (dbRaw.objectStoreNames.contains('market')) {
 						dbRaw.deleteObjectStore('market');
 					}
+				}
+
+				// Migração v7: fled store (exaustão)
+				if (oldVersion < 7) {
+					if (!db.objectStoreNames.contains('fled')) db.createObjectStore('fled');
 				}
 			}
 		});

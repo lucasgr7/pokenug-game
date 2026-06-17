@@ -59,6 +59,7 @@ export interface Player {
 	platinum: number;              // premium currency, market-only
 	musicMuted?: boolean;          // persistência do mute de música
 	lastSeenAt?: number;           // epoch ms, for offline HP catch-up
+	lastDayKey?: string;           // YYYY-MM-DD da última verificação de newDay events
 }
 
 export type NatureId =
@@ -68,6 +69,22 @@ export type NatureId =
 export interface PokemonNatures {
 	assigned: [NatureId, NatureId, NatureId];
 	unlocked: [boolean, boolean, boolean];
+}
+
+export type WorkPhase = 'normal' | 'rage';
+
+export interface WorkState {
+	exhaustionRemainingMs: number;
+	phase: WorkPhase;
+	rageRemainingMs: number;
+}
+
+export interface FledPokemon {
+	id: string;
+	name: string;
+	speciesId: number;
+	element: Element;
+	fledAt: number;
 }
 
 export interface CapturedPokemon {
@@ -82,6 +99,9 @@ export interface CapturedPokemon {
 	damageBuffs?: number;
 	natures?: PokemonNatures;
 	corrupted?: boolean;
+	baseMaxHp?: number;          // PokeAPI base (backfilled); maxHp = baseMaxHp + (hpBuffs ?? 0)
+	relationship?: PokemonRelationship;
+	work?: WorkState;
 }
 
 export interface ActiveStatus {
@@ -231,4 +251,41 @@ export interface BattleState {
 	usedPowerIds: string[];       // ART-03 — templateIds de POWER já jogadas neste combate
 	bannedTemplateIds: string[];  // ART-20 — templateIds banidos (sincronizado com Player)
 	pilhaExaurir: number;         // ART-19 — contador sincronizado com Player (persiste entre combates)
+}
+
+// ── Relationship system ─────────────────────────────────────────────────────
+
+export type Sentiment = 'good' | 'neutral' | 'bad';
+
+export type RelationshipTrigger = 'victory' | 'defeat' | 'idle' | 'newDay' | 'exhausted';
+
+export interface PokemonMemory {
+	at: number;                  // epoch ms
+	trigger: RelationshipTrigger;
+	playerMessage: string;       // canned answer text OR free input (≤50 chars)
+	emoji: string;
+	sentiment: Sentiment;
+}
+
+export interface PokemonRelationship {
+	points: number;              // ≥ 0
+	memories: PokemonMemory[];   // append-only; only last 3 sent to Ollama
+	lastEventAt: number;         // cooldown guard
+}
+
+export interface RelationshipEvent {
+	id: string;
+	pokemonId: string;
+	defId: string;               // which EventDefinition produced this
+	trigger: RelationshipTrigger;
+	promptPt: string;            // resolved pt-BR narration shown via SpeechBubble
+	answers: ResolvedAnswer[];   // 3 canned, pt-BR, with optional hook ids
+	createdAt: number;
+	expiresAt: number;           // createdAt + ALERT_TIMER_MS
+}
+
+export interface ResolvedAnswer {
+	text: string;                // pt-BR
+	sentiment: Sentiment;
+	hookId?: string;             // e.g. 'restFromJob' — resolved at apply time
 }

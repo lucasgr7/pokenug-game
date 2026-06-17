@@ -4,11 +4,14 @@
 	let {
 		text,
 		speaker = 'M1SS1NGN0.',
-		isAlly = false
+		isAlly = false,
+		inline = false
 	}: {
 		text: string;
 		speaker?: string;
 		isAlly?: boolean;
+		/** Place the bubble in normal document flow instead of absolute battle positioning. */
+		inline?: boolean;
 	} = $props();
 
 	let shown = $state('');
@@ -29,7 +32,7 @@
 	onDestroy(() => clearInterval(iv));
 </script>
 
-<div class="speech-wrap" class:ally={isAlly} class:narrator={isNarrator}>
+<div class="speech-wrap" class:ally={isAlly} class:narrator={isNarrator} class:inline={inline}>
 	<div class="speech-bubble" class:ally={isAlly} class:narrator={isNarrator}>
 		<div class="speech-name" class:ally={isAlly} class:narrator={isNarrator}>
 			{speaker}
@@ -59,6 +62,18 @@
 		top: auto;
 		bottom: 116px;
 		max-width: none;
+	}
+	/* Normal-flow placement (e.g. relationship page) — overrides the absolute battle layout. */
+	.speech-wrap.inline,
+	.speech-wrap.inline.ally,
+	.speech-wrap.inline.narrator {
+		position: relative;
+		top: auto;
+		left: auto;
+		right: auto;
+		bottom: auto;
+		max-width: 280px;
+		margin: 0 auto;
 	}
 	@keyframes bubbleIn {
 		from { opacity: 0; transform: scale(0.72) translateY(10px); }

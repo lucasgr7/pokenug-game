@@ -1,14 +1,20 @@
 import { getAllJobs, removeJob, setJob, saveJobs } from '$lib/db/jobs';
 import { getSavedBattle } from '$lib/db/battle';
+import { addFled, getAllFled } from '$lib/db/fled';
+import { removePokemon } from '$lib/db/pokemon';
 import { now } from '$lib/utils/time';
 import {
 	game,
 	normalizedPokemonHp,
 	persistNow,
 	persistPokemonById,
+	setActivePokemon,
+	removeFromRosterMemory,
 	type OfflineSummary
 } from './state.svelte';
-import type { ActiveJob, JobType } from './types';
+import { stepWork, capacityMs, freshWorkState } from './exhaustion';
+import { pushMemory } from './memory';
+import type { ActiveJob, FledPokemon, JobType } from './types';
 
 const SECONDS_PER_POINT = 3;
 const PERSIST_EVERY_TICKS = 5;
@@ -52,6 +58,14 @@ export function jobForPokemon(pokemonId: string): ActiveJob | undefined {
 	return jobsState.list.find((j) => j.pokemonId === pokemonId);
 }
 
+// ── Exhaustion: ensure work state ─────────────────────────────────────────
+
+export function ensureWorkState(p: import('./types').CapturedPokemon): boolean {
+	if (p.work) return false;
+	p.work = freshWorkState(p);
+	return true;
+}
+
 // ---- Atribuição ----
 export async function assignJob(pokemonId: string, jobType: JobType): Promise<void> {
 	const t = now();
@@ -73,6 +87,39 @@ export async function stopJob(pokemonId: string): Promise<void> {
 	await removeJob(pokemonId);
 }
 
+// ── Exhaustion: record negative memory ────────────────────────────────────
+
+function recordExhaustionMemory(p: import('./types').CapturedPokemon): void {
+	pushMemory(p, {
+		at: now(),
+		trigger: 'exhausted',
+		playerMessage: '',
+		emoji: '😡',
+		sentiment: 'bad'
+	});
+}
+
+// ── Exhaustion: handle flee ───────────────────────────────────────────────
+
+export async function handleFlee(p: import('./types').CapturedPokemon): Promise<void> {
+	const { pushToast } = await import('$lib/stores/toast.svelte');
+	const fled: FledPokemon = {
+		id: p.id,
+		name: p.name,
+		speciesId: p.speciesId,
+		element: p.element,
+		fledAt: now()
+	};
+	await addFled(fled);
+	await stopJob(p.id);
+	if (game.player?.activePokemonId === p.id) {
+		setActivePokemon(null);
+	}
+	removeFromRosterMemory(p.id);
+	await removePokemon(p.id);
+	pushToast(`${p.name} se exauriu e fugiu!`, 'error');
+}
+
 // ---- Aplicação de produção (sem persistir) ----
 function creditPlayer(type: JobType, amount: number): void {
 	if (!game.player || amount <= 0) return;
@@ -80,9 +127,10 @@ function creditPlayer(type: JobType, amount: number): void {
 }
 
 // ---- Tick em tempo real ----
-let interval: ReturnType<typeof setInterval> | null = null;
-let tickCount = 0;
-const dirtyPokemon = new Set<string>();
+	let interval: ReturnType<typeof setInterval> | null = null;
+	let tickCount = 0;
+	const dirtyPokemon = new Set<string>();
+	let lastIdleCheck = 0;
 
 export function startTicker(): void {
 	if (interval) return;
@@ -111,6 +159,35 @@ async function tick(): Promise<void> {
 	}
 
 	await restoreIdleHpOutOfBattle();
+
+	// ── Exhaustion: tick every pokemon ────────────────────────────────────
+	for (const p of game.roster) {
+		if (!p.work) ensureWorkState(p);
+		const cap = capacityMs(p);
+		const onJob = !!jobForPokemon(p.id);
+		const result = stepWork(p.work!, cap, 1000, onJob);
+		p.work = result.next;
+		if (result.enteredRage) {
+			recordExhaustionMemory(p);
+			const { pushToast } = await import('$lib/stores/toast.svelte');
+			pushToast(`${p.name} entrou em fúria! Tire-o do trabalho rápido!`, 'error');
+		}
+		if (result.fled) {
+			await handleFlee(p);
+		}
+		if (result.enteredRage || result.fled) {
+			dirtyPokemon.add(p.id);
+		}
+	}
+
+	// ── Relationship: idle trigger (throttled to every 60s) ──
+	if (t - lastIdleCheck >= 60_000) {
+		lastIdleCheck = t;
+		const { maybeRollEvent } = await import('./relationship.svelte');
+		for (const p of game.roster) {
+			maybeRollEvent('idle', p);
+		}
+	}
 
 	tickCount++;
 	if (tickCount >= PERSIST_EVERY_TICKS) {
@@ -168,6 +245,49 @@ export async function applyOfflineHpRecovery(): Promise<void> {
 	}
 	game.player.lastSeenAt = now();
 	await flush();
+}
+
+// ── Exhaustion: offline catch-up ──────────────────────────────────────────
+
+export async function applyOfflineExhaustion(): Promise<FledPokemon[]> {
+	const fled: FledPokemon[] = [];
+	if (!game.player) return fled;
+
+	const elapsedMs = Math.max(0, now() - (game.player.lastSeenAt ?? now()));
+	if (elapsedMs <= 0) return fled;
+
+	for (const p of game.roster) {
+		if (!p.work) ensureWorkState(p);
+		const cap = capacityMs(p);
+		const onJob = !!jobForPokemon(p.id);
+		const result = stepWork(p.work!, cap, elapsedMs, onJob);
+		p.work = result.next;
+		if (result.enteredRage) {
+			recordExhaustionMemory(p);
+		}
+		if (result.fled) {
+			fled.push({
+				id: p.id,
+				name: p.name,
+				speciesId: p.speciesId,
+				element: p.element,
+				fledAt: now()
+			});
+			await addFled(fled[fled.length - 1]);
+			await stopJob(p.id);
+			if (game.player?.activePokemonId === p.id) {
+				setActivePokemon(null);
+			}
+			removeFromRosterMemory(p.id);
+			await removePokemon(p.id);
+		}
+		if (result.enteredRage || result.fled) {
+			dirtyPokemon.add(p.id);
+		}
+	}
+
+	await flush();
+	return fled;
 }
 
 // ---- Progresso offline ----

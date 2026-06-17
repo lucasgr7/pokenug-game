@@ -585,6 +585,8 @@ export async function finalizeBattle(): Promise<void> {
 	}
 
 	if (s.status === 'defeat') {
+		const defeatedPkm = s.player.pokemon;
+		void import('./relationship.svelte').then((m) => m.maybeRollEvent('defeat', defeatedPkm));
 		await setPokemonCurrentHp(s.player.pokemon.id, 0);
 		setActivePokemon(null);
 		// Lose ONLY the non-starter cards that were equipped in the active deck.
@@ -657,6 +659,9 @@ export async function finalizeBattle(): Promise<void> {
 		cardReward: null,
 		cardChoices
 	};
+
+	const victorPkm = s.player.pokemon;
+	void import('./relationship.svelte').then((m) => m.maybeRollEvent('victory', victorPkm));
 
 	if (browser) {
 		if (s.status === 'captured') {
