@@ -257,7 +257,7 @@ defineEvent({
 		const first = ctx.pokemon.natures?.assigned[0];
 		return first === 'modest' || first === 'lonely' || first === 'serious';
 	},
-	prompt: (ctx) => `${ctx.pokemon.name} está sentado na grama, olhando fixamente para uma nuvem que passa lentamente. O vento sopra suave. Ele suspira. "Você acha que as nuvens sabem pra onde estão indo?"`,
+	prompt: (ctx) => `${ctx.pokemon.name} está sentado na grama, olhando fixamente para uma nuvem que passa lentamente. O vento sopra suave. Ele suspira.`,
 	answers: [
 		{
 			text: () => 'Talvez elas só confiem no vento, como eu confio em você.',

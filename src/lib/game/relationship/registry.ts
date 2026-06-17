@@ -7,6 +7,7 @@ export interface EventContext {
 	trigger: RelationshipTrigger;
 	isOnJob: boolean;
 	isActive: boolean;
+	peerName?: string;            // set for conflict events (secondary pokemon name)
 }
 
 // ── Answer definition inside an event ──────────────────────────────────────
@@ -15,6 +16,7 @@ export interface EventAnswerDef {
 	text: (ctx: EventContext) => string;
 	sentiment: Sentiment;
 	hookId?: string;
+	peerSentiment?: Sentiment;    // sentiment for secondary pokemon (conflict events)
 }
 
 // ── Event definition (registered at module load) ───────────────────────────

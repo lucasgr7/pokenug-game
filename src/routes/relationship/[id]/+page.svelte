@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { relationshipState, resolveWithLLM } from '$lib/game/relationship.svelte';
+	import { relationshipState, resolveWithLLM, progressionScale } from '$lib/game/relationship.svelte';
 	import { game } from '$lib/game/state.svelte';
 	import { getSpriteUrl } from '$lib/api/sprites';
-	import { MAX_INPUT_CHARS, UNLOCK_THRESHOLDS } from '$lib/game/relationship';
+	import { MAX_INPUT_CHARS, scaledThresholds, NATURE_REGION_GATE } from '$lib/game/relationship';
 	import SpeechBubble from '$lib/components/battle/SpeechBubble.svelte';
 
 	const pokemonId = $derived(page.params.id);
@@ -18,6 +18,7 @@
 	let prompt = $state('');
 
 	let spriteUrl = $state('');
+	let peerSpriteUrl = $state('');
 	let freeText = $state('');
 
 	$effect(() => {
@@ -26,17 +27,31 @@
 		}
 	});
 
-	// Relationship progress (pink bar) — reactive to point gains.
+	const peerPokemon = $derived(
+		event?.secondaryPokemonId ? game.roster.find((p) => p.id === event.secondaryPokemonId) : null
+	);
+
+	$effect(() => {
+		if (peerPokemon && !peerSpriteUrl) {
+			getSpriteUrl(peerPokemon.speciesId).then((url) => { peerSpriteUrl = url; });
+		}
+	});
+
+	const isConflict = $derived(!!event?.secondaryPokemonId);
+
+	// Relationship progress (pink bar) — escala com a região mais avançada.
 	const points = $derived(pokemon?.relationship?.points ?? 0);
-	const MAX_POINTS = UNLOCK_THRESHOLDS[UNLOCK_THRESHOLDS.length - 1];
+	const scale = $derived(progressionScale());
+	const thresholds = $derived(scaledThresholds(scale.scaling));
+	const MAX_POINTS = $derived(thresholds[thresholds.length - 1]);
 	const fillPct = $derived(Math.min(100, (points / MAX_POINTS) * 100));
 
-	async function answer(text: string, hookId?: string) {
+	async function answer(text: string, hookId?: string, peerSentiment?: string) {
 		if (!event || phase !== 'asking') return;
 		const eventId = event.id;
 		prompt = event.promptPt;
 		phase = 'thinking';
-		const res = await resolveWithLLM(eventId, text, hookId);
+		const res = await resolveWithLLM(eventId, text, hookId, peerSentiment as any);
 		responseEmoji = res?.emoji ?? '❓';
 		responseDelta = res?.delta ?? 0;
 		phase = 'responded';
@@ -75,23 +90,46 @@
 		<div class="progress-wrap">
 			<div class="progress-track">
 				<div class="progress-fill" style="width: {fillPct}%;"></div>
-				{#each UNLOCK_THRESHOLDS as th}
+				{#each thresholds as th, i}
+					{@const regionLocked = scale.regionIndex < NATURE_REGION_GATE[i]}
 					<div
 						class="mark"
-						class:reached={points >= th}
+						class:reached={points >= th && !regionLocked}
+						class:region-locked={regionLocked}
 						style="left: {(th / MAX_POINTS) * 100}%;"
-						title="Marco {th}: desbloqueia natureza + HP máximo"
+						title={regionLocked
+							? `Avance até a região ${NATURE_REGION_GATE[i] + 1} para liberar esta natureza`
+							: `Marco ${Math.round(th)}: desbloqueia natureza + HP máximo`}
 					>
-						<span class="mark-icon">⭐</span>
+						<span class="mark-icon">{regionLocked ? '🔒' : '⭐'}</span>
 					</div>
 				{/each}
 			</div>
 			<div class="progress-label muted">{points} / {MAX_POINTS} · afinidade</div>
 		</div>
 
-		<div class="scene">
-			{#if spriteUrl}
-				<img class="sprite" class:dim={phase === 'thinking'} src={spriteUrl} alt={pokemon?.name} />
+		<div class="scene" class:conflict={isConflict}>
+			{#if isConflict}
+				<!-- Two-sprite fight layout -->
+				<div class="fight-ring">
+					<div class="fighter left">
+						{#if spriteUrl}
+							<img class="sprite fight-sprite" class:dim={phase === 'thinking'} src={spriteUrl} alt={pokemon?.name} />
+						{/if}
+						<span class="fighter-name">{pokemon?.name ?? '?'}</span>
+					</div>
+					<div class="vs-badge">⚡</div>
+					<div class="fighter right">
+						{#if peerSpriteUrl}
+							<img class="sprite fight-sprite" class:dim={phase === 'thinking'} src={peerSpriteUrl} alt={peerPokemon?.name} />
+						{/if}
+						<span class="fighter-name">{peerPokemon?.name ?? '?'}</span>
+					</div>
+				</div>
+			{:else}
+				{#if spriteUrl}
+					<img class="sprite" class:dim={phase === 'thinking'} src={spriteUrl} alt={pokemon?.name} />
+				{/if}
 			{/if}
 
 			{#if phase === 'thinking'}
@@ -112,7 +150,7 @@
 				</div>
 			{:else if event}
 				<div class="bubble-host">
-					<SpeechBubble text={event.promptPt} speaker={pokemon?.name ?? '???'} isAlly inline />
+					<SpeechBubble text={event.promptPt} speaker={isConflict ? 'BRIGA!' : (pokemon?.name ?? '???')} isAlly={!isConflict} inline />
 				</div>
 			{/if}
 		</div>
@@ -122,8 +160,11 @@
 				{#each event.answers as a, i (a.text)}
 					<button
 						class="answer-btn slide-in"
+						class:side-a={a.peerSentiment === 'bad'}
+						class:side-b={a.peerSentiment === 'good'}
+						class:mediate={!a.peerSentiment || a.peerSentiment === a.sentiment}
 						style="animation-delay: {i * 90}ms;"
-						onclick={() => answer(a.text, a.hookId)}
+						onclick={() => answer(a.text, a.hookId, a.peerSentiment)}
 					>{a.text}</button>
 				{/each}
 			</div>
@@ -359,4 +400,48 @@
 		gap: 12px;
 		padding: 8px 0 24px;
 	}
+
+	/* Conflict fight ring */
+	.fight-ring {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+		max-width: 320px;
+		justify-content: center;
+	}
+	.fighter {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+		flex: 1;
+	}
+	.fight-sprite {
+		width: 80px;
+		height: 80px;
+		object-fit: contain;
+		image-rendering: pixelated;
+		transition: opacity 0.2s;
+	}
+	.fighter-name {
+		font-size: 10px;
+		font-weight: 800;
+		color: var(--txt-dim);
+		text-align: center;
+	}
+	.vs-badge {
+		font-size: 22px;
+		animation: vs-spark 1.2s ease-in-out infinite;
+	}
+	@keyframes vs-spark {
+		0%, 100% { transform: scale(1); opacity: 0.7; }
+		50% { transform: scale(1.3); opacity: 1; }
+	}
+	.scene.conflict { gap: 8px; }
+
+	/* Answer button role coloring */
+	.answer-btn.side-a { border-left: 3px solid #3b82f6; }
+	.answer-btn.side-b { border-left: 3px solid #ef4444; }
+	.answer-btn.mediate { border-left: 3px solid #f59e0b; }
 </style>

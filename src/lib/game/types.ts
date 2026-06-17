@@ -277,6 +277,7 @@ export interface PokemonRelationship {
 export interface RelationshipEvent {
 	id: string;
 	pokemonId: string;
+	secondaryPokemonId?: string; // for conflict events involving two pokemon
 	defId: string;               // which EventDefinition produced this
 	trigger: RelationshipTrigger;
 	promptPt: string;            // resolved pt-BR narration shown via SpeechBubble
@@ -289,4 +290,5 @@ export interface ResolvedAnswer {
 	text: string;                // pt-BR
 	sentiment: Sentiment;
 	hookId?: string;             // e.g. 'restFromJob' — resolved at apply time
+	peerSentiment?: Sentiment;   // sentiment for secondary pokemon (conflicts)
 }

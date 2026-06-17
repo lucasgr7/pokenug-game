@@ -136,12 +136,23 @@ export function pickWeightedEvent(
 	return candidates[candidates.length - 1];
 }
 
+// ── Escala fibonacci (acompanha HP/dano do jogo por região) ────────────────
+// Os números de afinidade (thresholds, ganhos, HP por unlock) escalam pelo
+// mesmo fator fibonacci das regiões — ver getRegionScaling em data/regions.
+// Além disso, cada slot de natureza só abre após o player avançar regiões.
+
+export const NATURE_REGION_GATE = [0, 2, 4] as const; // índice mínimo de região por slot
+
+export function scaledThresholds(scaling: number): number[] {
+	return UNLOCK_THRESHOLDS.map((t) => t * scaling);
+}
+
 // ── Delta application ─────────────────────────────────────────────────────
 
-export function countUnlockedThresholds(points: number): number {
+export function countUnlockedThresholds(points: number, scaling = 1): number {
 	let count = 0;
 	for (const t of UNLOCK_THRESHOLDS) {
-		if (points >= t) count++;
+		if (points >= t * scaling) count++;
 		else break;
 	}
 	return count;
@@ -173,9 +184,10 @@ export function normalizeMessage(msg: string): string {
 export function computeAffinityDelta(
 	sentiment: Sentiment,
 	message: string,
-	recentMemories: PokemonMemory[]
+	recentMemories: PokemonMemory[],
+	scaling = 1
 ): number {
-	const base = SENTIMENT_DELTA[sentiment];
+	const base = SENTIMENT_DELTA[sentiment] * scaling;
 	if (base <= 0) return base;
 
 	const window = recentMemories.slice(-HABIT_WINDOW);
@@ -197,14 +209,15 @@ export function applyRelationshipDelta(
 	rel: PokemonRelationship,
 	sentiment: Sentiment,
 	message = '',
-	recentMemories: PokemonMemory[] = rel.memories
+	recentMemories: PokemonMemory[] = rel.memories,
+	scaling = 1
 ): { points: number; newlyUnlocked: number[]; delta: number } {
 	const prevPoints = rel.points;
-	const delta = computeAffinityDelta(sentiment, message, recentMemories);
+	const delta = computeAffinityDelta(sentiment, message, recentMemories, scaling);
 	rel.points = Math.max(0, rel.points + delta);
 
-	const prevUnlocked = countUnlockedThresholds(prevPoints);
-	const nowUnlocked = countUnlockedThresholds(rel.points);
+	const prevUnlocked = countUnlockedThresholds(prevPoints, scaling);
+	const nowUnlocked = countUnlockedThresholds(rel.points, scaling);
 
 	const newlyUnlocked: number[] = [];
 	for (let i = prevUnlocked; i < nowUnlocked; i++) {
@@ -213,18 +226,32 @@ export function applyRelationshipDelta(
 	return { points: rel.points, newlyUnlocked, delta };
 }
 
-export function resolveUnlocks(pokemon: CapturedPokemon): { hpGained: number } {
+/**
+ * Aplica os desbloqueios de natureza. Um slot só abre se o Pokémon tem afinidade
+ * suficiente (threshold escalado) E o player já avançou regiões o bastante
+ * (NATURE_REGION_GATE). O HP ganho também escala pelo fator fibonacci.
+ */
+export function resolveUnlocks(
+	pokemon: CapturedPokemon,
+	scaling = 1,
+	regionIndex = 99
+): { hpGained: number; newlyUnlocked: number[] } {
 	const rel = pokemon.relationship;
 	const natures = pokemon.natures;
-	if (!rel || !natures) return { hpGained: 0 };
+	if (!rel || !natures) return { hpGained: 0, newlyUnlocked: [] };
 
-	const thresholdsCrossed = countUnlockedThresholds(rel.points);
+	const thresholdsCrossed = countUnlockedThresholds(rel.points, scaling);
+	const hpPerUnlock = HP_PER_UNLOCK * scaling;
 	let hpGained = 0;
+	const newlyUnlocked: number[] = [];
 
 	for (let i = 0; i < 3; i++) {
-		if (i < thresholdsCrossed && !natures.unlocked[i]) {
+		const affinityOk = i < thresholdsCrossed;
+		const regionOk = regionIndex >= NATURE_REGION_GATE[i];
+		if (affinityOk && regionOk && !natures.unlocked[i]) {
 			natures.unlocked[i] = true;
-			hpGained += HP_PER_UNLOCK;
+			hpGained += hpPerUnlock;
+			newlyUnlocked.push(i);
 		}
 	}
 
@@ -232,7 +259,7 @@ export function resolveUnlocks(pokemon: CapturedPokemon): { hpGained: number } {
 		pokemon.hpBuffs = (pokemon.hpBuffs ?? 0) + hpGained;
 	}
 
-	return { hpGained };
+	return { hpGained, newlyUnlocked };
 }
 
 export function recomputeMaxHp(pokemon: CapturedPokemon): void {
@@ -245,10 +272,58 @@ export function recomputeMaxHp(pokemon: CapturedPokemon): void {
 
 // ── Resolve an answer into an EventAnswerDef (for building events) ─────────
 
-export function resolveAnswerDef(def: EventAnswerDef, ctx: EventContext): { text: string; sentiment: Sentiment; hookId?: string } {
+export function resolveAnswerDef(def: EventAnswerDef, ctx: EventContext): { text: string; sentiment: Sentiment; hookId?: string; peerSentiment?: Sentiment } {
 	return {
 		text: def.text(ctx),
 		sentiment: def.sentiment,
-		hookId: def.hookId
+		hookId: def.hookId,
+		peerSentiment: (def as any).peerSentiment
 	};
+}
+
+// ── Conflicting nature pairs for conflict events ───────────────────────────
+
+export const CONFLICTING_NATURES: [string, string][] = [
+	['hardy', 'naughty'],
+	['lonely', 'docile'],
+	['brave', 'relaxed'],
+	['adamant', 'lax'],
+	['bold', 'timid'],
+	['serious', 'hasty'],
+];
+
+export function naturesConflict(a: string, b: string): boolean {
+	return CONFLICTING_NATURES.some(
+		([x, y]) => (a === x && b === y) || (a === y && b === x)
+	);
+}
+
+export function anyNatureConflicts(
+	naturesA: [string, string, string],
+	naturesB: [string, string, string]
+): boolean {
+	for (const a of naturesA) {
+		for (const b of naturesB) {
+			if (naturesConflict(a, b)) return true;
+		}
+	}
+	return false;
+}
+
+export function findConflictingPair(
+	roster: { id: string; natures?: { assigned: [string, string, string] } }[],
+	onJob: (id: string) => boolean
+): { a: string; b: string } | null {
+	for (let i = 0; i < roster.length; i++) {
+		for (let j = i + 1; j < roster.length; j++) {
+			const a = roster[i];
+			const b = roster[j];
+			if (!a.natures || !b.natures) continue;
+			if (onJob(a.id) !== onJob(b.id)) continue;
+			if (anyNatureConflicts(a.natures.assigned, b.natures.assigned)) {
+				return { a: a.id, b: b.id };
+			}
+		}
+	}
+	return null;
 }

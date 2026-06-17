@@ -154,6 +154,9 @@ function creditPlayer(type: JobType, amount: number): void {
 
 export function startTicker(): void {
 	if (interval) return;
+	// Arranca o relógio do idle a partir de agora — senão o primeiro tick após
+	// cada refresh dispara rolagens de evento imediatamente (lastIdleCheck = 0).
+	lastIdleCheck = now();
 	interval = setInterval(() => void tick(), 1000);
 }
 
@@ -203,10 +206,11 @@ async function tick(): Promise<void> {
 	// ── Relationship: idle trigger (throttled to every 60s) ──
 	if (t - lastIdleCheck >= 60_000) {
 		lastIdleCheck = t;
-		const { maybeRollEvent } = await import('./relationship.svelte');
+		const relMod = await import('./relationship.svelte');
 		for (const p of game.roster) {
-			maybeRollEvent('idle', p);
+			relMod.maybeRollEvent('idle', p);
 		}
+		relMod.maybeRollConflict('idle');
 	}
 
 	tickCount++;

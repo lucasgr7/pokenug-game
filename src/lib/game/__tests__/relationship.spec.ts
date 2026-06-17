@@ -11,6 +11,8 @@ import {
 	resolveUnlocks,
 	recomputeMaxHp,
 	countUnlockedThresholds,
+	scaledThresholds,
+	NATURE_REGION_GATE,
 	SENTIMENT_DELTA,
 	UNLOCK_THRESHOLDS,
 	HP_PER_UNLOCK,
@@ -280,6 +282,58 @@ describe('resolveUnlocks', () => {
 		pkm.relationship = undefined;
 		const result = resolveUnlocks(pkm);
 		expect(result.hpGained).toBe(0);
+	});
+});
+
+// ── Escala fibonacci + gate de região ─────────────────────────────────────
+
+describe('escala fibonacci + gate de região', () => {
+	function makePkm(points: number): CapturedPokemon {
+		return {
+			id: 'test', speciesId: 25, name: 'Test', element: 'electric',
+			maxHp: 100, currentHp: 100, capturedAt: 0,
+			natures: { assigned: ['hardy', 'lonely', 'brave'], unlocked: [false, false, false] },
+			relationship: { points, memories: [], lastEventAt: 0 },
+			baseMaxHp: 100
+		};
+	}
+
+	it('thresholds escalam pelo fator', () => {
+		expect(scaledThresholds(8)).toEqual([
+			UNLOCK_THRESHOLDS[0] * 8,
+			UNLOCK_THRESHOLDS[1] * 8,
+			UNLOCK_THRESHOLDS[2] * 8
+		]);
+	});
+
+	it('countUnlockedThresholds respeita a escala', () => {
+		expect(countUnlockedThresholds(100, 1)).toBe(2);
+		expect(countUnlockedThresholds(100, 8)).toBe(0); // 100 < 30*8
+	});
+
+	it('o ganho de afinidade escala pelo fator', () => {
+		expect(computeAffinityDelta('good', 'oi', [], 8)).toBe(SENTIMENT_DELTA.good * 8);
+	});
+
+	it('o HP por unlock escala pelo fator', () => {
+		const pkm = makePkm(UNLOCK_THRESHOLDS[0] * 8);
+		const r = resolveUnlocks(pkm, 8, 5);
+		expect(r.hpGained).toBe(HP_PER_UNLOCK * 8);
+	});
+
+	it('o gate de região bloqueia o slot mesmo com afinidade suficiente', () => {
+		const pkm = makePkm(UNLOCK_THRESHOLDS[1]); // afinidade para slots 0 e 1
+		const r = resolveUnlocks(pkm, 1, 0); // região 0 < gate do slot 1 (=2)
+		expect(pkm.natures!.unlocked[0]).toBe(true);
+		expect(pkm.natures!.unlocked[1]).toBe(false);
+		expect(r.newlyUnlocked).toEqual([0]);
+	});
+
+	it('o slot abre quando a região alcança o gate', () => {
+		const pkm = makePkm(UNLOCK_THRESHOLDS[1]);
+		const r = resolveUnlocks(pkm, 1, NATURE_REGION_GATE[1]);
+		expect(pkm.natures!.unlocked[1]).toBe(true);
+		expect(r.newlyUnlocked).toEqual([0, 1]);
 	});
 });
 

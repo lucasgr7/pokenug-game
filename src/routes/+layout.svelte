@@ -157,7 +157,13 @@
 		await addPokemon(pkm);
 		addToRoster(pkm);
 	}}
+	{@const triggerConflict = async () => {
+		debugger;
+		const mod = await import('$lib/game/relationship.svelte');
+		mod.maybeRollConflict('idle', true);
+	}}
 	<div class="debug-menu">
 		<button class="debug-btn" onclick={addRandomPokemon}>+ Pokémon</button>
+		<button class="debug-btn bg-blue" onclick={triggerConflict}>⚡ Conflito</button>
 	</div>
 {/if}
