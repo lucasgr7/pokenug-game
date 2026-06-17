@@ -37,11 +37,6 @@ export type Theme = 'dark' | 'light';
 
 // ---- Marketplace ----
 
-export interface MarketPriceEntry {
-	timestamp: number;
-	price: number; // money per 100 element points
-}
-
 export interface MarketCandle {
 	t: number; // window start timestamp
 	o: number; // open
@@ -50,38 +45,18 @@ export interface MarketCandle {
 	c: number; // close
 }
 
-export interface ElementMarketData {
-	currentPrice: number;
-	lastRandomizedAt: number;
-	lastDriftAt: number; // when hourly drift was last applied
-	lastSnapshotAt: number;
-	history: MarketPriceEntry[]; // max 17 entries (~4h of 15-min snapshots)
-	candles?: MarketCandle[]; // chart source (max 24)
-	event?: { kind: 'surge' | 'crash'; startsAt: number; endsAt: number };
-	oracle?: 'up' | 'down' | 'neutral';
-	buyStreak?: number;
-	sellStreak?: number;
-	lastTradeAt?: number;
-	lastTradeSide?: 'buy' | 'sell';
-	crashedAt?: number; // when price hit 0; market frozen until next reset
-}
-
 export interface MarketState {
-	elements: Record<Element, ElementMarketData>;
-	platinum?: { price: number; candles: MarketCandle[] };
+	platinum: { price: number; candles: MarketCandle[] };
 	lastUpdatedAt: number;
 }
 
 export type RegionId = string;
-
-export type ElementLevelMap = Partial<Record<Element, number>>;
 
 export interface Player {
 	id: 'me';
 	name: string;
 	createdAt: number;
 	money: number;
-	elementPoints: Partial<Record<Element, number>>;
 	activePokemonId: string | null;
 	defeatedByRegion: Record<RegionId, number>;
 	unlockedRegions: RegionId[];
@@ -91,9 +66,6 @@ export interface Player {
 	lastBoosterPackPurchaseAt: number;
 	ngu: {
 		moneyMultiplierLevel: number;
-		elementalDamageLevels: ElementLevelMap;
-		elementalHpLevels: ElementLevelMap;
-		globalDamageLevel?: number;
 	};
 	// Campos de run persistentes (GDD)
 	pilhaExaurir: number;          // ART-19 — contador de cartas Inseto exauridas nesta run
@@ -159,7 +131,7 @@ export interface CardTemplate {
 	debuffAmount?: number;
 	debuffDuration?: number;
 	shieldEffect?: 'fire_thorns' | 'ice_reflect' | 'rock_persist';
-	price?: { money: number; element?: { type: Element; amount: number } };
+	price?: { money: number };
 
 	// --- Campos do GDD ---
 
@@ -179,7 +151,7 @@ export interface Card {
 	upgrades?: number;    // persisted permanent upgrade count (+N to damage/block). Default 0.
 }
 
-export type JobType = 'money' | Element;
+export type JobType = 'money';
 
 export interface ActiveJob {
 	pokemonId: string;
@@ -222,7 +194,6 @@ export type EnemyIntent =
 
 export interface BattleReward {
 	money: number;
-	elementPoints: { type: Element; amount: number };
 	captured: CapturedPokemon | null;
 	unlockedRegionName: string | null;
 	cardReward: BossCardReward | null;

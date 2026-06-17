@@ -18,8 +18,7 @@
 		ratePerSecond,
 		activeJobTypes
 	} from '$lib/game/jobs.svelte';
-	import { ELEMENT_COLOR, ELEMENT_EMOJI, ELEMENT_LABEL } from '$lib/game/elements';
-	import type { CapturedPokemon, Element, JobType } from '$lib/game/types';
+	import type { CapturedPokemon, JobType } from '$lib/game/types';
 	import { pushToast } from '$lib/stores/toast.svelte';
 	import { onMount } from 'svelte';
 
@@ -47,11 +46,11 @@
 	});
 
 	function jobLabel(type: JobType): string {
-		return type === 'money' ? `${t('jobs.workMoney')}` : `${ELEMENT_EMOJI[type as Element]} ${ELEMENT_LABEL[type as Element]}`;
+		return `${t('jobs.workMoney')}`;
 	}
 
 	function jobColor(type: JobType): string {
-		return type === 'money' ? '#eab308' : ELEMENT_COLOR[type as Element];
+		return '#eab308';
 	}
 
 	/** Pokémon working on a given job type */
@@ -261,12 +260,6 @@
 				onclick={() => choose('money')}
 			>
 				{$_('jobs.workMoney')}
-			</button>
-			<button
-				class="w-full rounded-xl border border-(--border) px-4 py-3 text-left font-semibold hover:bg-(--surface-2)"
-				onclick={() => choose(selected!.element)}
-			>
-				{$_('jobs.workElement', { values: { emoji: ELEMENT_EMOJI[selected.element], element: $_('elements.' + selected.element) } })}
 			</button>
 		</div>
 	{/if}

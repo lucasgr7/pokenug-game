@@ -4,48 +4,15 @@
 	import { game, setTheme, getPlatinum } from "$lib/game/state.svelte";
 	import { toggleMusicMute, isMusicMuted } from "$lib/game/music.svelte";
 	import { formatNumber } from "$lib/utils/math";
-	import { hudTrades, type HudTradeEvent } from "$lib/stores/hud.svelte";
-	import type { Element } from "$lib/game/types";
 	import { _ } from "svelte-i18n";
 	import SettingsMenu from "./SettingsMenu.svelte";
 
 	let showSettings = $state(false);
 
-	const elementEmoji: Partial<Record<Element, string>> = {
-		fire: "🔥",
-		water: "💧",
-		grass: "🌿",
-		electric: "⚡",
-		psychic: "🔮",
-		rock: "🪨",
-		ground: "⛰️",
-		fighting: "🥊",
-		ice: "❄️",
-		bug: "🐛",
-		poison: "☠️",
-		ghost: "👻",
-		flying: "🪶",
-		dragon: "🐉",
-		normal: "⭐",
-	};
-
-	let expanded = $state(false);
-	let elementChips = $derived(
-		Object.entries(game.player?.elementPoints ?? {})
-			.filter(([, v]) => (v ?? 0) >= 1)
-			.sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0)),
-	);
-	let displayChips = $derived(
-		expanded ? elementChips : elementChips.slice(0, 3),
-	);
 	let platinum = $derived(getPlatinum());
 
 	function toggleTheme() {
 		setTheme(game.player?.theme === "dark" ? "light" : "dark");
-	}
-
-	function tradeEvent(el: string): HudTradeEvent | undefined {
-		return hudTrades.events.find((e) => e.element === el);
 	}
 
 	let installPrompt = $state<
@@ -150,29 +117,6 @@
 				>💰 {formatNumber(game.player?.money ?? 0)}</span
 			>
 			<span class="hud-chip hud-platinum">⬡ {formatNumber(platinum)}</span>
-			{#each displayChips as [el, v] (el)}
-				{@const te = tradeEvent(el)}
-				<span
-					class="hud-chip"
-					class:trade-buy={te?.kind === "buy"}
-					class:trade-sell={te?.kind === "sell"}
-					onanimationend={() => {
-						if (te)
-							hudTrades.events = hudTrades.events.filter((e) => e.id !== te.id);
-					}}
-				>
-					{elementEmoji[el as Element] ?? ""}
-					{formatNumber(v ?? 0)}
-				</span>
-			{/each}
-			<button
-				class="hud-toggle"
-				onclick={() => (expanded = !expanded)}
-				aria-label={expanded ? $_("hud.recolher") : $_("hud.expandir")}
-				title={expanded ? $_("hud.recolher") : $_("hud.expandir")}
-			>
-				{expanded ? "▲" : "▼"}
-			</button>
 		</div>
 	</div>
 	{#if installPrompt && !installed}
@@ -204,66 +148,10 @@
 		padding: 1px 7px;
 		color: var(--txt-dim, #9a9bab);
 		font-size: 11px;
-		transition:
-			background 0.2s,
-			border-color 0.2s;
 	}
 	.hud-platinum {
 		color: #a78bfa;
 		border-color: #a78bfa44;
 		background: #a78bfa11;
-	}
-	.hud-toggle {
-		border-radius: 9999px;
-		background: var(--bg-2, #181821);
-		border: 1px solid var(--line, #2b2c38);
-		padding: 1px 5px;
-		color: var(--txt-dim, #9a9bab);
-		font-size: 9px;
-		line-height: 1.2;
-		cursor: pointer;
-	}
-	.hud-toggle:hover {
-		color: var(--txt, #eee);
-	}
-	.trade-buy {
-		animation: flash-buy 2s ease-out;
-	}
-	.trade-sell {
-		animation: flash-sell 2s ease-out;
-	}
-	@keyframes flash-buy {
-		0% {
-			box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
-			border-color: #22c55e;
-			background: rgba(34, 197, 94, 0.15);
-		}
-		15% {
-			box-shadow: 0 0 8px 2px rgba(34, 197, 94, 0.5);
-			border-color: #22c55e;
-			background: rgba(34, 197, 94, 0.15);
-		}
-		100% {
-			box-shadow: none;
-			border-color: var(--line, #2b2c38);
-			background: var(--bg-2, #181821);
-		}
-	}
-	@keyframes flash-sell {
-		0% {
-			box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
-			border-color: #ef4444;
-			background: rgba(239, 68, 68, 0.15);
-		}
-		15% {
-			box-shadow: 0 0 8px 2px rgba(239, 68, 68, 0.5);
-			border-color: #ef4444;
-			background: rgba(239, 68, 68, 0.15);
-		}
-		100% {
-			box-shadow: none;
-			border-color: var(--line, #2b2c38);
-			background: var(--bg-2, #181821);
-		}
 	}
 </style>

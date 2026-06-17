@@ -4,7 +4,7 @@
 	import { ELEMENT_COLOR, ELEMENT_LABEL } from '$lib/game/elements';
 	import CardKindIcon from './CardKindIcon.svelte';
 	import type { Element } from '$lib/game/types';
-	import { activePokemon, getElementalDamageLevel } from '$lib/game/state.svelte';
+	import { activePokemon } from '$lib/game/state.svelte';
 	import { _ } from 'svelte-i18n';
 
 	let {
@@ -106,7 +106,7 @@
 	let upgradedBlock = $derived((tpl?.block ?? 0) + upgradeLevel);
 	let statValue = $derived(
 		tpl?.damage
-			? upgradedDamage + (tpl.kind === 'attack' ? getElementalDamageLevel(activePkm?.element) * 3 + ((activePkm?.damageBuffs ?? 0) * 2) : 0)
+			? upgradedDamage + ((activePkm?.damageBuffs ?? 0) * 2)
 			: tpl?.block ?? tpl?.healHp ?? tpl?.buffAmount ?? tpl?.manaGain ?? tpl?.captureBonus
 				? Math.round((tpl.captureBonus ?? 0) * 100) || tpl?.manaGain || tpl?.drawCount || 1
 				: null

@@ -7,7 +7,6 @@
 	import { getInventory } from '$lib/db/cards';
 	import { getTemplate } from '$lib/data/cards';
 	import { isUpgradeable, cardUpgradeCost, canAffordUpgrade, upgradeCardCopy } from '$lib/game/upgrades.svelte';
-	import { ELEMENT_EMOJI } from '$lib/game/elements';
 	import posthog from 'posthog-js';
 	import { formatNumber } from '$lib/utils/math';
 	import { pushToast } from '$lib/stores/toast.svelte';
@@ -91,7 +90,7 @@
 			<div class="w-40"><Card templateId={selTpl.id} showcase upgradeLevel={selLevel} /></div>
 			<p class="text-sm font-bold">{statLabel(selTpl, selLevel)}</p>
 			<p class="text-xs text-[var(--text-muted)]">
-				💰 {formatNumber(selCost.money)}{#if selCost.element > 0 && selTpl.element} · {ELEMENT_EMOJI[selTpl.element]} {formatNumber(selCost.element)}{/if}
+				💰 {formatNumber(selCost.money)}
 			</p>
 			<button class="w-full rounded-xl bg-[var(--accent)] py-2.5 font-bold text-white disabled:opacity-40"
 				disabled={!selAffordable} onclick={doUpgrade}>

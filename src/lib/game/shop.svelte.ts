@@ -5,14 +5,11 @@ import { CATALOG } from '$lib/data/cards';
 import { pick } from '$lib/utils/rng';
 import { isDifferentDay, now } from '$lib/utils/time';
 import {
-	activePokemon,
-	applyElementalHpUpgradeToRoster,
 	game,
 	schedulePersist,
-	spendElementPoints,
 	spendMoney
 } from './state.svelte';
-import type { Card, CardTemplate, Element } from './types';
+import type { Card, CardTemplate } from './types';
 
 const SLOT_COUNT = 9;
 type ShopSlot = CardTemplate & { sold?: boolean };
@@ -46,9 +43,7 @@ export const BOOSTER_PACKS: BoosterPackOffer[] = [
 ];
 
 export const NGU_COSTS = {
-	incomeMultiplier: (level: number) => Math.floor(1000 * Math.pow(2.5, level)),
-	elementalDamage: (level: number) => Math.floor(30 * Math.pow(2, level)),
-	elementalVitamins: (level: number) => Math.floor(20 * Math.pow(2, level))
+	incomeMultiplier: (level: number) => Math.floor(1000 * Math.pow(2.5, level))
 };
 
 const RARITY_ROLL: Array<{ max: number; bucket: ShopRarityBucket }> = [
@@ -149,7 +144,6 @@ export function canAfford(slot: ShopSlot): boolean {
 	const p = game.player;
 	if (!p) return false;
 	if (p.money < price.money) return false;
-	if (price.element && (p.elementPoints[price.element.type] ?? 0) < price.element.amount) return false;
 	return true;
 }
 
@@ -158,13 +152,6 @@ export async function buySlot(index: number): Promise<boolean> {
 	if (!slot || slot.sold || !slot.price || !canAfford(slot)) return false;
 
 	if (!spendMoney(slot.price.money)) return false;
-	if (slot.price.element) {
-		if (!spendElementPoints(slot.price.element.type, slot.price.element.amount)) {
-			// devolve o dinheiro se o pagamento por elemento falhar
-			if (game.player) game.player.money += slot.price.money;
-			return false;
-		}
-	}
 
 	await addToInventory({ id: crypto.randomUUID(), templateId: slot.id });
 	shop.slots[index] = { ...slot, sold: true };
@@ -180,40 +167,6 @@ export async function buyIncomeMultiplier(): Promise<boolean> {
 	if (!spendMoney(cost)) return false;
 	game.player.ngu.moneyMultiplierLevel += 1;
 	schedulePersist();
-	return true;
-}
-
-function activeUpgradeElement(): Element | null {
-	return activePokemon()?.element ?? null;
-}
-
-export async function buyElementalDamage(): Promise<boolean> {
-	if (!game.player) return false;
-	const element = activeUpgradeElement();
-	if (!element) return false;
-
-	const currentLevel = game.player.ngu.elementalDamageLevels[element] ?? 0;
-	const cost = NGU_COSTS.elementalDamage(currentLevel);
-	if (!spendElementPoints(element, cost)) return false;
-
-	game.player.ngu.elementalDamageLevels[element] = currentLevel + 1;
-	schedulePersist();
-	return true;
-}
-
-export async function buyElementalVitamins(): Promise<boolean> {
-	if (!game.player) return false;
-	const element = activeUpgradeElement();
-	if (!element) return false;
-
-	const currentLevel = game.player.ngu.elementalHpLevels[element] ?? 0;
-	const cost = NGU_COSTS.elementalVitamins(currentLevel);
-	if (!spendElementPoints(element, cost)) return false;
-
-	game.player.ngu.elementalHpLevels[element] = currentLevel + 1;
-	await applyElementalHpUpgradeToRoster(element, 1);
-	schedulePersist();
-
 	return true;
 }
 

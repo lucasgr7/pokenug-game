@@ -8,7 +8,7 @@ import {
 	persistPokemonById,
 	type OfflineSummary
 } from './state.svelte';
-import type { ActiveJob, Element, JobType } from './types';
+import type { ActiveJob, JobType } from './types';
 
 const SECONDS_PER_POINT = 3;
 const PERSIST_EVERY_TICKS = 5;
@@ -18,7 +18,8 @@ const IDLE_HP_RESTORE_PER_MINUTE = 0.05;
 export const jobsState = $state<{ list: ActiveJob[] }>({ list: [] });
 
 export async function loadJobs(): Promise<void> {
-	jobsState.list = await getAllJobs();
+	const all = await getAllJobs();
+	jobsState.list = all.filter((j) => j.jobType === 'money');
 }
 
 // ---- Produção ----
@@ -74,14 +75,8 @@ export async function stopJob(pokemonId: string): Promise<void> {
 
 // ---- Aplicação de produção (sem persistir) ----
 function creditPlayer(type: JobType, amount: number): void {
-	const p = game.player;
-	if (!p || amount <= 0) return;
-	if (type === 'money') {
-		p.money += amount;
-	} else {
-		const el = type as Element;
-		p.elementPoints[el] = (p.elementPoints[el] ?? 0) + amount;
-	}
+	if (!game.player || amount <= 0) return;
+	game.player.money += amount;
 }
 
 // ---- Tick em tempo real ----
@@ -185,7 +180,7 @@ export async function applyOfflineProgress(): Promise<OfflineSummary | null> {
 	if (!game.player) return null;
 
 	const t = now();
-	const summary: OfflineSummary = { money: 0, elementPoints: {}, elapsedMs: 0 };
+	const summary: OfflineSummary = { money: 0, elapsedMs: 0 };
 
 	for (const type of activeJobTypes()) {
 		const jobsOfType = jobsState.list.filter((j) => j.jobType === type);
@@ -196,13 +191,11 @@ export async function applyOfflineProgress(): Promise<OfflineSummary | null> {
 		const gained = ratePerSecond(type) * elapsedSec;
 		if (gained <= 0) continue;
 		creditPlayer(type, gained);
-		if (type === 'money') summary.money += gained;
-		else summary.elementPoints[type as Element] = (summary.elementPoints[type as Element] ?? 0) + gained;
+		summary.money += gained;
 	}
 
 	for (const job of jobsState.list) job.lastTickAt = t;
 	await flush();
 
-	const total = summary.money + Object.values(summary.elementPoints).reduce((a, b) => a + (b ?? 0), 0);
-	return total > 0 ? summary : null;
+	return summary.money > 0 ? summary : null;
 }

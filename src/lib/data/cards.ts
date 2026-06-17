@@ -106,7 +106,7 @@ export const CATALOG: CardTemplate[] = [
 		element: 'water',
 		rarity: 'secret',
 		damage: 40,
-		price: { money: 300, element: { type: 'water', amount: 80 } }
+		price: { money: 300 }
 	},
 	// ── Fogo ──────────────────────────────────────────────
 	// Filosofia: High Risk, High Reward - Poder vem de causar dano a si mesmo
@@ -228,7 +228,7 @@ export const CATALOG: CardTemplate[] = [
 		kind: 'attack',
 		element: 'dragon',
 		rarity: 'epic',
-		price: { money: 180, element: { type: 'dragon', amount: 60 } }
+		price: { money: 180 }
 	},
 	{
 		id: 'dragon_bafo',
@@ -265,7 +265,7 @@ export const CATALOG: CardTemplate[] = [
 		isPower: true,
 		appliesStatuses: [{ id: 'furia_double' }],
 		exhaust: 'combat',
-		price: { money: 300, element: { type: 'dragon', amount: 80 } }
+		price: { money: 300 }
 	},
 	{
 		id: 'dragon_cauda',
@@ -289,7 +289,7 @@ export const CATALOG: CardTemplate[] = [
 		kind: 'attack',
 		element: 'psychic',
 		rarity: 'epic',
-		price: { money: 180, element: { type: 'psychic', amount: 50 } }
+		price: { money: 180 }
 	},
 	{
 		id: 'psychic_espelho',
@@ -335,7 +335,7 @@ export const CATALOG: CardTemplate[] = [
 		rarity: 'epic',
 		isPower: true,
 		exhaust: 'combat',
-		price: { money: 180, element: { type: 'psychic', amount: 50 } }
+		price: { money: 180 }
 	},
 
 	// ── Terra ─────────────────────────────────────────────
@@ -420,7 +420,7 @@ export const CATALOG: CardTemplate[] = [
 		isPower: true,
 		appliesStatuses: [{ id: 'sequencia' }],
 		exhaust: 'combat',
-		price: { money: 300, element: { type: 'fighting', amount: 60 } }
+		price: { money: 300 }
 	},
 	{
 		id: 'fighting_serie',
@@ -443,7 +443,7 @@ export const CATALOG: CardTemplate[] = [
 		rarity: 'secret',
 		isPower: true,
 		appliesStatuses: [{ id: 'auto_jogar' }],
-		price: { money: 300, element: { type: 'fighting', amount: 60 } }
+		price: { money: 300 }
 	},
 	{
 		id: 'flying_chute_aereo',
@@ -547,7 +547,7 @@ export const CATALOG: CardTemplate[] = [
 		kind: 'attack',
 		element: 'bug',
 		rarity: 'epic',
-		price: { money: 180, element: { type: 'bug', amount: 50 } }
+		price: { money: 180 }
 	},
 	{
 		id: 'bug_infestacao',
@@ -596,7 +596,7 @@ export const CATALOG: CardTemplate[] = [
 		element: 'poison',
 		rarity: 'epic',
 		damage: 16,
-		price: { money: 180, element: { type: 'poison', amount: 50 } }
+		price: { money: 180 }
 	},
 	{
 		id: 'poison_colapso',
@@ -654,7 +654,7 @@ export const CATALOG: CardTemplate[] = [
 		element: 'ghost',
 		rarity: 'secret',
 		isPower: true,
-		price: { money: 300, element: { type: 'ghost', amount: 60 } }
+		price: { money: 300 }
 	},
 	{
 		id: 'ghost_fantasmagoria',
@@ -704,7 +704,7 @@ export const CATALOG: CardTemplate[] = [
 		element: 'ice',
 		rarity: 'secret',
 		isPower: true,
-		price: { money: 300, element: { type: 'ice', amount: 60 } }
+		price: { money: 300 }
 	},
 	{
 		id: 'ice_cristal',
@@ -763,7 +763,7 @@ export const CATALOG: CardTemplate[] = [
 		element: 'electric',
 		rarity: 'epic',
 		appliesStatuses: [{ id: 'dano_eletrico', stacks: 2 }],
-		price: { money: 180, element: { type: 'electric', amount: 50 } }
+		price: { money: 180 }
 	},
 	{
 		id: 'electric_descarga',
@@ -810,7 +810,7 @@ export const CATALOG: CardTemplate[] = [
 		element: 'rock',
 		rarity: 'epic',
 		exhaust: 'combat',
-		price: { money: 180, element: { type: 'rock', amount: 50 } }
+		price: { money: 180 }
 	},
 	{
 		id: 'rock_barreira',
@@ -867,7 +867,7 @@ export const CATALOG: CardTemplate[] = [
 		rarity: 'epic',
 		isPower: true,
 		appliesStatuses: [{ id: 'fire_fury', stacks: 1 }],
-		price: { money: 200, element: { type: 'fire', amount: 60 } }
+		price: { money: 200 }
 	},
 	{
 		id: 'fire_aproximacao',
@@ -879,7 +879,7 @@ export const CATALOG: CardTemplate[] = [
 		rarity: 'rare',
 		isPower: true,
 		appliesStatuses: [{ id: 'aproximacao', stacks: 1 }],
-		price: { money: 120, element: { type: 'fire', amount: 30 } }
+		price: { money: 120 }
 	},
 
 	// ── Pokébolas aprimoradas ─────────────────────────────

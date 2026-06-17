@@ -1,8 +1,6 @@
 import { getElementInteraction } from './type-chart';
-import { getElementalDamageLevel } from './state.svelte';
 import type { BattleState, CardTemplate, Element } from './types';
 
-const GLOBAL_DAMAGE_PER_LEVEL = 3;
 const DAMAGE_PER_POKEMON_BUFF = 2;
 
 export interface TypedDamageSummary {
@@ -40,8 +38,5 @@ export function resolveTypedDamage(
 }
 
 export function playerAttackBonus(s: BattleState): number {
-	return (
-		getElementalDamageLevel(s.player.pokemon.element) * GLOBAL_DAMAGE_PER_LEVEL +
-		(s.player.pokemon.damageBuffs ?? 0) * DAMAGE_PER_POKEMON_BUFF
-	);
+	return (s.player.pokemon.damageBuffs ?? 0) * DAMAGE_PER_POKEMON_BUFF;
 }

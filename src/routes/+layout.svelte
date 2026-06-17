@@ -5,7 +5,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { game, initApp, addToRoster, applyElementalHpBonusToPokemon, type OfflineSummary } from '$lib/game/state.svelte';
+	import { game, initApp, addToRoster, type OfflineSummary } from '$lib/game/state.svelte';
 	import { addPokemon } from '$lib/db/pokemon';
 	import { fetchPokemon } from '$lib/api/pokeapi';
 	import { ensurePokemonNatures } from '$lib/data/natures';
@@ -69,11 +69,7 @@
 
 	let showNav = $derived(!!game.player && page.url.pathname !== '/onboarding');
 
-	let offlineEntries = $derived(
-		offline
-			? Object.entries(offline.elementPoints).filter(([, v]) => (v ?? 0) >= 1)
-			: []
-	);
+
 </script>
 
 <svelte:head>
@@ -108,9 +104,6 @@
 			{#if offline.money >= 1}
 				<li>+{@html $_( 'layout.moneyEarned', { values: { amount: formatNumber(offline.money) } } )}</li>
 			{/if}
-			{#each offlineEntries as [el, v] (el)}
-				<li>+{@html $_( 'layout.pointsEarned', { values: { amount: formatNumber(v ?? 0), element: el } } )}</li>
-			{/each}
 		</ul>
 		<button
 			class="mt-4 w-full rounded-xl bg-[var(--accent)] py-2.5 font-semibold text-[var(--accent-text)]"
@@ -157,7 +150,6 @@
 			capturedAt: now()
 		};
 		ensurePokemonNatures(pkm);
-		applyElementalHpBonusToPokemon(pkm);
 		await addPokemon(pkm);
 		addToRoster(pkm);
 	}}

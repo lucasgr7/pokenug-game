@@ -710,6 +710,50 @@
     }
   },
 
+  "regions": {
+    "verdant_forest": {
+      "name": "Floresta Verdejante",
+      "description": "Árvores ancestrais e Pokémon herbívoros.",
+      "bossName": "Vênusaur Ancestral",
+      "bossDesc": "O guardião milenar da floresta. Veneno que corrói e raízes que aprisionam."
+    },
+    "ember_cave": {
+      "name": "Caverna de Brasas",
+      "description": "Calor sufocante e criaturas de fogo e pedra.",
+      "bossName": "Charizard das Profundezas",
+      "bossDesc": "Chamas que derretem pedra. Um rugido que apaga as tochas."
+    },
+    "crystal_lake": {
+      "name": "Lago Cristalino",
+      "description": "Águas claras repletas de Pokémon aquáticos.",
+      "bossName": "Blastoise das Marés",
+      "bossDesc": "Senhor das correntezas. Canhões que disparam pressão oceânica."
+    },
+    "thunder_plant": {
+      "name": "Usina Trovão",
+      "description": "Correntes elétricas zumbindo nas máquinas.",
+      "bossName": "Raichu Sobrecarga",
+      "bossDesc": "Descarga de dez mil volts."
+    },
+    "rocky_ridge": {
+      "name": "Cume Rochoso",
+      "description": "Penhascos de pedra e terra compactada.",
+      "bossName": "Golem Titânico",
+      "bossDesc": "Uma montanha que respira."
+    },
+    "psychic_tower": {
+      "name": "Torre Psíquica",
+      "description": "Energia mental e sombras inquietas.",
+      "bossName": "Mewtwo Prime",
+      "bossDesc": "Poder que transcende a matéria."
+    },
+    "missingno": {
+      "name": "???",
+      "description": "Uma distorção nos dados.",
+      "bossName": "MissingNo.",
+      "bossDesc": "Um erro na matrix."
+    }
+  },
   "challenges": {
     "arena-lutador": {
       "name": "Arena dos Lutadores",
@@ -742,7 +786,6 @@
     "platinBalance": "Saldo:",
     "elementPacks": "Pacotes por Elemento ({cost}⬡ · {size} cartas)",
     "buyPack": "Comprar pacote de {element} (⬡{cost})",
-    "capture": "Capturar (⬡{cost})",
     "cardUpgradeTitle": "Aprimorar Cartas",
     "cardUpgradeDesc": "+1 de dano/escudo por nível. Preço sobe na escala Fibonacci.",
     "noUpgradeCards": "Nenhuma carta de ataque/defesa no inventário.",
@@ -752,10 +795,6 @@
     "incomeMultiplier": "Multiplicador de Renda",
     "incomeMultiplierDesc": "+50% ganhos idle",
     "lv": "Nv.",
-    "vitamins": "Vitaminas {element}",
-    "vitaminsGeneric": "Vitaminas Elementais",
-    "vitaminsDesc": "+20 HP/nível tipo ativo",
-    "vitaminsDisabled": "Selecione um Pokémon",
     "boosterPacks": "Booster Packs Secretos",
     "boosterPacksDesc": "1x por dia cada pack",
     "boosterOnlyGold": "Somente ouro. Não entra no refresh diário.",
@@ -764,14 +803,8 @@
     "boosterSecretIDesc": "Abre 1 carta secreta aleatória.",
     "boosterSecretII": "Booster Secreto II",
     "boosterSecretIIDesc": "Abre 3 cartas secretas aleatórias.",
-    "naturesTitle": "Naturezas — {name}",
-    "naturesDesc": "Desbloqueie em sequência por {costs} de pontos de {element}.",
-    "naturesActive": "✓ Ativa",
-    "naturesLocked": "🔒 Bloqueada",
-    "naturesUnlockFail": "Não foi possível desbloquear.",
     "insufficientResources": "Recursos insuficientes.",
-    "upgradeBought": "Aprimoramento {name} comprado!",
-    "natureUnlocked": "Natureza {name} desbloqueada!"
+    "upgradeBought": "Aprimoramento {name} comprado!"
   },
   "market": {
     "title": "Mercado",
@@ -781,10 +814,7 @@
     "platinumDiscountActive": "✨ {pct}% OFF — promoção ativa!",
     "minutesLeft": "~{min}min restantes",
     "priceChart": "Gráfico de Preços (Platinum)",
-    "priceChartCandles": "Gráfico de Preços (velas de 5min)",
     "carregando": "Carregando...",
-    "carregandoMercado": "Carregando mercado...",
-    "resetIn": "Reset em ~{min}min",
     "currentPrice": "Preço atual do Platinum",
     "currentPricePer": "Preço atual por {unit} pontos",
     "priceImpact": "±2.5%+ por transação (escala com sequência) · reset a cada 2h · taxa 1%",
@@ -797,29 +827,7 @@
     "priceRises": "Preço sobe {pct}% a cada compra · sem venda",
     "totalCost": "Custo total estimado ({qty} unidade{plural})",
     "unitCostMore": "*Cada unidade custa {pct}% mais que a anterior",
-    "buyPlatinum": "Comprar {qty} Platinum",
-    "surgeEvent": "🔥 ALTA! Preço subindo 3x mais rápido",
-    "crashEvent": "💀 QUEDA! Preço caindo 1.5%/min",
-    "marketCrash": "🚫 MERCADO EM CRASH! {element} congelado",
-    "reopensIn": "Reabre em ~2h",
-    "oracleUp": "🔮 ALTA ↑",
-    "oracleDown": "🔮 BAIXA ↓",
-    "oracleUncertain": "🔮 incerta",
-    "greatBuy": "ÓTIMA COMPRA!",
-    "profit": "LUCRO!",
-    "infoModalTitle": "Como funciona",
-    "infoIntro": "O Mercado de Pontos Elementares funciona como uma bolsa de valores em tempo real:",
-    "infoBuySell": "Compra e venda em lotes de <strong>100 a 100.000 pontos</strong>",
-    "infoBuyImpact": "Cada <strong>compra</strong> aumenta o preço em <strong>2.5%+</strong> (escala com sequência)",
-    "infoSellImpact": "Cada <strong>venda</strong> reduz o preço em <strong>2.5%+</strong> (vendas consecutivas drenam o preço)",
-    "infoReset": "A cada <strong>2 horas</strong> os preços são reajustados com novo patamar",
-    "infoSurge": "<strong>Eventos de ALTA</strong> aceleram o preço 3x por ~10-20min",
-    "infoCrash": "<strong>Eventos de QUEDA</strong> drenam o preço 1.5%/min por ~10-20min",
-    "infoOracle": "<strong>Oráculo</strong> dá dicas sobre a direção do preço (60% precisão)",
-    "infoProfitTip": "Compre durante QUEDA ou venda durante ALTA para <strong>lucro extra!</strong>",
-    "infoPlatinum": "<strong>Platinum</strong> é comprado com dinheiro a preço crescente. Compre na promoção!",
-    "infoFee": "Taxa de <strong>1%</strong> em cada compra e venda (dinheiro destruído)",
-    "infoCandles": "Velas verdes = preço subiu; velas vermelhos = caiu"
+    "buyPlatinum": "Comprar {qty} Platinum"
   },
   "deck": {
     "tabDeck": "🃏 Meu Deck",
@@ -876,7 +884,6 @@
     "setAsMain": "Definir como principal de batalha",
     "isMain": "Pokémon principal atual",
     "workMoney": "Trabalhar por dinheiro",
-    "workElement": "Trabalhar com {element}",
     "assigned": "{name} agora trabalha em {label}.",
     "stopped": "{name} parou de trabalhar.",
     "fainted": "{name} está desmaiado e precisa se recuperar antes de lutar.",
@@ -900,7 +907,6 @@
     "welcomeBack": "Bem-vindo de volta!",
     "offlineEarnings": "Você ficou fora por {duration}. Enquanto isso, seus pokémons trabalharam:",
     "moneyEarned": "💰 <strong>{amount}</strong> de dinheiro",
-    "pointsEarned": "✨ <strong>{amount}</strong> pontos de {element}",
     "continue": "Continuar"
   },
   "map": {

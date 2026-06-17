@@ -7,7 +7,7 @@ import { REGIONS } from '$lib/data/regions';
 import type { StarterDef } from '$lib/data/starters';
 import { now } from '$lib/utils/time';
 import { ensurePokemonNatures } from '$lib/data/natures';
-import { applyElementalHpBonusToPokemon, applyThemeToDom, game } from './state.svelte';
+import { applyThemeToDom, game } from './state.svelte';
 import type { Card, CapturedPokemon, Player } from './types';
 import { browser } from '$app/environment';
 import posthog from 'posthog-js';
@@ -42,7 +42,6 @@ export async function createPlayer(name: string, starter: StarterDef): Promise<v
 		currentHp: maxHp,
 		capturedAt: now()
 	};
-	applyElementalHpBonusToPokemon(pokemon);
 	ensurePokemonNatures(pokemon);
 	await addPokemon(pokemon);
 
@@ -51,7 +50,6 @@ export async function createPlayer(name: string, starter: StarterDef): Promise<v
 		name: name.trim(),
 		createdAt: now(),
 		money: 50,
-		elementPoints: {},
 		activePokemonId: pokemon.id,
 		defeatedByRegion: {},
 		unlockedRegions: [REGIONS[0].id],
@@ -60,10 +58,7 @@ export async function createPlayer(name: string, starter: StarterDef): Promise<v
 		paidRefreshCountToday: 0,
 		lastBoosterPackPurchaseAt: 0,
 		ngu: {
-			moneyMultiplierLevel: 0,
-			elementalDamageLevels: {},
-			elementalHpLevels: {},
-			globalDamageLevel: 0
+			moneyMultiplierLevel: 0
 		},
 		pilhaExaurir: 0,
 		bannedTemplateIds: [],

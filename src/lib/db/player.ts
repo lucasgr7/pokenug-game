@@ -5,27 +5,22 @@ const KEY = 'me';
 
 function ensureNgu(player: Player): void {
 	if (!player.ngu) {
-		player.ngu = {
-			moneyMultiplierLevel: 0,
-			elementalDamageLevels: {},
-			elementalHpLevels: {},
-			globalDamageLevel: 0
-		};
-		return;
+		player.ngu = { moneyMultiplierLevel: 0 };
+	} else {
+		player.ngu.moneyMultiplierLevel ??= 0;
+		// Strip legacy elemental ngu fields
+		delete (player.ngu as Record<string, unknown>).elementalDamageLevels;
+		delete (player.ngu as Record<string, unknown>).elementalHpLevels;
+		delete (player.ngu as Record<string, unknown>).globalDamageLevel;
 	}
 
-	player.ngu.moneyMultiplierLevel ??= 0;
-	player.ngu.elementalDamageLevels ??= {};
-	player.ngu.elementalHpLevels ??= {};
-	player.ngu.globalDamageLevel ??= 0;
-	player.lastBoosterPackPurchaseAt ??= 0;
+	// Strip legacy elementPoints
+	delete (player as unknown as Record<string, unknown>).elementPoints;
 
-	// Campos de run persistentes (GDD) — migração para saves antigos
+	player.lastBoosterPackPurchaseAt ??= 0;
 	player.pilhaExaurir ??= 0;
 	player.bannedTemplateIds ??= [];
 	player.ghostPermDebuff ??= 0;
-
-	// Market gamification — migração para saves antigos
 	player.platinum ??= 0;
 	player.musicMuted ??= false;
 }

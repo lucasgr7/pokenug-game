@@ -28,10 +28,7 @@
 
 	let priceLabel = $derived.by(() => {
 		if (!tpl?.price) return null;
-		const money = `${tpl.price.money} ouro`;
-		if (!tpl.price.element) return money;
-		const element = tpl.price.element;
-		return `${money} + ${element.amount} ${$_('elements.' + element.type)}`;
+		return `${tpl.price.money} ouro`;
 	});
 </script>
 

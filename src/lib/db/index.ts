@@ -64,7 +64,7 @@ export interface PokenguDB extends DBSchema {
 }
 
 const DB_NAME = 'pokengu';
-const DB_VERSION = 4; // v4: novo catálogo de cartas (GDD) — wipe de inventory/deck
+const DB_VERSION = 5; // v5: removed elemental points — clear market, strip element jobs
 
 let dbPromise: Promise<IDBPDatabase<PokenguDB>> | null = null;
 
@@ -88,6 +88,11 @@ export function getDb(): Promise<IDBPDatabase<PokenguDB>> {
 				if (oldVersion < 4) {
 					transaction.objectStore('cardInventory').clear();
 					transaction.objectStore('activeDeck').clear();
+				}
+
+				// Migração v5: EP removido — limpa market e deleta jobs elementares
+				if (oldVersion < 5) {
+					transaction.objectStore('market').clear();
 				}
 			}
 		});

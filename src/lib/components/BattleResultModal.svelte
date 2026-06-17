@@ -3,7 +3,6 @@
 	import Card from './Card.svelte';
 	import CardDetailsModal from './CardDetailsModal.svelte';
 	import { playResultSfx } from '$lib/game/music.svelte';
-	import { ELEMENT_EMOJI, ELEMENT_LABEL } from '$lib/game/elements';
 	import { formatNumber } from '$lib/utils/math';
 	import type { BattleReward, CapturedPokemon } from '$lib/game/types';
 	import { _ } from 'svelte-i18n';
@@ -274,12 +273,6 @@
 						<div class="reward-row">
 							<div class="reward-label">💰 {$_( 'battle.result.rewardMoney' )}</div>
 							<div class="reward-value">{formatNumber(reward.money)}</div>
-						</div>
-					{/if}
-					{#if reward.elementPoints.amount > 0}
-						<div class="reward-row">
-							<div class="reward-label">{ELEMENT_EMOJI[reward.elementPoints.type]} {$_('elements.' + reward.elementPoints.type)}</div>
-							<div class="reward-value">+{reward.elementPoints.amount}</div>
 						</div>
 					{/if}
 					{#if reward.cardReward}

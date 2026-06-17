@@ -34,10 +34,8 @@ import { pick, randomInt, shuffle, weightedPick } from '$lib/utils/rng';
 import { now } from '$lib/utils/time';
 import {
 	activePokemon,
-	addElementPoints,
 	addMoney,
 	addToRoster,
-	applyElementalHpBonusToPokemon,
 	game,
 	normalizedPokemonHp,
 	recordDefeat,
@@ -104,7 +102,6 @@ const uiIO: CombatIO = {
 	}
 };
 
-const ELEMENT_POINTS_PER_MAX_HP = 15; // floor(enemyMaxHp / this) = element points awarded
 const BOSS_HP_MULTIPLIER = 3;
 
 type BossRewardBucket = 'common' | 'rare' | 'epicPlus';
@@ -617,9 +614,6 @@ export async function finalizeBattle(): Promise<void> {
 	const money = Math.floor((s.enemy.pokemon.maxHp * 0.5 + randomInt(5, 15)) * moneyMultiplier);
 	addMoney(money);
 
-	const elementAmount = Math.max(1, Math.floor(s.enemy.pokemon.maxHp / ELEMENT_POINTS_PER_MAX_HP));
-	addElementPoints(s.enemy.pokemon.element, elementAmount);
-
 	let captured: CapturedPokemon | null = null;
 	if (s.status === 'captured') {
 		captured = {
@@ -628,7 +622,6 @@ export async function finalizeBattle(): Promise<void> {
 			capturedAt: now(),
 			currentHp: s.enemy.pokemon.maxHp
 		};
-		applyElementalHpBonusToPokemon(captured);
 		ensurePokemonNatures(captured);
 		await addPokemon(captured);
 		addToRoster(captured);
@@ -659,7 +652,6 @@ export async function finalizeBattle(): Promise<void> {
 
 	battle.reward = {
 		money,
-		elementPoints: { type: s.enemy.pokemon.element, amount: elementAmount },
 		captured,
 		unlockedRegionName,
 		cardReward: null,
