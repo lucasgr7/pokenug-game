@@ -12,7 +12,9 @@
 		jobsState,
 		workersInJob,
 		ratePerSecond,
-		activeJobTypes
+		activeJobTypes,
+		isOnJobCooldown,
+		jobCooldownRemainingMs
 	} from '$lib/game/jobs.svelte';
 	import type { CapturedPokemon, JobType } from '$lib/game/types';
 	import { pushToast } from '$lib/stores/toast.svelte';
@@ -25,9 +27,12 @@
 	let selected = $state<CapturedPokemon | null>(null);
 	let showHelp = $state(false);
 	let fledList = $state<FledPokemon[]>([]);
+	let tick = $state(0);
 
-	onMount(async () => {
-		fledList = await getAllFled();
+	onMount(() => {
+		getAllFled().then((f) => { fledList = f; });
+		const iv = setInterval(() => { tick = Date.now(); }, 1000);
+		return () => clearInterval(iv);
 	});
 
 	// Smooth progress animation via requestAnimationFrame
@@ -146,6 +151,10 @@
 					{#if isMain}
 						<span class="mt-0.5 rounded-full bg-(--accent)/15 px-1.5 py-0.5 text-[10px] font-semibold text-(--accent)">
 							{$_('jobs.main')}
+						</span>
+					{:else if isOnJobCooldown(p.id)}
+						<span class="mt-0.5 flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold" style="background: #f59e0b18; color: #f59e0b;">
+							⏳ {Math.ceil(jobCooldownRemainingMs(p.id) / 60000)}min
 						</span>
 					{:else}
 						<span class="mt-0.5 rounded-full bg-(--surface-2) px-1.5 py-0.5 text-[10px] text-(--text-muted)">

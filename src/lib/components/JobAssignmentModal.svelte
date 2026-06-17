@@ -5,7 +5,7 @@
 	import NatureIcon from './NatureIcon.svelte';
 	import CorruptedBadge from './CorruptedBadge.svelte';
 	import { game, normalizedPokemonHp, setActivePokemon } from '$lib/game/state.svelte';
-	import { assignJob, stopJob, jobForPokemon, jobsState } from '$lib/game/jobs.svelte';
+	import { assignJob, stopJob, jobForPokemon, jobsState, isOnJobCooldown, jobCooldownRemainingMs } from '$lib/game/jobs.svelte';
 	import { UNLOCK_THRESHOLDS } from '$lib/game/relationship';
 	import { ELEMENT_COLOR, ELEMENT_EMOJI, ELEMENT_LABEL } from '$lib/game/elements';
 	import { pushToast } from '$lib/stores/toast.svelte';
@@ -35,6 +35,17 @@
 		const cap = capacityMs(p);
 		return cap > 0 ? (p.work.rageRemainingMs / cap) * 100 : 0;
 	}
+
+	let cdRemaining = $state(0);
+
+	$effect(() => {
+		if (!selected) { cdRemaining = 0; return; }
+		const id = setInterval(() => {
+			cdRemaining = jobCooldownRemainingMs(selected.id);
+		}, 1000);
+		cdRemaining = jobCooldownRemainingMs(selected.id);
+		return () => clearInterval(id);
+	});
 
 	async function choose(type: 'money') {
 		if (!selected) return;
@@ -189,14 +200,25 @@
 			</div>
 		{/if}
 
+		{@const onCd = cdRemaining > 0}
+		{#if onCd && !onJob}
+			<div class="mb-3 flex items-center gap-2 rounded-lg px-3 py-2" style="background: #f59e0b15; border: 1px solid #f59e0b33;">
+				<span style="font-size: 14px;">😴</span>
+				<div class="flex-1">
+					<div class="text-[11px] font-bold" style="color: #f59e0b;">Descansando</div>
+					<div class="text-[9px]" style="color: #f59e0b99;">⏳ {Math.ceil(cdRemaining / 60000)}min restantes</div>
+				</div>
+			</div>
+		{/if}
+
 		<div style="display: flex; gap: 8px;">
 			<button
 				class="flex-1 rounded-xl px-3 py-2.5 text-center font-bold text-[11px] transition-all active:scale-[0.97] disabled:opacity-40"
-				disabled={isMain}
-				style="background: {elColor}18; color: {elColor}; border: 1px solid {elColor}33;"
+				disabled={isMain || onCd}
+				style="background: {onCd ? 'var(--surface-2)' : `${elColor}18`}; color: {onCd ? 'var(--text-muted)' : elColor}; border: 1px solid {onCd ? 'var(--line)' : `${elColor}33`};"
 				onclick={chooseAsMain}
 			>
-				⭐ {isMain ? 'Líder' : 'Líder'}
+				{#if onCd}⏳ {Math.ceil(cdRemaining / 60000)}min{:else}⭐ {isMain ? 'Líder' : 'Líder'}{/if}
 			</button>
 			{#if onJob}
 				<button
@@ -208,11 +230,12 @@
 				</button>
 			{:else}
 				<button
-					class="flex-1 rounded-xl px-3 py-2.5 text-center font-bold text-[11px] transition-all active:scale-[0.97]"
-					style="background: #eab30818; color: #eab308; border: 1px solid #eab30833;"
+					class="flex-1 rounded-xl px-3 py-2.5 text-center font-bold text-[11px] transition-all active:scale-[0.97] disabled:opacity-40"
+					style="background: {onCd ? 'var(--surface-2)' : '#eab30818'}; color: {onCd ? 'var(--text-muted)' : '#eab308'}; border: 1px solid {onCd ? 'var(--line)' : '#eab30833'};"
+					disabled={onCd}
 					onclick={() => choose('money')}
 				>
-					💰 {$_('jobs.workMoney')}
+					{onCd ? '⏳ Descansando' : `💰 ${$_('jobs.workMoney')}`}
 				</button>
 			{/if}
 		</div>

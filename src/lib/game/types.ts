@@ -102,6 +102,7 @@ export interface CapturedPokemon {
 	baseMaxHp?: number;          // PokeAPI base (backfilled); maxHp = baseMaxHp + (hpBuffs ?? 0)
 	relationship?: PokemonRelationship;
 	work?: WorkState;
+	jobCooldownUntil?: number;   // epoch ms; can't reassign to job until this time
 }
 
 export interface ActiveStatus {

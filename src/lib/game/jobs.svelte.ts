@@ -58,6 +58,18 @@ export function jobForPokemon(pokemonId: string): ActiveJob | undefined {
 	return jobsState.list.find((j) => j.pokemonId === pokemonId);
 }
 
+export function isOnJobCooldown(pokemonId: string): boolean {
+	const p = game.roster.find((p) => p.id === pokemonId);
+	if (!p?.jobCooldownUntil) return false;
+	return Date.now() < p.jobCooldownUntil;
+}
+
+export function jobCooldownRemainingMs(pokemonId: string): number {
+	const p = game.roster.find((p) => p.id === pokemonId);
+	if (!p?.jobCooldownUntil) return 0;
+	return Math.max(0, p.jobCooldownUntil - Date.now());
+}
+
 // ── Exhaustion: ensure work state ─────────────────────────────────────────
 
 export function ensureWorkState(p: import('./types').CapturedPokemon): boolean {
@@ -68,6 +80,7 @@ export function ensureWorkState(p: import('./types').CapturedPokemon): boolean {
 
 // ---- Atribuição ----
 export async function assignJob(pokemonId: string, jobType: JobType): Promise<void> {
+	if (isOnJobCooldown(pokemonId)) return;
 	const t = now();
 	const existing = jobsState.list.find((j) => j.pokemonId === pokemonId);
 	const job: ActiveJob = {
@@ -82,9 +95,16 @@ export async function assignJob(pokemonId: string, jobType: JobType): Promise<vo
 	await setJob(job);
 }
 
+const JOB_COOLDOWN_MS = 30 * 60 * 1000;
+
 export async function stopJob(pokemonId: string): Promise<void> {
 	jobsState.list = jobsState.list.filter((j) => j.pokemonId !== pokemonId);
 	await removeJob(pokemonId);
+	const p = game.roster.find((ap) => ap.id === pokemonId);
+	if (p) {
+		p.jobCooldownUntil = Date.now() + JOB_COOLDOWN_MS;
+		await persistPokemonById(pokemonId);
+	}
 }
 
 // ── Exhaustion: record negative memory ────────────────────────────────────
