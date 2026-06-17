@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { _ } from 'svelte-i18n';
 	import { t } from '$lib/i18n';
 	import Hud from '$lib/components/Hud.svelte';
@@ -11,10 +12,18 @@
 		NGU_COSTS
 	} from '$lib/game/shop.svelte';
 	import { game } from '$lib/game/state.svelte';
+	import { initPlatinum, tickPlatinum } from '$lib/game/platinum.svelte';
 	import { formatNumber } from '$lib/utils/math';
 	import { pushToast } from '$lib/stores/toast.svelte';
 	import PlatinumShop from '$lib/components/marketplace/PlatinumShop.svelte';
 	import posthog from 'posthog-js';
+
+	onMount(() => {
+		initPlatinum();
+		tickPlatinum();
+		const iv = setInterval(tickPlatinum, 30_000);
+		return () => clearInterval(iv);
+	});
 
 	async function performNguBuy(action: () => Promise<boolean>, name: string) {
 		const ok = await action();
@@ -56,15 +65,13 @@
 		<h1 class="text-lg font-bold">{$_('shop.title')}</h1>
 	</div>
 
-	<!-- Platinum shop - only shows if user has platinum currency -->
-	 {#if (game.player?.platinum ?? 0) > 0}
+	<!-- Platinum shop — buy & spend platinum -->
 	<div class="mt-6 mb-6">
 		<h2 class="mb-2 text-base font-bold">{$_('shop.platinumShop')}</h2>
 		<div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
 			<PlatinumShop />
 		</div>
 	</div>
-	{/if}
 
 	<CardUpgradePanel />
 

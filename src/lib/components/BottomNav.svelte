@@ -7,7 +7,6 @@
 		{ href: '/' },
 		{ href: '/jobs' },
 		{ href: '/deck' },
-		{ href: '/market' },
 		{ href: '/shop' }
 	];
 
@@ -20,7 +19,7 @@
 </script>
 
 <nav
-	class="nav-bar sticky bottom-0 z-30 grid grid-cols-5"
+	class="nav-bar sticky bottom-0 z-30 grid grid-cols-4"
 	style="padding-bottom: env(safe-area-inset-bottom);"
 >
 	{#each navItems as item (item.href)}
@@ -40,10 +39,6 @@
 			{:else if item.href === '/deck'}
 				<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
 					<rect x="6" y="3" width="12" height="18" rx="2" /><path d="M9 7h6M9 11h6" />
-				</svg>
-			{:else if item.href === '/market'}
-				<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-					<path d="M4 19V5M4 15l5-5 4 3 7-8" /><path d="M16 5h4v4" />
 				</svg>
 			{:else if item.href === '/shop'}
 				<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">

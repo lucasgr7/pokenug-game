@@ -1,18 +1,6 @@
-import {
-	type Element,
-	type MarketCandle,
-	type MarketState,
-	type CardTemplate
-} from './types';
+import type { Element, CardTemplate } from './types';
 import { ELEMENT_LABEL } from '$lib/game/elements';
-import { loadMarket, saveMarket } from '$lib/db/market';
-import {
-	addMoney,
-	spendMoney,
-	addPlatinum,
-	spendPlatinum,
-	game
-} from './state.svelte';
+import { addPlatinum, spendPlatinum, spendMoney, game } from './state.svelte';
 import { CATALOG } from '$lib/data/cards';
 import { addManyToInventory } from '$lib/db/cards';
 import { addPokemon } from '$lib/db/pokemon';
@@ -20,46 +8,25 @@ import { fetchPokemon } from '$lib/api/pokeapi';
 
 // ---- Constants ----
 
-/** How often an automatic price snapshot / candle is recorded (ms). */
-const SNAPSHOT_INTERVAL_MS = 5 * 60 * 1_000;
-/** Maximum candle entries kept. */
-const MAX_CANDLES = 24;
-/** Events: min/max interval between events. */
-const EVENT_MIN_INTERVAL_MS = 20 * 60_000;
-const EVENT_MAX_INTERVAL_MS = 40 * 60_000;
-/** Events: min/max duration. */
-const EVENT_MIN_DURATION_MS = 10 * 60_000;
-const EVENT_MAX_DURATION_MS = 20 * 60_000;
+export const PLATINUM_BASE_PRICE = 1_000_000;
+export const PLATINUM_GROWTH = 1.10;
+export const PLATINUM_PACK_COST = 3;
+export const PLATINUM_PACK_SIZE = 3;
 
-// ---- Core state ----
+// ---- Reactive state ----
 
-export const marketState = $state<{ value: MarketState | null }>({ value: null });
 export const platinumDiscount = $state<{ value: { endsAt: number; pct: number } | null }>({ value: null });
 export const platinumDiscountTick = $state<{ value: number }>({ value: 0 });
 
+let platinumPrice = $state(PLATINUM_BASE_PRICE);
 let nextPlatinumDiscountAt = 0;
 
-export async function initMarket(): Promise<void> {
-	if (marketState.value) return;
-	const saved = await loadMarket();
-	if (saved) {
-		marketState.value = saved;
-	} else {
-		const now = Date.now();
-		marketState.value = {
-			platinum: { price: PLATINUM_BASE_PRICE, candles: [{ t: now, o: PLATINUM_BASE_PRICE, h: PLATINUM_BASE_PRICE, l: PLATINUM_BASE_PRICE, c: PLATINUM_BASE_PRICE }] },
-			lastUpdatedAt: now
-		};
-		await saveMarket($state.snapshot(marketState.value));
-	}
-	// Ensure platinum exists (migration safeguard).
-	if (!marketState.value.platinum) {
-		const now = Date.now();
-		marketState.value.platinum = { price: PLATINUM_BASE_PRICE, candles: [{ t: now, o: PLATINUM_BASE_PRICE, h: PLATINUM_BASE_PRICE, l: PLATINUM_BASE_PRICE, c: PLATINUM_BASE_PRICE }] };
-	}
-}
+const EVENT_MIN_INTERVAL_MS = 20 * 60_000;
+const EVENT_MAX_INTERVAL_MS = 40 * 60_000;
+const EVENT_MIN_DURATION_MS = 10 * 60_000;
+const EVENT_MAX_DURATION_MS = 20 * 60_000;
 
-// ---- Platinum Discount ----
+// ---- Discount events ----
 
 function checkPlatinumDiscount(now: number): void {
 	if (nextPlatinumDiscountAt === 0) {
@@ -70,79 +37,42 @@ function checkPlatinumDiscount(now: number): void {
 
 	const pct = 0.15 + Math.random() * 0.10;
 	const duration = EVENT_MIN_DURATION_MS + Math.random() * (EVENT_MAX_DURATION_MS - EVENT_MIN_DURATION_MS);
-	platinumDiscount.value = {
-		endsAt: now + duration,
-		pct
-	};
+	platinumDiscount.value = { endsAt: now + duration, pct };
 	platinumDiscountTick.value++;
 	nextPlatinumDiscountAt = now + EVENT_MIN_INTERVAL_MS + Math.random() * (EVENT_MAX_INTERVAL_MS - EVENT_MIN_INTERVAL_MS);
 }
 
-/** Tick and persist. Should be called on mount and periodically. */
-export async function tickAllElements(): Promise<void> {
-	if (!marketState.value) return;
+export function initPlatinum(): void {
+	// no DB persistence — price resets to base per session
+	platinumPrice = PLATINUM_BASE_PRICE;
+}
+
+export function tickPlatinum(): void {
 	const now = Date.now();
 	checkPlatinumDiscount(now);
-
-	// Clear expired platinum discount
 	if (platinumDiscount.value && now >= platinumDiscount.value.endsAt) {
 		platinumDiscount.value = null;
 	}
-
-	if (marketState.value.platinum) {
-		updatePlatinumCandle(now);
-	}
-	marketState.value.lastUpdatedAt = now;
-	await saveMarket($state.snapshot(marketState.value));
 }
 
-// ---- Transactions ----
+export function getPlatinumPrice(now = Date.now()): number {
+	const discount = platinumDiscount.value && now < platinumDiscount.value.endsAt ? platinumDiscount.value.pct : 0;
+	return Math.round(platinumPrice * (1 - discount));
+}
+
+export function estimatePlatinumCost(qty: number): number {
+	const base = getPlatinumPrice();
+	const r = PLATINUM_GROWTH;
+	return Math.round(base * (Math.pow(r, qty) - 1) / (r - 1));
+}
 
 export interface TradeResult {
 	success: boolean;
 	message: string;
 	total?: number;
-	fee?: number;
-	greatDeal?: boolean;
 }
 
-// ---- Platinum commodity (buy-only, escalating price) ----
-
-export const PLATINUM_BASE_PRICE = 1_000_000;
-export const PLATINUM_GROWTH = 1.10;
-
-function updatePlatinumCandle(now: number): void {
-	if (!marketState.value?.platinum) return;
-	const candles = marketState.value.platinum.candles;
-	const price = marketState.value.platinum.price;
-	const cur = candles[candles.length - 1];
-	if (!cur || now - cur.t >= SNAPSHOT_INTERVAL_MS) {
-		candles.push({ t: now, o: price, h: price, l: price, c: price });
-		if (candles.length > MAX_CANDLES) candles.splice(0, candles.length - MAX_CANDLES);
-	} else {
-		cur.h = Math.max(cur.h, price);
-		cur.l = Math.min(cur.l, price);
-		cur.c = price;
-	}
-}
-
-export function getPlatinumPrice(now = Date.now()): number {
-	if (!marketState.value?.platinum) return PLATINUM_BASE_PRICE;
-	const p = marketState.value.platinum.price;
-	const discount = platinumDiscount.value && now < platinumDiscount.value.endsAt ? platinumDiscount.value.pct : 0;
-	return Math.round(p * (1 - discount));
-}
-
-export function estimatePlatinumCost(qty: number): number {
-	if (!marketState.value?.platinum) return qty * PLATINUM_BASE_PRICE;
-	const base = getPlatinumPrice();
-	// Geometric sum: base * (1 + r + r^2 + ... + r^(qty-1)) where r = PLATINUM_GROWTH
-	const r = PLATINUM_GROWTH;
-	return Math.round(base * (Math.pow(r, qty) - 1) / (r - 1));
-}
-
-export async function buyPlatinum(qty = 1): Promise<TradeResult> {
-	if (!marketState.value?.platinum) return { success: false, message: 'Mercado não carregado.' };
+export function buyPlatinum(qty = 1): TradeResult {
 	if (qty <= 0) return { success: false, message: 'Quantidade inválida.' };
 
 	const now = Date.now();
@@ -156,16 +86,16 @@ export async function buyPlatinum(qty = 1): Promise<TradeResult> {
 		addPlatinum(1);
 		totalSpent += unit;
 		bought++;
-		marketState.value.platinum.price = Math.round(marketState.value.platinum.price * PLATINUM_GROWTH);
-		updatePlatinumCandle(now);
+		platinumPrice = Math.round(platinumPrice * PLATINUM_GROWTH);
 	}
 
 	if (bought === 0) {
-		return { success: false, message: `Dinheiro insuficiente. Necessário: 💰 ${getPlatinumPrice(now).toLocaleString('pt-BR')}` };
+		return {
+			success: false,
+			message: `Dinheiro insuficiente. Necessário: 💰 ${getPlatinumPrice(now).toLocaleString('pt-BR')}`
+		};
 	}
 
-	marketState.value.lastUpdatedAt = now;
-	await saveMarket($state.snapshot(marketState.value));
 	return {
 		success: true,
 		message: `⬡ +${bought} Platinum adquirido${bought > 1 ? 's' : ''}!`,
@@ -174,9 +104,6 @@ export async function buyPlatinum(qty = 1): Promise<TradeResult> {
 }
 
 // ---- Platinum store ----
-
-export const PLATINUM_PACK_COST = 3;
-export const PLATINUM_PACK_SIZE = 3;
 
 export async function buyElementPack(
 	el: Element
@@ -190,7 +117,6 @@ export async function buyElementPack(
 		return { success: false, message: 'Platinum insuficiente.' };
 	}
 
-	// Weight toward rare/epic
 	const weighted: CardTemplate[] = [];
 	for (const c of pool) {
 		const w = c.rarity === 'epic' ? 4 : c.rarity === 'rare' ? 3 : c.rarity === 'secret' ? 5 : 1;
@@ -242,5 +168,3 @@ export async function buyPlatinumPokemon(speciesId: number): Promise<{ success: 
 
 	return { success: true, message: `${entry.name} capturado!` };
 }
-
-

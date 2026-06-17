@@ -49,23 +49,6 @@
 	<div class="min-w-0 flex-1">
 		<div class="flex items-center gap-2">
 			<div class="truncate text-xs font-bold">{game.player?.name ?? "—"}</div>
-			<button
-				class="ml-auto flex items-center gap-1.5 text-xs"
-				onclick={() => goto("/market")}
-				aria-label={$_("hud.mercado")}
-				title={$_("hud.irParaMercado")}
-			>
-				<svg
-					width="14"
-					height="14"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-				>
-					<path d="M4 19V5M4 15l5-5 4 3 7-8" /><path d="M16 5h4v4" />
-				</svg>
-			</button>
 			{#if installPrompt && !installed}
 				<button
 					class="rounded-md px-1.5 py-0.5 text-sm hover:bg-(--surface-2)"

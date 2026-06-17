@@ -5,8 +5,7 @@ import type {
 	CapturedPokemon,
 	CardTemplate,
 	Player,
-	SavedBattle,
-	MarketState
+	SavedBattle
 } from '$lib/game/types';
 
 export interface ShopState {
@@ -57,14 +56,10 @@ export interface PokenguDB extends DBSchema {
 		key: string;
 		value: SavedBattle;
 	};
-	market: {
-		key: string;
-		value: MarketState;
-	};
 }
 
 const DB_NAME = 'pokengu';
-const DB_VERSION = 5; // v5: removed elemental points — clear market, strip element jobs
+const DB_VERSION = 6; // v6: removed market store entirely
 
 let dbPromise: Promise<IDBPDatabase<PokenguDB>> | null = null;
 
@@ -82,7 +77,6 @@ export function getDb(): Promise<IDBPDatabase<PokenguDB>> {
 				if (!db.objectStoreNames.contains('sprites')) db.createObjectStore('sprites');
 				if (!db.objectStoreNames.contains('shop')) db.createObjectStore('shop');
 				if (!db.objectStoreNames.contains('battle')) db.createObjectStore('battle');
-				if (!db.objectStoreNames.contains('market')) db.createObjectStore('market');
 
 				// Migração v4: IDs de cartas antigos são incompatíveis com o novo catálogo
 				if (oldVersion < 4) {
@@ -90,9 +84,20 @@ export function getDb(): Promise<IDBPDatabase<PokenguDB>> {
 					transaction.objectStore('activeDeck').clear();
 				}
 
-				// Migração v5: EP removido — limpa market e deleta jobs elementares
+				// Migração v5: EP removido — limpa market
 				if (oldVersion < 5) {
-					transaction.objectStore('market').clear();
+					const dbRaw = db as any;
+					if (dbRaw.objectStoreNames.contains('market')) {
+						dbRaw.deleteObjectStore('market');
+					}
+				}
+
+				// Migração v6: market store removida
+				if (oldVersion < 6) {
+					const dbRaw = db as any;
+					if (dbRaw.objectStoreNames.contains('market')) {
+						dbRaw.deleteObjectStore('market');
+					}
 				}
 			}
 		});

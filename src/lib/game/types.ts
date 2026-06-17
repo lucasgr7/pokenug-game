@@ -35,21 +35,6 @@ export const ELEMENTS: Element[] = [
 
 export type Theme = 'dark' | 'light';
 
-// ---- Marketplace ----
-
-export interface MarketCandle {
-	t: number; // window start timestamp
-	o: number; // open
-	h: number; // high
-	l: number; // low
-	c: number; // close
-}
-
-export interface MarketState {
-	platinum: { price: number; candles: MarketCandle[] };
-	lastUpdatedAt: number;
-}
-
 export type RegionId = string;
 
 export interface Player {
