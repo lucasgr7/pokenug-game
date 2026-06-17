@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { PokemonRelationship, CapturedPokemon } from '../types';
+import type { PokemonRelationship, CapturedPokemon, PokemonMemory } from '../types';
 import {
 	classifyEmoji,
 	firstEmoji,
 	keywordFallback,
 	shouldRollEvent,
 	applyRelationshipDelta,
+	computeAffinityDelta,
+	normalizeMessage,
 	resolveUnlocks,
 	recomputeMaxHp,
 	countUnlockedThresholds,
@@ -162,6 +164,49 @@ describe('applyRelationshipDelta', () => {
 		const rel = makeRel(0);
 		const result = applyRelationshipDelta(rel, 'good');
 		expect(result.newlyUnlocked).toEqual([]);
+	});
+});
+
+// ── Habituação (computeAffinityDelta) ─────────────────────────────────────
+
+describe('computeAffinityDelta (habituação)', () => {
+	function mem(playerMessage: string, sentiment: PokemonMemory['sentiment']): PokemonMemory {
+		return { at: 0, trigger: 'idle', playerMessage, emoji: '😊', sentiment };
+	}
+
+	it('rende o valor cheio na primeira interação', () => {
+		expect(computeAffinityDelta('good', 'te amo', [])).toBe(SENTIMENT_DELTA.good);
+	});
+
+	it('reduz ao repetir a MESMA frase e fica negativo no spam', () => {
+		const once = computeAffinityDelta('good', 'te amo', [mem('te amo', 'good')]);
+		const twice = computeAffinityDelta('good', 'te amo', [mem('te amo', 'good'), mem('te amo', 'good')]);
+		expect(once).toBeLessThan(SENTIMENT_DELTA.good);
+		expect(twice).toBeLessThan(0); // spam passa a irritar
+	});
+
+	it('ignora acentos/caixa ao detectar repetição', () => {
+		const a = computeAffinityDelta('good', 'TE AMO', [mem('te amo', 'good')]);
+		expect(a).toBeLessThan(SENTIMENT_DELTA.good);
+	});
+
+	it('decai mais suave ao repetir só o TOM (frases diferentes)', () => {
+		const history = [mem('voce e incrivel', 'good'), mem('mandou bem', 'good')];
+		const d = computeAffinityDelta('good', 'que orgulho', history);
+		expect(d).toBeGreaterThan(0);
+		expect(d).toBeLessThan(SENTIMENT_DELTA.good);
+	});
+
+	it('não "alivia" respostas ruins (habituação só afeta ganhos)', () => {
+		const d = computeAffinityDelta('bad', 'qualquer', [mem('qualquer', 'bad'), mem('qualquer', 'bad')]);
+		expect(d).toBe(SENTIMENT_DELTA.bad);
+	});
+});
+
+describe('normalizeMessage', () => {
+	it('normaliza caixa, acentos e espaços', () => {
+		expect(normalizeMessage('  Te   AMO!  ')).toBe('te amo!');
+		expect(normalizeMessage('coração')).toBe('coracao');
 	});
 });
 

@@ -30,7 +30,8 @@ async function ollamaGenerate(
 function buildPrompt(
 	memories: PokemonMemory[],
 	userMessage: string,
-	pokemon: CapturedPokemon
+	pokemon: CapturedPokemon,
+	situation?: string
 ): string {
 	const elementLabel = ELEMENT_LABEL[pokemon.element] ?? pokemon.element;
 	const lines: string[] = [];
@@ -39,6 +40,12 @@ function buildPrompt(
 		`Você é ${pokemon.name}, um Pokémon do tipo ${elementLabel}. ` +
 			`Aja como um Pokémon de verdade: tem humor e sentimentos próprios e reage ao seu treinador.`
 	);
+
+	// Situação atual — faz a MESMA fala soar diferente conforme o contexto.
+	if (situation) {
+		lines.push('');
+		lines.push(`Situação agora: ${situation}`);
+	}
 
 	// Apenas memórias com um emoji registrado servem de contexto.
 	const pastReactions = memories.filter((m) => m.emoji && m.playerMessage);
@@ -54,7 +61,8 @@ function buildPrompt(
 	lines.push(`Agora o treinador diz: "${userMessage}"`);
 	lines.push('');
 	lines.push(
-		'Responda com UM ÚNICO emoji que mostre como você se sente, sem nenhuma palavra. ' +
+		'Reaja a essa fala levando em conta a situação e o que ele já te disse antes. ' +
+			'Responda com UM ÚNICO emoji que mostre como você se sente, sem nenhuma palavra. ' +
 			'Exemplos: 😊 feliz, 🥰 amado, 😡 irritado, 😢 triste, 😴 cansado, 😐 indiferente.'
 	);
 
@@ -64,10 +72,11 @@ function buildPrompt(
 export async function classifyMessage(
 	memories: PokemonMemory[],
 	userMessage: string,
-	pokemon: CapturedPokemon
+	pokemon: CapturedPokemon,
+	situation?: string
 ): Promise<{ emoji: string; sentiment: Sentiment }> {
 	try {
-		const prompt = buildPrompt(memories.slice(-3), userMessage, pokemon);
+		const prompt = buildPrompt(memories.slice(-3), userMessage, pokemon, situation);
 		const raw = await ollamaGenerate(prompt, 8000, { temperature: 0.4 });
 		const emoji = firstEmoji(raw) ?? DEFAULT_ITEM_EMOJI;
 		return { emoji, sentiment: classifyEmoji(emoji) };

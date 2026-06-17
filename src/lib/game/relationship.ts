@@ -1,4 +1,10 @@
-import type { CapturedPokemon, PokemonRelationship, RelationshipTrigger, Sentiment } from './types';
+import type {
+	CapturedPokemon,
+	PokemonMemory,
+	PokemonRelationship,
+	RelationshipTrigger,
+	Sentiment
+} from './types';
 import { EVENT_REGISTRY } from './relationship/index';
 import type { EventAnswerDef, EventContext, EventDefinition } from './relationship/index';
 
@@ -141,12 +147,61 @@ export function countUnlockedThresholds(points: number): number {
 	return count;
 }
 
+// ── Habituação (retornos decrescentes) ────────────────────────────────────
+// Repetir a mesma fala/tom cansa o Pokémon: o ganho cai e pode ficar negativo.
+
+export const HABIT_WINDOW = 5; // quantas interações recentes contam
+export const REPEAT_STEP = 0.6; // penalidade por frase idêntica recente
+export const SENTIMENT_STEP = 0.2; // penalidade por repetir o mesmo tom
+export const MIN_SENTIMENT_MULT = 0.3; // piso para o decaimento por tom
+
+export function normalizeMessage(msg: string): string {
+	return msg
+		.toLowerCase()
+		.normalize('NFD')
+		.replace(/[̀-ͯ]/g, '')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
+/**
+ * Quanto a interação rende, dado o histórico recente. Só ganhos positivos são
+ * reduzidos pela habituação — respostas neutras/ruins não são "aliviadas".
+ * Repetir a MESMA frase derruba rápido (e pode irritar); repetir o mesmo TOM
+ * variando as palavras tem decaimento mais suave.
+ */
+export function computeAffinityDelta(
+	sentiment: Sentiment,
+	message: string,
+	recentMemories: PokemonMemory[]
+): number {
+	const base = SENTIMENT_DELTA[sentiment];
+	if (base <= 0) return base;
+
+	const window = recentMemories.slice(-HABIT_WINDOW);
+	const norm = normalizeMessage(message);
+
+	const sameMessage =
+		norm.length > 0
+			? window.filter((m) => normalizeMessage(m.playerMessage) === norm).length
+			: 0;
+	const sameSentiment = window.filter((m) => m.sentiment === sentiment).length;
+
+	const repeatMult = 1 - REPEAT_STEP * sameMessage; // 1 → 0.4 → -0.2 → ...
+	const sentimentMult = Math.max(MIN_SENTIMENT_MULT, 1 - SENTIMENT_STEP * sameSentiment);
+
+	return Math.round(base * Math.min(repeatMult, sentimentMult));
+}
+
 export function applyRelationshipDelta(
 	rel: PokemonRelationship,
-	sentiment: Sentiment
-): { points: number; newlyUnlocked: number[] } {
+	sentiment: Sentiment,
+	message = '',
+	recentMemories: PokemonMemory[] = rel.memories
+): { points: number; newlyUnlocked: number[]; delta: number } {
 	const prevPoints = rel.points;
-	rel.points = Math.max(0, rel.points + SENTIMENT_DELTA[sentiment]);
+	const delta = computeAffinityDelta(sentiment, message, recentMemories);
+	rel.points = Math.max(0, rel.points + delta);
 
 	const prevUnlocked = countUnlockedThresholds(prevPoints);
 	const nowUnlocked = countUnlockedThresholds(rel.points);
@@ -155,7 +210,7 @@ export function applyRelationshipDelta(
 	for (let i = prevUnlocked; i < nowUnlocked; i++) {
 		if (i < 3) newlyUnlocked.push(i);
 	}
-	return { points: rel.points, newlyUnlocked };
+	return { points: rel.points, newlyUnlocked, delta };
 }
 
 export function resolveUnlocks(pokemon: CapturedPokemon): { hpGained: number } {

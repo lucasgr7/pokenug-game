@@ -95,9 +95,9 @@ async function applyResolution(
 	hookId?: string,
 	playerMessage?: string,
 	emoji = ''
-): Promise<void> {
+): Promise<number> {
 	const pokemon = game.roster.find((p) => p.id === event.pokemonId);
-	if (!pokemon || !pokemon.relationship) return;
+	if (!pokemon || !pokemon.relationship) return 0;
 
 	const t = now();
 
@@ -110,24 +110,30 @@ async function applyResolution(
 		}
 	}
 
+	const message = playerMessage ?? event.answers[0]?.text ?? '';
+
+	// Histórico ANTES desta interação — base da habituação (senão a fala atual
+	// contaria como repetição de si mesma).
+	const recent = pokemon.relationship.memories.slice();
+
 	const memory: PokemonMemory = {
 		at: t,
 		trigger: event.trigger,
-		playerMessage: playerMessage ?? event.answers[0]?.text ?? '',
+		playerMessage: message,
 		emoji,
 		sentiment
 	};
 	pokemon.relationship.memories.push(memory);
 
-	const delta = applyRelationshipDelta(pokemon.relationship, sentiment);
+	const result = applyRelationshipDelta(pokemon.relationship, sentiment, message, recent);
 	const unlockResult = resolveUnlocks(pokemon);
 	recomputeMaxHp(pokemon);
 
 	pokemon.relationship.lastEventAt = t;
 
-	if (delta.newlyUnlocked.length > 0) {
+	if (result.newlyUnlocked.length > 0) {
 		const { NATURES } = await import('$lib/data/natures');
-		const natureNames = delta.newlyUnlocked
+		const natureNames = result.newlyUnlocked
 			.map((i) => pokemon.natures?.assigned[i])
 			.filter((id): id is import('./types').NatureId => id !== undefined)
 			.map((id) => NATURES[id]?.namePt ?? id);
@@ -138,9 +144,15 @@ async function applyResolution(
 		pushToast(`${pokemon.name} ganhou +${unlockResult.hpGained} de HP máximo!`, 'success');
 	}
 
+	// Sinaliza tédio: resposta "boa" que já não rende nada por repetição.
+	if (sentiment === 'good' && result.delta <= 0) {
+		pushToast(`${pokemon.name} parece entediado com a repetição...`);
+	}
+
 	removeEvent(event.id);
 	await addPokemon($state.snapshot(pokemon));
 	schedulePersist();
+	return result.delta;
 }
 
 function removeEvent(eventId: string): void {
@@ -152,6 +164,7 @@ function removeEvent(eventId: string): void {
 export interface LlmResolution {
 	emoji: string;
 	sentiment: Sentiment;
+	delta: number;
 }
 
 /**
@@ -180,7 +193,8 @@ export async function resolveWithLLM(
 		const result = await classifyMessage(
 			pokemon.relationship?.memories?.slice(-3) ?? [],
 			text,
-			pokemon
+			pokemon,
+			event.promptPt
 		);
 		emoji = result.emoji;
 		sentiment = result.sentiment;
@@ -191,8 +205,8 @@ export async function resolveWithLLM(
 		emoji = sentiment === 'good' ? '😊' : sentiment === 'bad' ? '😢' : '😐';
 	}
 
-	await applyResolution(event, sentiment, hookId, text, emoji);
-	return { emoji, sentiment };
+	const delta = await applyResolution(event, sentiment, hookId, text, emoji);
+	return { emoji, sentiment, delta };
 }
 
 // ── Expiry ────────────────────────────────────────────────────────────────

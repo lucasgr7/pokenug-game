@@ -5,7 +5,6 @@
 	import { game } from '$lib/game/state.svelte';
 	import { getSpriteUrl } from '$lib/api/sprites';
 	import { MAX_INPUT_CHARS, UNLOCK_THRESHOLDS } from '$lib/game/relationship';
-	import type { Sentiment } from '$lib/game/types';
 	import SpeechBubble from '$lib/components/battle/SpeechBubble.svelte';
 
 	const pokemonId = $derived(page.params.id);
@@ -15,7 +14,7 @@
 	// Captured so the result screen survives the event being removed from state.
 	let phase = $state<'asking' | 'thinking' | 'responded'>('asking');
 	let responseEmoji = $state('');
-	let responseSentiment = $state<Sentiment>('neutral');
+	let responseDelta = $state(0);
 	let prompt = $state('');
 
 	let spriteUrl = $state('');
@@ -39,7 +38,7 @@
 		phase = 'thinking';
 		const res = await resolveWithLLM(eventId, text, hookId);
 		responseEmoji = res?.emoji ?? '❓';
-		responseSentiment = res?.sentiment ?? 'neutral';
+		responseDelta = res?.delta ?? 0;
 		phase = 'responded';
 	}
 
@@ -53,10 +52,12 @@
 		goto('/');
 	}
 
+	// O coração reflete o ganho REAL de afinidade (já com a habituação aplicada),
+	// não só o tom da reação — assim repetir a mesma coisa mostra ±0 ou perda.
 	const heart = $derived(
-		responseSentiment === 'good' ? { sym: '❤️', label: '+1' }
-		: responseSentiment === 'bad' ? { sym: '💔', label: '-1' }
-		: null
+		responseDelta > 0 ? { sym: '❤️', label: `+${responseDelta}`, bad: false }
+		: responseDelta < 0 ? { sym: '💔', label: `${responseDelta}`, bad: true }
+		: { sym: '😶', label: '±0', bad: false }
 	);
 </script>
 
@@ -104,12 +105,10 @@
 					{#key responseEmoji}
 						<span class="big-emoji">{responseEmoji}</span>
 					{/key}
-					{#if heart}
-						<div class="heart-float" class:bad={responseSentiment === 'bad'}>
-							<span class="heart-sym">{heart.sym}</span>
-							<span class="heart-label">{heart.label}</span>
-						</div>
-					{/if}
+					<div class="heart-float" class:bad={heart.bad}>
+						<span class="heart-sym">{heart.sym}</span>
+						<span class="heart-label">{heart.label}</span>
+					</div>
 				</div>
 			{:else if event}
 				<div class="bubble-host">
