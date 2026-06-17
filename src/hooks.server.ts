@@ -4,16 +4,16 @@ import { getPostHogClient } from '$lib/server/posthog';
 export const handle: Handle = async ({ event, resolve }) => {
 	const { pathname } = event.url;
 
-	if (pathname.startsWith('/ingest')) {
+	if (pathname.startsWith('/a')) {
 		const useAssetHost =
-			pathname.startsWith('/ingest/static/') || pathname.startsWith('/ingest/array/');
+			pathname.startsWith('/a/static/') || pathname.startsWith('/a/array/');
 		const hostname = useAssetHost ? 'us-assets.i.posthog.com' : 'us.i.posthog.com';
 
 		const url = new URL(event.request.url);
 		url.protocol = 'https:';
 		url.hostname = hostname;
 		url.port = '443';
-		url.pathname = pathname.replace(/^\/ingest/, '');
+		url.pathname = pathname.replace(/^\/a/, '');
 
 		const headers = new Headers(event.request.headers);
 		headers.set('host', hostname);

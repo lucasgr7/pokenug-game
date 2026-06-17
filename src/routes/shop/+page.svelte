@@ -65,13 +65,6 @@
 		<h1 class="text-lg font-bold">{$_('shop.title')}</h1>
 	</div>
 
-	<!-- Platinum shop — buy & spend platinum -->
-	<div class="mt-6 mb-6">
-		<h2 class="mb-2 text-base font-bold">{$_('shop.platinumShop')}</h2>
-		<div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
-			<PlatinumShop />
-		</div>
-	</div>
 
 	<CardUpgradePanel />
 
@@ -129,7 +122,16 @@
 					</div>
 				{/each}
 			</div>
+		</div>	
+		
+	<!-- Platinum shop — buy & spend platinum -->
+	<div class="mt-6 mb-6">
+		<h2 class="mb-2 text-base font-bold">{$_('shop.platinumShop')}</h2>
+		<div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+			<PlatinumShop />
 		</div>
+	</div>
+
 
 	{/if}
 </main>

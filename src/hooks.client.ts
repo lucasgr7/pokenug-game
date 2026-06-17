@@ -6,7 +6,7 @@ export async function init() {
 	if (!PUBLIC_POSTHOG_PROJECT_TOKEN) return;
 
 	posthog.init(PUBLIC_POSTHOG_PROJECT_TOKEN, {
-		api_host: window.location.origin + '/ingest',
+		api_host: window.location.origin + '/a',
 		ui_host: 'https://us.posthog.com',
 		defaults: '2026-01-30',
 		capture_exceptions: true
