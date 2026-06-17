@@ -5,12 +5,8 @@
 	import Sprite from '$lib/components/Sprite.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import Modal from '$lib/components/Modal.svelte';
-	import NatureIcon from '$lib/components/NatureIcon.svelte';
-	import CorruptedBadge from '$lib/components/CorruptedBadge.svelte';
-	import { NATURES } from '$lib/data/natures';
-	import { game, normalizedPokemonHp, setActivePokemon } from '$lib/game/state.svelte';
+	import { game, normalizedPokemonHp } from '$lib/game/state.svelte';
 	import {
-		assignJob,
 		stopJob,
 		jobForPokemon,
 		jobsState,
@@ -22,11 +18,11 @@
 	import { pushToast } from '$lib/stores/toast.svelte';
 	import { onMount } from 'svelte';
 	import { getAllFled, removeFled } from '$lib/db/fled';
-	import { capacityMs, stepWork } from '$lib/game/exhaustion';
+	import { capacityMs } from '$lib/game/exhaustion';
 	import type { FledPokemon } from '$lib/game/types';
+	import JobAssignmentModal from '$lib/components/JobAssignmentModal.svelte';
 
 	let selected = $state<CapturedPokemon | null>(null);
-	let expandedNature = $state<number | null>(null);
 	let showHelp = $state(false);
 	let fledList = $state<FledPokemon[]>([]);
 
@@ -79,35 +75,9 @@
 
 	let activeTypes = $derived(activeJobTypes());
 
-	async function choose(type: JobType) {
-		if (!selected) return;
-		await assignJob(selected.id, type);
-		pushToast(t('jobs.assigned', { name: selected.name, label: jobLabel(type) }), 'success');
-		selected = null;
-	}
-
-	async function stop() {
-		if (!selected) return;
-		await stopJob(selected.id);
-		pushToast(t('jobs.stopped', { name: selected.name }));
-		selected = null;
-	}
-
 	async function removeFromJob(pokemon: CapturedPokemon) {
 		await stopJob(pokemon.id);
 		pushToast(t('jobs.stopped', { name: pokemon.name }));
-	}
-
-	function chooseAsMain() {
-		if (!selected) return;
-		if (normalizedPokemonHp(selected) <= 0) {
-			pushToast(t('jobs.fainted', { name: selected.name }), 'error');
-			selected = null;
-			return;
-		}
-		setActivePokemon(selected.id);
-		pushToast(t('jobs.setMainSuccess', { name: selected.name }), 'success');
-		selected = null;
 	}
 
 	function hpPercent(pokemon: CapturedPokemon): number {
@@ -296,65 +266,8 @@
 	</div>
 </Modal>
 
-<!-- Assignment modal -->
-<Modal open={!!selected} title={selected?.name ?? ''} onclose={() => (selected = null)}>
-	{#if selected}
-		{@const isMain = game.player?.activePokemonId === selected.id}
-		<!-- Nature panel -->
-		<div class="mb-3 flex items-center gap-2">
-			<Sprite speciesId={selected.speciesId} size={48} alt={selected.name} />
-			<div>
-				<p class="font-bold flex items-center gap-1.5">
-					{selected.name}
-					{#if selected.corrupted}<CorruptedBadge size={16} />{/if}
-				</p>
-				<p class="text-[10px] text-(--text-muted)">{Math.ceil(normalizedPokemonHp(selected))}/{selected.maxHp} HP</p>
-			</div>
-		</div>
-		{#if selected.natures}
-			<div class="mb-3 flex flex-wrap gap-1.5">
-				{#each [0, 1, 2] as i}
-					{@const id = selected.natures.assigned[i]}
-					{@const unlocked = selected.natures.unlocked[i]}
-					{@const expanded = expandedNature === i}
-					<div>
-						<button
-							class="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold"
-							class:border-(--border)={!unlocked}
-							class:border-(--success)={unlocked}
-							class:opacity-50={!unlocked}
-							onclick={() => (expandedNature = expanded ? null : i)}
-							title={$_('natures.' + id + '.description')}
-						>
-							<NatureIcon {id} locked={!unlocked} size={16} />
-							{$_('natures.' + id + '.name')}
-						</button>
-						{#if expanded}
-							<div class="mt-0.5 max-w-48 rounded-md bg-(--surface-2) px-2 py-1 text-[10px] text-(--text-muted)">
-								{$_('natures.' + id + '.description')}
-							</div>
-						{/if}
-					</div>
-				{/each}
-			</div>
-		{/if}
-		<div class="space-y-2">
-			<button
-				class="w-full rounded-xl border border-(--accent) bg-(--accent)/10 px-4 py-3 text-left font-semibold text-(--accent) disabled:opacity-50"
-				disabled={isMain}
-				onclick={chooseAsMain}
-			>
-				⭐ {isMain ? $_('jobs.isMain') : $_('jobs.setAsMain')}
-			</button>
-			<button
-				class="w-full rounded-xl border border-(--border) px-4 py-3 text-left font-semibold hover:bg-(--surface-2)"
-				onclick={() => choose('money')}
-			>
-				{$_('jobs.workMoney')}
-			</button>
-		</div>
-	{/if}
-</Modal>
+<!-- Assignment modal component -->
+<JobAssignmentModal selected={selected} onclose={() => (selected = null)} />
 
 <style>
 	:global(.hp-heal-glow) {
